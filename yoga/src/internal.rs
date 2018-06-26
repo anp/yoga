@@ -4821,78 +4821,69 @@ unsafe fn YGNodelayoutImpl(
                 }
             }
 
-            //     float mainDim = leadingPaddingAndBorderMain + leadingMainDim;
-            //     float crossDim = 0;
+            let mut mainDim = leadingPaddingAndBorderMain + leadingMainDim;
+            let mut crossDim = 0.0;
 
-            //     for (uint32_t i = startOfLineIndex; i < endOfLineIndex; i++)
-            //     {
-            //         const YGNodeRef child = YGNodeListGet((*node).children, i);
-            //         if ((*child).style.display == YGDisplayNone)
-            //         {
-            //             continue;
-            //         }
-            //         if ((*child).style.positionType == YGPositionTypeAbsolute &&
-            //             YGNodeIsLeadingPosDefined(child, mainAxis))
-            //         {
-            //             if (performLayout)
-            //             {
-            //                 // In case the child is position absolute and has left/top being
-            //                 // defined, we override the position to whatever the user said
-            //                 // (and margin/border).
-            //                 (*child).layout.position[pos[mainAxis]] =
-            //                     YGNodeLeadingPosition(child, mainAxis, availableInnerMainDim) +
-            //                     YGNodeLeadingBorder(node, mainAxis) +
-            //                     YGNodeLeadingMargin(child, mainAxis, availableInnerWidth);
-            //             }
-            //         }
-            //         else
-            //         {
-            //             // Now that we placed the element, we need to update the variables.
-            //             // We need to do that only for relative elements. Absolute elements
-            //             // do not take part in that phase.
-            //             if ((*child).style.positionType == YGPositionTypeRelative)
-            //             {
-            //                 if (YGMarginLeadingValue(child, mainAxis)->unit == YGUnitAuto)
-            //                 {
-            //                     mainDim += remainingFreeSpace / numberOfAutoMarginsOnCurrentLine;
-            //                 }
+            for i in startOfLineIndex..endOfLineIndex {
+                let child = YGNodeListGet((*node).children, i);
+                if (*child).style.display == YGDisplayNone {
+                    continue;
+                }
+                if (*child).style.positionType == YGPositionTypeAbsolute
+                    && YGNodeIsLeadingPosDefined(child, mainAxis)
+                {
+                    if performLayout {
+                        // In case the child is position absolute and has left/top being
+                        // defined, we override the position to whatever the user said
+                        // (and margin/border).
+                        (*child).layout.position[pos[mainAxis as usize] as usize] =
+                            YGNodeLeadingPosition(child, mainAxis, availableInnerMainDim)
+                                + YGNodeLeadingBorder(node, mainAxis)
+                                + YGNodeLeadingMargin(child, mainAxis, availableInnerWidth);
+                    }
+                } else {
+                    // Now that we placed the element, we need to update the variables.
+                    // We need to do that only for relative elements. Absolute elements
+                    // do not take part in that phase.
+                    if (*child).style.positionType == YGPositionTypeRelative {
+                        if (*YGMarginLeadingValue(child, mainAxis)).unit == YGUnitAuto {
+                            mainDim += remainingFreeSpace / numberOfAutoMarginsOnCurrentLine as f32;
+                        }
 
-            //                 if (performLayout)
-            //                 {
-            //                     (*child).layout.position[pos[mainAxis]] += mainDim;
-            //                 }
+                        if performLayout {
+                            (*child).layout.position[pos[mainAxis as usize] as usize] += mainDim;
+                        }
 
-            //                 if (YGMarginTrailingValue(child, mainAxis)->unit == YGUnitAuto)
-            //                 {
-            //                     mainDim += remainingFreeSpace / numberOfAutoMarginsOnCurrentLine;
-            //                 }
+                        if (*YGMarginTrailingValue(child, mainAxis)).unit == YGUnitAuto {
+                            mainDim += remainingFreeSpace / numberOfAutoMarginsOnCurrentLine as f32;
+                        }
 
-            //                 if (canSkipFlex)
-            //                 {
-            //                     // If we skipped the flex step, then we can't rely on the
-            //                     // measuredDims because
-            //                     // they weren't computed. This means we can't call YGNodeDimWithMargin.
-            //                     mainDim += betweenMainDim + YGNodeMarginForAxis(child, mainAxis, availableInnerWidth) +
-            //                                (*child).layout.computedFlexBasis;
-            //                     crossDim = availableInnerCrossDim;
-            //                 }
-            //                 else
-            //                 {
-            //                     // The main dimension is the sum of all the elements dimension plus the spacing.
-            //                     mainDim += betweenMainDim + YGNodeDimWithMargin(child, mainAxis, availableInnerWidth);
+                        if canSkipFlex {
+                            // If we skipped the flex step, then we can't rely on the
+                            // measuredDims because
+                            // they weren't computed. This means we can't call YGNodeDimWithMargin.
+                            mainDim += betweenMainDim
+                                + YGNodeMarginForAxis(child, mainAxis, availableInnerWidth)
+                                + (*child).layout.computedFlexBasis;
+                            crossDim = availableInnerCrossDim;
+                        } else {
+                            // The main dimension is the sum of all the elements dimension plus the spacing.
+                            mainDim += betweenMainDim
+                                + YGNodeDimWithMargin(child, mainAxis, availableInnerWidth);
 
-            //                     // The cross dimension is the max of the elements dimension since
-            //                     // there can only be one element in that cross dimension.
-            //                     crossDim = fmaxf(crossDim, YGNodeDimWithMargin(child, crossAxis, availableInnerWidth));
-            //                 }
-            //             }
-            //             else if (performLayout)
-            //             {
-            //                 (*child).layout.position[pos[mainAxis]] +=
-            //                     YGNodeLeadingBorder(node, mainAxis) + leadingMainDim;
-            //             }
-            //         }
-            //     }
+                            // The cross dimension is the max of the elements dimension since
+                            // there can only be one element in that cross dimension.
+                            crossDim = fmaxf(
+                                crossDim,
+                                YGNodeDimWithMargin(child, crossAxis, availableInnerWidth),
+                            );
+                        }
+                    } else if performLayout {
+                        (*child).layout.position[pos[mainAxis as usize] as usize] +=
+                            YGNodeLeadingBorder(node, mainAxis) + leadingMainDim;
+                    }
+                }
+            }
 
             //     mainDim += trailingPaddingAndBorderMain;
 
