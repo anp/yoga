@@ -4752,36 +4752,40 @@ unsafe fn YGNodelayoutImpl(
                 }
             }
 
-            //     remainingFreeSpace = originalRemainingFreeSpace + deltaFreeSpace;
-            //     (*node).layout.hadOverflow |= (remainingFreeSpace < 0);
+            remainingFreeSpace = originalRemainingFreeSpace + deltaFreeSpace;
+            (*node).layout.hadOverflow |= remainingFreeSpace < 0.0;
 
-            //     // STEP 6: MAIN-AXIS JUSTIFICATION & CROSS-AXIS SIZE DETERMINATION
+            // STEP 6: MAIN-AXIS JUSTIFICATION & CROSS-AXIS SIZE DETERMINATION
 
-            //     // At this point, all the children have their dimensions set in the main
-            //     // axis.
-            //     // Their dimensions are also set in the cross axis with the exception of
-            //     // items
-            //     // that are aligned "stretch". We need to compute these stretch values and
-            //     // set the final positions.
+            // At this point, all the children have their dimensions set in the main
+            // axis.
+            // Their dimensions are also set in the cross axis with the exception of
+            // items
+            // that are aligned "stretch". We need to compute these stretch values and
+            // set the final positions.
 
-            //     // If we are using "at most" rules in the main axis. Calculate the remaining space when
-            //     // constraint by the min size defined for the main axis.
+            // If we are using "at most" rules in the main axis. Calculate the remaining space when
+            // constraint by the min size defined for the main axis.
 
-            //     if (measureModeMainDim == YGMeasureModeAtMost && remainingFreeSpace > 0)
-            //     {
-            //         if ((*node).style.minDimensions[dim[mainAxis]].unit != YGUnitUndefined &&
-            //             YGResolveValue(&(*node).style.minDimensions[dim[mainAxis]], mainAxisParentSize) >= 0)
-            //         {
-            //             remainingFreeSpace =
-            //                 fmaxf(0,
-            //                       YGResolveValue(&(*node).style.minDimensions[dim[mainAxis]], mainAxisParentSize) -
-            //                           (availableInnerMainDim - remainingFreeSpace));
-            //         }
-            //         else
-            //         {
-            //             remainingFreeSpace = 0;
-            //         }
-            //     }
+            if measureModeMainDim == YGMeasureModeAtMost && remainingFreeSpace > 0.0 {
+                if (*node).style.minDimensions[dim[mainAxis as usize] as usize].unit
+                    != YGUnitUndefined
+                    && YGResolveValue(
+                        &(*node).style.minDimensions[dim[mainAxis as usize] as usize],
+                        mainAxisParentSize,
+                    ) >= 0.0
+                {
+                    remainingFreeSpace = fmaxf(
+                        0.0,
+                        YGResolveValue(
+                            &(*node).style.minDimensions[dim[mainAxis as usize] as usize],
+                            mainAxisParentSize,
+                        ) - (availableInnerMainDim - remainingFreeSpace),
+                    );
+                } else {
+                    remainingFreeSpace = 0.0;
+                }
+            }
 
             //     int numberOfAutoMarginsOnCurrentLine = 0;
             //     for (uint32_t i = startOfLineIndex; i < endOfLineIndex; i++)
