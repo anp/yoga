@@ -115,6 +115,7 @@ pub const YGEdgeStart: YGEdge_0 = 4;
 pub type YGDisplay = YGDisplay_0;
 pub type YGNodeType = libc::c_uint;
 pub const YGPrintOptionsLayout: YGPrintOptions = 1;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct __va_list_tag {
@@ -128,6 +129,7 @@ pub const YGDirectionInherit: YGDirection_0 = 0;
 pub const YGUnitAuto: YGUnit_0 = 3;
 pub const _SVID_: _LIB_VERSION_TYPE = 0;
 pub type va_list = __builtin_va_list;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGValue {
@@ -149,6 +151,7 @@ pub type YGNodeListRef = *mut YGNodeList;
 pub type _IO_lock_t = ();
 pub type YGPositionType = YGPositionType_0;
 pub type YGAlign_0 = libc::c_uint;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGNode_0 {
@@ -168,6 +171,7 @@ pub struct YGNode_0 {
     pub nodeType: YGNodeType_0,
     pub resolvedDimensions: [*const YGValue_0; 2],
 }
+
 pub const YGJustifyFlexStart: YGJustify = 0;
 pub const YGLogLevelInfo: YGLogLevel = 2;
 pub type YGFlexDirection_0 = YGFlexDirection;
@@ -193,6 +197,7 @@ pub type YGOverflow = YGOverflow_0;
 pub const YGFlexDirectionColumnReverse: YGFlexDirection = 1;
 pub const YGEdgeEnd: YGEdge_0 = 5;
 pub const YGJustifyCenter: YGJustify = 1;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGConfig {
@@ -207,6 +212,7 @@ pub struct YGConfig {
 pub type YGDisplay_0 = libc::c_uint;
 pub type YGLogLevel_0 = YGLogLevel;
 pub const YGLogLevelError: YGLogLevel = 0;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct _IO_FILE {
@@ -249,12 +255,14 @@ pub const YGUnitPercent: YGUnit_0 = 2;
 pub const YGUnitUndefined: YGUnit_0 = 0;
 pub const YGLogLevelDebug: YGLogLevel = 3;
 pub type YGDirection = YGDirection_0;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGSize_0 {
     pub width: libc::c_float,
     pub height: libc::c_float,
 }
+
 pub type YGCalloc = Option<unsafe extern "C" fn(_: size_t, _: size_t) -> *mut libc::c_void>;
 pub const YGJustifySpaceBetween: YGJustify = 3;
 pub const YGJustifySpaceAround: YGJustify = 4;
@@ -271,6 +279,7 @@ pub const YGAlignFlexEnd: YGAlign_0 = 3;
 pub type YGPrintFunc = Option<unsafe extern "C" fn(_: YGNodeRef) -> ()>;
 pub type YGNodeType_0 = YGNodeType;
 pub type int32_t = libc::c_int;
+
 pub type YGLogger = Option<
     unsafe extern "C" fn(
         _: YGConfigRef,
@@ -280,6 +289,7 @@ pub type YGLogger = Option<
         _: *mut __va_list_tag,
     ) -> libc::c_int,
 >;
+
 pub type YGBaselineFunc =
     Option<unsafe extern "C" fn(_: YGNodeRef, _: libc::c_float, _: libc::c_float) -> libc::c_float>;
 pub type YGPrintOptions_0 = YGPrintOptions;
