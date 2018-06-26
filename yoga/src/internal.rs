@@ -4787,52 +4787,39 @@ unsafe fn YGNodelayoutImpl(
                 }
             }
 
-            //     int numberOfAutoMarginsOnCurrentLine = 0;
-            //     for (uint32_t i = startOfLineIndex; i < endOfLineIndex; i++)
-            //     {
-            //         const YGNodeRef child = YGNodeListGet((*node).children, i);
-            //         if ((*child).style.positionType == YGPositionTypeRelative)
-            //         {
-            //             if (YGMarginLeadingValue(child, mainAxis)->unit == YGUnitAuto)
-            //             {
-            //                 numberOfAutoMarginsOnCurrentLine++;
-            //             }
-            //             if (YGMarginTrailingValue(child, mainAxis)->unit == YGUnitAuto)
-            //             {
-            //                 numberOfAutoMarginsOnCurrentLine++;
-            //             }
-            //         }
-            //     }
+            let mut numberOfAutoMarginsOnCurrentLine = 0;
+            for i in startOfLineIndex..endOfLineIndex {
+                let child = YGNodeListGet((*node).children, i);
+                if (*child).style.positionType == YGPositionTypeRelative {
+                    if (*YGMarginLeadingValue(child, mainAxis)).unit == YGUnitAuto {
+                        numberOfAutoMarginsOnCurrentLine += 1;
+                    }
+                    if (*YGMarginTrailingValue(child, mainAxis)).unit == YGUnitAuto {
+                        numberOfAutoMarginsOnCurrentLine += 1;
+                    }
+                }
+            }
 
-            //     if (numberOfAutoMarginsOnCurrentLine == 0)
-            //     {
-            //         switch (justifyContent)
-            //         {
-            //         case YGJustifyCenter:
-            //             leadingMainDim = remainingFreeSpace / 2;
-            //             break;
-            //         case YGJustifyFlexEnd:
-            //             leadingMainDim = remainingFreeSpace;
-            //             break;
-            //         case YGJustifySpaceBetween:
-            //             if (itemsOnLine > 1)
-            //             {
-            //                 betweenMainDim = fmaxf(remainingFreeSpace, 0) / (itemsOnLine - 1);
-            //             }
-            //             else
-            //             {
-            //                 betweenMainDim = 0;
-            //             }
-            //             break;
-            //         case YGJustifySpaceAround:
-            //             // Space on the edges is half of the space between elements
-            //             betweenMainDim = remainingFreeSpace / itemsOnLine;
-            //             leadingMainDim = betweenMainDim / 2;
-            //             break;
-            //         case YGJustifyFlexStart:
-            //             break;
-            //         }
-            //     }
+            if numberOfAutoMarginsOnCurrentLine == 0 {
+                match justifyContent {
+                    YGJustifyCenter => leadingMainDim = remainingFreeSpace / 2.0,
+                    YGJustifyFlexEnd => leadingMainDim = remainingFreeSpace,
+                    YGJustifySpaceBetween => {
+                        if itemsOnLine > 1 {
+                            betweenMainDim =
+                                fmaxf(remainingFreeSpace, 0.0) / (itemsOnLine - 1) as f32;
+                        } else {
+                            betweenMainDim = 0.0;
+                        }
+                    }
+                    YGJustifySpaceAround => {
+                        // Space on the edges is half of the space between elements
+                        betweenMainDim = remainingFreeSpace / itemsOnLine as f32;
+                        leadingMainDim = betweenMainDim / 2.0;
+                    }
+                    _ => (),
+                }
+            }
 
             //     float mainDim = leadingPaddingAndBorderMain + leadingMainDim;
             //     float crossDim = 0;
