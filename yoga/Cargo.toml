@@ -6,3 +6,6 @@ authors = ["Adam Perry <adam.n.perry@gmail.com>"]
 [dependencies]
 libc = "0.2"
 log = "0.4"
+ordered-float = "0.5"
+serde = "1"
+serde_derive = "1"
