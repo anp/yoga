@@ -5273,114 +5273,139 @@ unsafe fn YGNodelayoutImpl(
             }
         }
 
-        // // STEP 9: COMPUTING FINAL DIMENSIONS
-        // (*node).layout.measuredDimensions[YGDimensionWidth] = YGNodeBoundAxis(
-        //     node, YGFlexDirectionRow, availableWidth - marginAxisRow, parentWidth, parentWidth);
-        // (*node).layout.measuredDimensions[YGDimensionHeight] = YGNodeBoundAxis(
-        //     node, YGFlexDirectionColumn, availableHeight - marginAxisColumn, parentHeight, parentWidth);
+        // STEP 9: COMPUTING FINAL DIMENSIONS
+        (*node).layout.measuredDimensions[YGDimensionWidth as usize] = YGNodeBoundAxis(
+            node,
+            YGFlexDirectionRow,
+            availableWidth - marginAxisRow,
+            parentWidth,
+            parentWidth,
+        );
+        (*node).layout.measuredDimensions[YGDimensionHeight as usize] = YGNodeBoundAxis(
+            node,
+            YGFlexDirectionColumn,
+            availableHeight - marginAxisColumn,
+            parentHeight,
+            parentWidth,
+        );
 
-        // // If the user didn't specify a width or height for the node, set the
-        // // dimensions based on the children.
-        // if (measureModeMainDim == YGMeasureModeUndefined ||
-        //     ((*node).style.overflow != YGOverflowScroll && measureModeMainDim == YGMeasureModeAtMost))
-        // {
-        //     // Clamp the size to the min/max size, if specified, and make sure it
-        //     // doesn't go below the padding and border amount.
-        //     (*node).layout.measuredDimensions[dim[mainAxis]] =
-        //         YGNodeBoundAxis(node, mainAxis, maxLineMainDim, mainAxisParentSize, parentWidth);
-        // }
-        // else if (measureModeMainDim == YGMeasureModeAtMost &&
-        //          (*node).style.overflow == YGOverflowScroll)
-        // {
-        //     (*node).layout.measuredDimensions[dim[mainAxis]] = fmaxf(
-        //         fminf(availableInnerMainDim + paddingAndBorderAxisMain,
-        //               YGNodeBoundAxisWithinMinAndMax(node, mainAxis, maxLineMainDim, mainAxisParentSize)),
-        //         paddingAndBorderAxisMain);
-        // }
+        // If the user didn't specify a width or height for the node, set the
+        // dimensions based on the children.
+        if measureModeMainDim == YGMeasureModeUndefined
+            || ((*node).style.overflow != YGOverflowScroll
+                && measureModeMainDim == YGMeasureModeAtMost)
+        {
+            // Clamp the size to the min/max size, if specified, and make sure it
+            // doesn't go below the padding and border amount.
+            (*node).layout.measuredDimensions[dim[mainAxis as usize] as usize] = YGNodeBoundAxis(
+                node,
+                mainAxis,
+                maxLineMainDim,
+                mainAxisParentSize,
+                parentWidth,
+            );
+        } else if measureModeMainDim == YGMeasureModeAtMost
+            && (*node).style.overflow == YGOverflowScroll
+        {
+            (*node).layout.measuredDimensions[dim[mainAxis as usize] as usize] = fmaxf(
+                fminf(
+                    availableInnerMainDim + paddingAndBorderAxisMain,
+                    YGNodeBoundAxisWithinMinAndMax(
+                        node,
+                        mainAxis,
+                        maxLineMainDim,
+                        mainAxisParentSize,
+                    ),
+                ),
+                paddingAndBorderAxisMain,
+            );
+        }
 
-        // if (measureModeCrossDim == YGMeasureModeUndefined ||
-        //     ((*node).style.overflow != YGOverflowScroll && measureModeCrossDim == YGMeasureModeAtMost))
-        // {
-        //     // Clamp the size to the min/max size, if specified, and make sure it
-        //     // doesn't go below the padding and border amount.
-        //     (*node).layout.measuredDimensions[dim[crossAxis]] =
-        //         YGNodeBoundAxis(node,
-        //                         crossAxis,
-        //                         totalLineCrossDim + paddingAndBorderAxisCross,
-        //                         crossAxisParentSize,
-        //                         parentWidth);
-        // }
-        // else if (measureModeCrossDim == YGMeasureModeAtMost &&
-        //          (*node).style.overflow == YGOverflowScroll)
-        // {
-        //     (*node).layout.measuredDimensions[dim[crossAxis]] =
-        //         fmaxf(fminf(availableInnerCrossDim + paddingAndBorderAxisCross,
-        //                     YGNodeBoundAxisWithinMinAndMax(node,
-        //                                                    crossAxis,
-        //                                                    totalLineCrossDim + paddingAndBorderAxisCross,
-        //                                                    crossAxisParentSize)),
-        //               paddingAndBorderAxisCross);
-        // }
+        if measureModeCrossDim == YGMeasureModeUndefined
+            || ((*node).style.overflow != YGOverflowScroll
+                && measureModeCrossDim == YGMeasureModeAtMost)
+        {
+            // Clamp the size to the min/max size, if specified, and make sure it
+            // doesn't go below the padding and border amount.
+            (*node).layout.measuredDimensions[dim[crossAxis as usize] as usize] = YGNodeBoundAxis(
+                node,
+                crossAxis,
+                totalLineCrossDim + paddingAndBorderAxisCross,
+                crossAxisParentSize,
+                parentWidth,
+            );
+        } else if measureModeCrossDim == YGMeasureModeAtMost
+            && (*node).style.overflow == YGOverflowScroll
+        {
+            (*node).layout.measuredDimensions[dim[crossAxis as usize] as usize] = fmaxf(
+                fminf(
+                    availableInnerCrossDim + paddingAndBorderAxisCross,
+                    YGNodeBoundAxisWithinMinAndMax(
+                        node,
+                        crossAxis,
+                        totalLineCrossDim + paddingAndBorderAxisCross,
+                        crossAxisParentSize,
+                    ),
+                ),
+                paddingAndBorderAxisCross,
+            );
+        }
 
-        // // As we only wrapped in normal direction yet, we need to reverse the positions on wrap-reverse.
-        // if (performLayout && (*node).style.flexWrap == YGWrapWrapReverse)
-        // {
-        //     for (uint32_t i = 0; i < childCount; i++)
-        //     {
-        //         const YGNodeRef child = YGNodeGetChild(node, i);
-        //         if ((*child).style.positionType == YGPositionTypeRelative)
-        //         {
-        //             (*child).layout.position[pos[crossAxis]] = (*node).layout.measuredDimensions[dim[crossAxis]] -
-        //                                                      (*child).layout.position[pos[crossAxis]] -
-        //                                                      (*child).layout.measuredDimensions[dim[crossAxis]];
-        //         }
-        //     }
-        // }
+        // As we only wrapped in normal direction yet, we need to reverse the positions on wrap-reverse.
+        if performLayout && (*node).style.flexWrap == YGWrapWrapReverse {
+            for i in 0..childCount {
+                let child = YGNodeGetChild(node, i);
+                if (*child).style.positionType == YGPositionTypeRelative {
+                    (*child).layout.position[pos[crossAxis as usize] as usize] =
+                        (*node).layout.measuredDimensions[dim[crossAxis as usize] as usize]
+                            - (*child).layout.position[pos[crossAxis as usize] as usize]
+                            - (*child).layout.measuredDimensions[dim[crossAxis as usize] as usize];
+                }
+            }
+        }
 
-        // if (performLayout)
-        // {
-        //     // STEP 10: SIZING AND POSITIONING ABSOLUTE CHILDREN
-        //     for (currentAbsoluteChild = firstAbsoluteChild; currentAbsoluteChild != NULL;
-        //          currentAbsoluteChild = currentAbsoluteChild->nextChild)
-        //     {
-        //         YGNodeAbsoluteLayoutChild(node,
-        //                                   currentAbsoluteChild,
-        //                                   availableInnerWidth,
-        //                                   isMainAxisRow ? measureModeMainDim : measureModeCrossDim,
-        //                                   availableInnerHeight,
-        //                                   direction,
-        //                                   config);
-        //     }
+        if performLayout {
+            // STEP 10: SIZING AND POSITIONING ABSOLUTE CHILDREN
+            currentAbsoluteChild = firstAbsoluteChild;
+            while !currentAbsoluteChild.is_null() {
+                YGNodeAbsoluteLayoutChild(
+                    node,
+                    currentAbsoluteChild,
+                    availableInnerWidth,
+                    if isMainAxisRow {
+                        measureModeMainDim
+                    } else {
+                        measureModeCrossDim
+                    },
+                    availableInnerHeight,
+                    direction,
+                    config,
+                );
+                currentAbsoluteChild = (*currentAbsoluteChild).nextChild;
+            }
 
-        //     // STEP 11: SETTING TRAILING POSITIONS FOR CHILDREN
-        //     const bool needsMainTrailingPos =
-        //         mainAxis == YGFlexDirectionRowReverse || mainAxis == YGFlexDirectionColumnReverse;
-        //     const bool needsCrossTrailingPos =
-        //         crossAxis == YGFlexDirectionRowReverse || crossAxis == YGFlexDirectionColumnReverse;
+            // STEP 11: SETTING TRAILING POSITIONS FOR CHILDREN
+            let needsMainTrailingPos =
+                mainAxis == YGFlexDirectionRowReverse || mainAxis == YGFlexDirectionColumnReverse;
+            let needsCrossTrailingPos =
+                crossAxis == YGFlexDirectionRowReverse || crossAxis == YGFlexDirectionColumnReverse;
 
-        //     // Set trailing position if necessary.
-        //     if (needsMainTrailingPos || needsCrossTrailingPos)
-        //     {
-        //         for (uint32_t i = 0; i < childCount; i++)
-        //         {
-        //             const YGNodeRef child = YGNodeListGet((*node).children, i);
-        //             if ((*child).style.display == YGDisplayNone)
-        //             {
-        //                 continue;
-        //             }
-        //             if (needsMainTrailingPos)
-        //             {
-        //                 YGNodeSetChildTrailingPosition(node, child, mainAxis);
-        //             }
+            // Set trailing position if necessary.
+            if needsMainTrailingPos || needsCrossTrailingPos {
+                for i in 0..childCount {
+                    let child = YGNodeListGet((*node).children, i);
+                    if (*child).style.display == YGDisplayNone {
+                        continue;
+                    }
+                    if needsMainTrailingPos {
+                        YGNodeSetChildTrailingPosition(node, child, mainAxis);
+                    }
 
-        //             if (needsCrossTrailingPos)
-        //             {
-        //                 YGNodeSetChildTrailingPosition(node, child, crossAxis);
-        //             }
-        //         }
-        //     }
-        // }
+                    if needsCrossTrailingPos {
+                        YGNodeSetChildTrailingPosition(node, child, crossAxis);
+                    }
+                }
+            }
+        }
     }
-
-    ////// END CORE LAYOUT
 }
