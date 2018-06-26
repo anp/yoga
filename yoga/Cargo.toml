@@ -5,3 +5,4 @@ authors = ["Adam Perry <adam.n.perry@gmail.com>"]
 
 [dependencies]
 libc = "0.2"
+log = "0.4"
