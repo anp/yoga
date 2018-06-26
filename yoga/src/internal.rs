@@ -4885,34 +4885,35 @@ unsafe fn YGNodelayoutImpl(
                 }
             }
 
-            //     mainDim += trailingPaddingAndBorderMain;
+            mainDim += trailingPaddingAndBorderMain;
 
-            //     float containerCrossAxis = availableInnerCrossDim;
-            //     if (measureModeCrossDim == YGMeasureModeUndefined ||
-            //         measureModeCrossDim == YGMeasureModeAtMost)
-            //     {
-            //         // Compute the cross axis from the max cross dimension of the children.
-            //         containerCrossAxis = YGNodeBoundAxis(node,
-            //                                              crossAxis,
-            //                                              crossDim + paddingAndBorderAxisCross,
-            //                                              crossAxisParentSize,
-            //                                              parentWidth) -
-            //                              paddingAndBorderAxisCross;
-            //     }
+            let mut containerCrossAxis = availableInnerCrossDim;
+            if measureModeCrossDim == YGMeasureModeUndefined
+                || measureModeCrossDim == YGMeasureModeAtMost
+            {
+                // Compute the cross axis from the max cross dimension of the children.
+                containerCrossAxis = YGNodeBoundAxis(
+                    node,
+                    crossAxis,
+                    crossDim + paddingAndBorderAxisCross,
+                    crossAxisParentSize,
+                    parentWidth,
+                ) - paddingAndBorderAxisCross;
+            }
 
-            //     // If there's no flex wrap, the cross dimension is defined by the container.
-            //     if (!isNodeFlexWrap && measureModeCrossDim == YGMeasureModeExactly)
-            //     {
-            //         crossDim = availableInnerCrossDim;
-            //     }
+            // If there's no flex wrap, the cross dimension is defined by the container.
+            if !isNodeFlexWrap && measureModeCrossDim == YGMeasureModeExactly {
+                crossDim = availableInnerCrossDim;
+            }
 
-            //     // Clamp to the min/max size specified on the container.
-            //     crossDim = YGNodeBoundAxis(node,
-            //                                crossAxis,
-            //                                crossDim + paddingAndBorderAxisCross,
-            //                                crossAxisParentSize,
-            //                                parentWidth) -
-            //                paddingAndBorderAxisCross;
+            // Clamp to the min/max size specified on the container.
+            crossDim = YGNodeBoundAxis(
+                node,
+                crossAxis,
+                crossDim + paddingAndBorderAxisCross,
+                crossAxisParentSize,
+                parentWidth,
+            ) - paddingAndBorderAxisCross;
 
             //     // STEP 7: CROSS-AXIS ALIGNMENT
             //     // We can skip child alignment if we're just measuring the container.
