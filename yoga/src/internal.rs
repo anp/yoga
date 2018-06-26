@@ -4301,10 +4301,10 @@ unsafe fn YGNodelayoutImpl(
         let mut lineCount = 0;
 
         // Accumulated cross dimensions of all lines so far.
-        let totalLineCrossDim = 0.0;
+        let mut totalLineCrossDim = 0.0;
 
         // Max main dimension of all the lines.
-        let maxLineMainDim = 0.0;
+        let mut maxLineMainDim = 0.0;
 
         while endOfLineIndex < childCount {
             // Number of items on the currently line. May be different than the
@@ -4915,145 +4915,156 @@ unsafe fn YGNodelayoutImpl(
                 parentWidth,
             ) - paddingAndBorderAxisCross;
 
-            //     // STEP 7: CROSS-AXIS ALIGNMENT
-            //     // We can skip child alignment if we're just measuring the container.
-            //     if (performLayout)
-            //     {
-            //         for (uint32_t i = startOfLineIndex; i < endOfLineIndex; i++)
-            //         {
-            //             const YGNodeRef child = YGNodeListGet((*node).children, i);
-            //             if ((*child).style.display == YGDisplayNone)
-            //             {
-            //                 continue;
-            //             }
-            //             if ((*child).style.positionType == YGPositionTypeAbsolute)
-            //             {
-            //                 // If the child is absolutely positioned and has a
-            //                 // top/left/bottom/right
-            //                 // set, override all the previously computed positions to set it
-            //                 // correctly.
-            //                 const bool isChildLeadingPosDefined = YGNodeIsLeadingPosDefined(child, crossAxis);
-            //                 if (isChildLeadingPosDefined)
-            //                 {
-            //                     (*child).layout.position[pos[crossAxis]] =
-            //                         YGNodeLeadingPosition(child, crossAxis, availableInnerCrossDim) +
-            //                         YGNodeLeadingBorder(node, crossAxis) +
-            //                         YGNodeLeadingMargin(child, crossAxis, availableInnerWidth);
-            //                 }
-            //                 // If leading position is not defined or calculations result in Nan, default to border + margin
-            //                 if (!isChildLeadingPosDefined || isnan((*child).layout.position[pos[crossAxis]]))
-            //                 {
-            //                     (*child).layout.position[pos[crossAxis]] =
-            //                         YGNodeLeadingBorder(node, crossAxis) +
-            //                         YGNodeLeadingMargin(child, crossAxis, availableInnerWidth);
-            //                 }
-            //             }
-            //             else
-            //             {
-            //                 float leadingCrossDim = leadingPaddingAndBorderCross;
+            // STEP 7: CROSS-AXIS ALIGNMENT
+            // We can skip child alignment if we're just measuring the container.
+            if performLayout {
+                for i in startOfLineIndex..endOfLineIndex {
+                    let child = YGNodeListGet((*node).children, i);
+                    if (*child).style.display == YGDisplayNone {
+                        continue;
+                    }
+                    if (*child).style.positionType == YGPositionTypeAbsolute {
+                        // If the child is absolutely positioned and has a
+                        // top/left/bottom/right
+                        // set, override all the previously computed positions to set it
+                        // correctly.
+                        let isChildLeadingPosDefined = YGNodeIsLeadingPosDefined(child, crossAxis);
+                        if isChildLeadingPosDefined {
+                            (*child).layout.position[pos[crossAxis as usize] as usize] =
+                                YGNodeLeadingPosition(child, crossAxis, availableInnerCrossDim)
+                                    + YGNodeLeadingBorder(node, crossAxis)
+                                    + YGNodeLeadingMargin(child, crossAxis, availableInnerWidth);
+                        }
+                        // If leading position is not defined or calculations result in Nan, default to border + margin
+                        if !isChildLeadingPosDefined
+                            || (*child).layout.position[pos[crossAxis as usize] as usize].is_nan()
+                        {
+                            (*child).layout.position[pos[crossAxis as usize] as usize] =
+                                YGNodeLeadingBorder(node, crossAxis)
+                                    + YGNodeLeadingMargin(child, crossAxis, availableInnerWidth);
+                        }
+                    } else {
+                        let mut leadingCrossDim = leadingPaddingAndBorderCross;
 
-            //                 // For a relative children, we're either using alignItems (parent) or
-            //                 // alignSelf (child) in order to determine the position in the cross
-            //                 // axis
-            //                 const YGAlign alignItem = YGNodeAlignItem(node, child);
+                        // For a relative children, we're either using alignItems (parent) or
+                        // alignSelf (child) in order to determine the position in the cross
+                        // axis
+                        let alignItem = YGNodeAlignItem(node, child);
 
-            //                 // If the child uses align stretch, we need to lay it out one more
-            //                 // time, this time
-            //                 // forcing the cross-axis size to be the computed cross size for the
-            //                 // current line.
-            //                 if (alignItem == YGAlignStretch &&
-            //                     YGMarginLeadingValue(child, crossAxis)->unit != YGUnitAuto &&
-            //                     YGMarginTrailingValue(child, crossAxis)->unit != YGUnitAuto)
-            //                 {
-            //                     // If the child defines a definite size for its cross axis, there's
-            //                     // no need to stretch.
-            //                     if (!YGNodeIsStyleDimDefined(child, crossAxis, availableInnerCrossDim))
-            //                     {
-            //                         float childMainSize = (*child).layout.measuredDimensions[dim[mainAxis]];
-            //                         float childCrossSize =
-            //                             !isnan((*child).style.aspectRatio)
-            //                                 ? ((YGNodeMarginForAxis(child, crossAxis, availableInnerWidth) +
-            //                                     (isMainAxisRow ? childMainSize / (*child).style.aspectRatio
-            //                                                    : childMainSize * (*child).style.aspectRatio)))
-            //                                 : crossDim;
+                        // If the child uses align stretch, we need to lay it out one more
+                        // time, this time
+                        // forcing the cross-axis size to be the computed cross size for the
+                        // current line.
+                        if alignItem == YGAlignStretch
+                            && (*YGMarginLeadingValue(child, crossAxis)).unit != YGUnitAuto
+                            && (*YGMarginTrailingValue(child, crossAxis)).unit != YGUnitAuto
+                        {
+                            // If the child defines a definite size for its cross axis, there's
+                            // no need to stretch.
+                            if !YGNodeIsStyleDimDefined(child, crossAxis, availableInnerCrossDim) {
+                                let mut childMainSize = (*child).layout.measuredDimensions
+                                    [dim[mainAxis as usize] as usize];
+                                let mut childCrossSize = if !(*child).style.aspectRatio.is_nan() {
+                                    ((YGNodeMarginForAxis(child, crossAxis, availableInnerWidth)
+                                        + (if isMainAxisRow {
+                                            childMainSize / (*child).style.aspectRatio
+                                        } else {
+                                            childMainSize * (*child).style.aspectRatio
+                                        })))
+                                } else {
+                                    crossDim
+                                };
 
-            //                         childMainSize += YGNodeMarginForAxis(child, mainAxis, availableInnerWidth);
+                                childMainSize +=
+                                    YGNodeMarginForAxis(child, mainAxis, availableInnerWidth);
 
-            //                         YGMeasureMode childMainMeasureMode = YGMeasureModeExactly;
-            //                         YGMeasureMode childCrossMeasureMode = YGMeasureModeExactly;
-            //                         YGConstrainMaxSizeForMode(child,
-            //                                                   mainAxis,
-            //                                                   availableInnerMainDim,
-            //                                                   availableInnerWidth,
-            //                                                   &childMainMeasureMode,
-            //                                                   &childMainSize);
-            //                         YGConstrainMaxSizeForMode(child,
-            //                                                   crossAxis,
-            //                                                   availableInnerCrossDim,
-            //                                                   availableInnerWidth,
-            //                                                   &childCrossMeasureMode,
-            //                                                   &childCrossSize);
+                                let mut childMainMeasureMode = YGMeasureModeExactly;
+                                let mut childCrossMeasureMode = YGMeasureModeExactly;
+                                YGConstrainMaxSizeForMode(
+                                    child,
+                                    mainAxis,
+                                    availableInnerMainDim,
+                                    availableInnerWidth,
+                                    &mut childMainMeasureMode,
+                                    &mut childMainSize,
+                                );
+                                YGConstrainMaxSizeForMode(
+                                    child,
+                                    crossAxis,
+                                    availableInnerCrossDim,
+                                    availableInnerWidth,
+                                    &mut childCrossMeasureMode,
+                                    &mut childCrossSize,
+                                );
 
-            //                         const float childWidth = isMainAxisRow ? childMainSize : childCrossSize;
-            //                         const float childHeight = !isMainAxisRow ? childMainSize : childCrossSize;
+                                let childWidth = if isMainAxisRow {
+                                    childMainSize
+                                } else {
+                                    childCrossSize
+                                };
+                                let childHeight = if !isMainAxisRow {
+                                    childMainSize
+                                } else {
+                                    childCrossSize
+                                };
 
-            //                         const YGMeasureMode childWidthMeasureMode =
-            //                             isnan(childWidth) ? YGMeasureModeUndefined : YGMeasureModeExactly;
-            //                         const YGMeasureMode childHeightMeasureMode =
-            //                             isnan(childHeight) ? YGMeasureModeUndefined : YGMeasureModeExactly;
+                                let childWidthMeasureMode = if childWidth.is_nan() {
+                                    YGMeasureModeUndefined
+                                } else {
+                                    YGMeasureModeExactly
+                                };
+                                let childHeightMeasureMode = if childHeight.is_nan() {
+                                    YGMeasureModeUndefined
+                                } else {
+                                    YGMeasureModeExactly
+                                };
 
-            //                         YGLayoutNodeInternal(child,
-            //                                              childWidth,
-            //                                              childHeight,
-            //                                              direction,
-            //                                              childWidthMeasureMode,
-            //                                              childHeightMeasureMode,
-            //                                              availableInnerWidth,
-            //                                              availableInnerHeight,
-            //                                              true,
-            //                                              "stretch",
-            //                                              config);
-            //                     }
-            //                 }
-            //                 else
-            //                 {
-            //                     const float remainingCrossDim =
-            //                         containerCrossAxis - YGNodeDimWithMargin(child, crossAxis, availableInnerWidth);
+                                let stretch = CString::new("stretch").unwrap();
 
-            //                     if (YGMarginLeadingValue(child, crossAxis)->unit == YGUnitAuto &&
-            //                         YGMarginTrailingValue(child, crossAxis)->unit == YGUnitAuto)
-            //                     {
-            //                         leadingCrossDim += fmaxf(0.0f, remainingCrossDim / 2);
-            //                     }
-            //                     else if (YGMarginTrailingValue(child, crossAxis)->unit == YGUnitAuto)
-            //                     {
-            //                         // No-Op
-            //                     }
-            //                     else if (YGMarginLeadingValue(child, crossAxis)->unit == YGUnitAuto)
-            //                     {
-            //                         leadingCrossDim += fmaxf(0.0f, remainingCrossDim);
-            //                     }
-            //                     else if (alignItem == YGAlignFlexStart)
-            //                     {
-            //                         // No-Op
-            //                     }
-            //                     else if (alignItem == YGAlignCenter)
-            //                     {
-            //                         leadingCrossDim += remainingCrossDim / 2;
-            //                     }
-            //                     else
-            //                     {
-            //                         leadingCrossDim += remainingCrossDim;
-            //                     }
-            //                 }
-            //                 // And we apply the position
-            //                 (*child).layout.position[pos[crossAxis]] += totalLineCrossDim + leadingCrossDim;
-            //             }
-            //         }
-            //     }
+                                YGLayoutNodeInternal(
+                                    child,
+                                    childWidth,
+                                    childHeight,
+                                    direction,
+                                    childWidthMeasureMode,
+                                    childHeightMeasureMode,
+                                    availableInnerWidth,
+                                    availableInnerHeight,
+                                    true,
+                                    stretch.as_ptr(),
+                                    config,
+                                );
+                            }
+                        } else {
+                            let remainingCrossDim = containerCrossAxis
+                                - YGNodeDimWithMargin(child, crossAxis, availableInnerWidth);
 
-            //     totalLineCrossDim += crossDim;
-            //     maxLineMainDim = fmaxf(maxLineMainDim, mainDim);
+                            if (*YGMarginLeadingValue(child, crossAxis)).unit == YGUnitAuto
+                                && (*YGMarginTrailingValue(child, crossAxis)).unit == YGUnitAuto
+                            {
+                                leadingCrossDim += fmaxf(0.0, remainingCrossDim / 2.0);
+                            } else if (*YGMarginTrailingValue(child, crossAxis)).unit == YGUnitAuto
+                            {
+                                // No-Op
+                            } else if (*YGMarginLeadingValue(child, crossAxis)).unit == YGUnitAuto {
+                                leadingCrossDim += fmaxf(0.0f32, remainingCrossDim);
+                            } else if alignItem == YGAlignFlexStart {
+                                // No-Op
+                            } else if alignItem == YGAlignCenter {
+                                leadingCrossDim += remainingCrossDim / 2.0;
+                            } else {
+                                leadingCrossDim += remainingCrossDim;
+                            }
+                        }
+                        // And we apply the position
+                        (*child).layout.position[pos[crossAxis as usize] as usize] +=
+                            totalLineCrossDim + leadingCrossDim;
+                    }
+                }
+            }
+
+            totalLineCrossDim += crossDim;
+            maxLineMainDim = fmaxf(maxLineMainDim, mainDim);
             lineCount += 1;
             startOfLineIndex = endOfLineIndex;
         }
