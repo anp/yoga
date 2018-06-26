@@ -8,11 +8,13 @@ extern crate libc;
 #[macro_use]
 extern crate log;
 
+use std::ffi::CStr;
+
 unsafe fn YGResolveValue(value: *const YGValue, parentSize: libc::c_float) -> libc::c_float {
     match (*value).unit {
         YGUnitPoint => (*value).value,
         YGUnitPercent => (*value).value * parentSize / 100.0f32,
-        _ => YGUndefined,
+        _ => ::std::f32::NAN,
     }
 }
 
@@ -110,15 +112,15 @@ pub struct YGValue_0 {
 
 impl PartialEq for YGValue {
     fn eq(&self, other: &Self) -> bool {
-        if a.unit != b.unit {
+        if self.unit != other.unit {
             return false;
         }
 
-        if a.unit == YGUnitUndefined {
+        if self.unit == YGUnitUndefined {
             return true;
         }
 
-        return fabs(a.value - b.value) < 0.0001;
+        return fabs((self.value - other.value) as f64) < 0.0001;
     }
 }
 
@@ -738,7 +740,7 @@ pub unsafe extern "C" fn YGAssertWithConfig(
     mut message: *const libc::c_char,
 ) -> () {
     if !condition {
-        error!("{} (config: {:?})", CStr::from(message).unwrap(), config);
+        error!("{:?} (config: {:?})", CStr::from_ptr(message), config);
     };
 }
 
@@ -805,7 +807,7 @@ pub unsafe extern "C" fn YGNodeListNew(initialCapacity: uint32_t) -> YGNodeListR
 #[no_mangle]
 pub unsafe extern "C" fn YGAssert(condition: bool, mut message: *const libc::c_char) -> () {
     if !condition {
-        error!("{}", CStr::from(message).unwrap());
+        error!("{:?}", CStr::from_ptr(message));
     };
 }
 #[no_mangle]
@@ -1013,7 +1015,7 @@ pub unsafe extern "C" fn YGAssertWithNode(
     mut message: *const libc::c_char,
 ) -> () {
     if !condition {
-        error!("{} (node: {:?})", CStr::from(message).unwrap(), node);
+        error!("{:?} (node: {:?})", &CStr::from_ptr(message), node);
     };
 }
 #[no_mangle]
@@ -2568,10 +2570,8 @@ unsafe extern "C" fn YGResolveDimensions(mut node: YGNodeRef) -> () {
         {
             if (*node).style.maxDimensions[dim_0 as usize].unit as libc::c_uint
                 != YGUnitUndefined as libc::c_int as libc::c_uint
-                && 0 != YGValueEqual(
-                    (*node).style.maxDimensions[dim_0 as usize],
-                    (*node).style.minDimensions[dim_0 as usize],
-                ) as libc::c_int
+                && (*node).style.maxDimensions[dim_0 as usize]
+                    != (*node).style.minDimensions[dim_0 as usize]
             {
                 (*node).resolvedDimensions[dim_0 as usize] =
                     &mut (*node).style.maxDimensions[dim_0 as usize] as *mut YGValue;
@@ -3870,6 +3870,72 @@ pub unsafe extern "C" fn YGNodeListAdd(mut listp: *mut YGNodeListRef, node: YGNo
 #[no_mangle]
 pub static mut gYGCalloc: YGCalloc = unsafe { Some(calloc) };
 
+use libc::c_float;
+
+pub fn YGRoundToPixelGrid(
+    node: YGNodeRef,
+    pointScaleFactor: c_float,
+    absoluteLeft: c_float,
+    absoluteTop: c_float,
+) {
+    if (pointScaleFactor == 0.0) {
+        return;
+    }
+
+    let nodeLeft = (*node).layout.position[YGEdgeLeft as usize];
+    let nodeTop = (*node).layout.position[YGEdgeTop as usize];
+
+    let nodeWidth = (*node).layout.dimensions[YGDimensionWidth as usize];
+    let nodeHeight = (*node).layout.dimensions[YGDimensionHeight as usize];
+
+    let absoluteNodeLeft = absoluteLeft + nodeLeft;
+    let absoluteNodeTop = absoluteTop + nodeTop;
+
+    let absoluteNodeRight = absoluteNodeLeft + nodeWidth;
+    let absoluteNodeBottom = absoluteNodeTop + nodeHeight;
+
+    // If a node has a custom measure function we never want to round down its size as this could
+    // lead to unwanted text truncation.
+    let textRounding = (*node).nodeType == YGNodeTypeText;
+
+    (*node).layout.position[YGEdgeLeft as usize] =
+        YGRoundValueToPixelGrid(nodeLeft, pointScaleFactor, false, textRounding);
+    (*node).layout.position[YGEdgeTop as usize] =
+        YGRoundValueToPixelGrid(nodeTop, pointScaleFactor, false, textRounding);
+
+    // We multiply dimension by scale factor and if the result is close to the whole number, we don't
+    // have any fraction
+    // To verify if the result is close to whole number we want to check both floor and ceil numbers
+    let hasFractionalWidth = !YGFloatsEqual(fmodf(nodeWidth * pointScaleFactor, 1.0), 0.0)
+        && !YGFloatsEqual(fmodf(nodeWidth * pointScaleFactor, 1.0), 1.0);
+    let hasFractionalHeight = !YGFloatsEqual(fmodf(nodeHeight * pointScaleFactor, 1.0), 0.0)
+        && !YGFloatsEqual(fmodf(nodeHeight * pointScaleFactor, 1.0), 1.0);
+
+    (*node).layout.dimensions[YGDimensionWidth as usize] = YGRoundValueToPixelGrid(
+        absoluteNodeRight,
+        pointScaleFactor,
+        (textRounding && hasFractionalWidth),
+        (textRounding && !hasFractionalWidth),
+    )
+        - YGRoundValueToPixelGrid(absoluteNodeLeft, pointScaleFactor, false, textRounding);
+    (*node).layout.dimensions[YGDimensionHeight as usize] = YGRoundValueToPixelGrid(
+        absoluteNodeBottom,
+        pointScaleFactor,
+        (textRounding && hasFractionalHeight),
+        (textRounding && !hasFractionalHeight),
+    )
+        - YGRoundValueToPixelGrid(absoluteNodeTop, pointScaleFactor, false, textRounding);
+
+    for i in 0..YGNodeListCount((*node).children) {
+        YGRoundToPixelGrid(
+            YGNodeGetChild(node, i),
+            pointScaleFactor,
+            absoluteNodeLeft,
+            absoluteNodeTop,
+        );
+    }
+}
+
 unsafe extern "C" fn YGConstrainMaxSizeForMode(
     node: YGNodeRef,
     axis: YGFlexDirection,
@@ -3879,7 +3945,7 @@ unsafe extern "C" fn YGConstrainMaxSizeForMode(
     size: *mut libc::c_float,
 ) {
     // TODO(anp): impl this
-    // const float maxSize = YGResolveValue(&node->style.maxDimensions[dim[axis]], parentAxisSize) +
+    // const float maxSize = YGResolveValue(&(*node).style.maxDimensions[dim[axis]], parentAxisSize) +
     //                       YGNodeMarginForAxis(node, axis, parentWidth);
     // switch (*mode)
     // {
