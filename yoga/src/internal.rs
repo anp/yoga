@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 
 use libc;
 
@@ -1138,8 +1138,8 @@ pub unsafe extern "C" fn YGNodeCalculateLayout(
 ) -> () {
     gCurrentGenerationCount = gCurrentGenerationCount.wrapping_add(1);
     YGResolveDimensions(node);
-    let mut width: libc::c_float = ::std::f32::NAN;
-    let mut widthMeasureMode: YGMeasureMode = YGMeasureModeUndefined;
+    let mut width: libc::c_float;
+    let mut widthMeasureMode: YGMeasureMode;
     if YGNodeIsStyleDimDefined(node, YGFlexDirectionRow, parentWidth) {
         width = YGResolveValue(
             (*node).resolvedDimensions[dim[YGFlexDirectionRow as libc::c_int as usize] as usize],
@@ -1168,8 +1168,8 @@ pub unsafe extern "C" fn YGNodeCalculateLayout(
             }) as YGMeasureMode;
         };
     };
-    let mut height: libc::c_float = ::std::f32::NAN;
-    let mut heightMeasureMode: YGMeasureMode = YGMeasureModeUndefined;
+    let mut height: libc::c_float;
+    let mut heightMeasureMode: YGMeasureMode;
     if YGNodeIsStyleDimDefined(node, YGFlexDirectionColumn, parentHeight) {
         height = YGResolveValue(
             (*node).resolvedDimensions[dim[YGFlexDirectionColumn as libc::c_int as usize] as usize],
@@ -1208,7 +1208,7 @@ pub unsafe extern "C" fn YGNodeCalculateLayout(
         parentWidth,
         parentHeight,
         0 != 1i32,
-        b"initial\x00" as *const u8 as *const libc::c_char,
+        "initial",
         (*node).config,
     ) {
         YGNodeSetPosition(
@@ -1479,9 +1479,10 @@ pub unsafe extern "C" fn YGLayoutNodeInternal(
     parentWidth: libc::c_float,
     parentHeight: libc::c_float,
     performLayout: bool,
-    mut reason: *const libc::c_char,
+    reason: &str,
     config: YGConfigRef,
 ) -> bool {
+    trace!("layout for reason {} on node {:?}", reason, node);
     let mut layout: *mut YGLayout_0 = &mut (*node).layout as *mut YGLayout_0;
     gDepth = gDepth.wrapping_add(1);
     let needToVisitNode: bool = 0 != (*node).isDirty as libc::c_int
@@ -1606,7 +1607,7 @@ pub unsafe extern "C" fn YGLayoutNodeInternal(
             if (*layout).nextCachedMeasurementsIndex == 16i32 as libc::c_uint {
                 (*layout).nextCachedMeasurementsIndex = 0i32 as uint32_t;
             };
-            let mut newCacheEntry: *mut YGCachedMeasurement_0 = 0 as *mut YGCachedMeasurement_0;
+            let mut newCacheEntry: *mut YGCachedMeasurement_0;
             if performLayout {
                 newCacheEntry = &mut (*layout).cachedLayout as *mut YGCachedMeasurement_0;
             } else {
@@ -1844,8 +1845,8 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
     let isMainAxisRow: bool = YGFlexDirectionIsRow(mainAxis);
     let mut childWidth: libc::c_float = ::std::f32::NAN;
     let mut childHeight: libc::c_float = ::std::f32::NAN;
-    let mut childWidthMeasureMode: YGMeasureMode = YGMeasureModeUndefined;
-    let mut childHeightMeasureMode: YGMeasureMode = YGMeasureModeUndefined;
+    let mut childWidthMeasureMode: YGMeasureMode;
+    let mut childHeightMeasureMode: YGMeasureMode;
     let marginRow: libc::c_float = YGNodeMarginForAxis(child, YGFlexDirectionRow, width);
     let marginColumn: libc::c_float = YGNodeMarginForAxis(child, YGFlexDirectionColumn, width);
     if YGNodeIsStyleDimDefined(child, YGFlexDirectionRow, width) {
@@ -1924,7 +1925,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
             childWidth,
             childHeight,
             0 != 0i32,
-            b"abs-measure\x00" as *const u8 as *const libc::c_char,
+            "abs-measure",
             config,
         );
         childWidth = (*child).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize]
@@ -1942,7 +1943,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
         childWidth,
         childHeight,
         0 != 1i32,
-        b"abs-layout\x00" as *const u8 as *const libc::c_char,
+        "abs-layout",
         config,
     );
     if 0 != YGNodeIsTrailingPosDefined(child, mainAxis) as libc::c_int
@@ -2305,10 +2306,10 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
     } else {
         parentHeight
     };
-    let mut childWidth: libc::c_float = 0.;
-    let mut childHeight: libc::c_float = 0.;
-    let mut childWidthMeasureMode: YGMeasureMode = YGMeasureModeUndefined;
-    let mut childHeightMeasureMode: YGMeasureMode = YGMeasureModeUndefined;
+    let mut childWidth: libc::c_float;
+    let mut childHeight: libc::c_float;
+    let mut childWidthMeasureMode: YGMeasureMode;
+    let mut childHeightMeasureMode: YGMeasureMode;
     let resolvedFlexBasis: libc::c_float =
         YGResolveValue(YGNodeResolveFlexBasisPtr(child), mainAxisParentSize);
     let isRowStyleDimDefined: bool =
@@ -2472,7 +2473,7 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                     parentWidth,
                     parentHeight,
                     0 != 0i32,
-                    b"measure\x00" as *const u8 as *const libc::c_char,
+                    "measure",
                     config,
                 );
                 (*child).layout.computedFlexBasis = fmaxf(
@@ -3880,26 +3881,25 @@ unsafe extern "C" fn YGConstrainMaxSizeForMode(
     mode: *mut YGMeasureMode,
     size: *mut libc::c_float,
 ) {
-    // TODO(anp): impl this
-    // const float maxSize = YGResolveValue(&(*node).style.maxDimensions[dim[axis]], parentAxisSize) +
-    //                       YGNodeMarginForAxis(node, axis, parentWidth);
-    // switch (*mode)
-    // {
-    // case YGMeasureModeExactly:
-    // case YGMeasureModeAtMost:
-    //     *size = (maxSize.is_nan() || *size < maxSize) ? *size : maxSize;
-    //     break;
-    // case YGMeasureModeUndefined:
-    //     if (!maxSize.is_nan())
-    //     {
-    //         *mode = YGMeasureModeAtMost;
-    //         *size = maxSize;
-    //     }
-    //     break;
-    // }
+    let maxSize = YGResolveValue(
+        &(*node).style.maxDimensions[dim[axis as usize] as usize],
+        parentAxisSize,
+    ) + YGNodeMarginForAxis(node, axis, parentWidth);
+    match *mode {
+        YGMeasureModeExactly | YGMeasureModeAtMost => {
+            *size = if maxSize.is_nan() || *size < maxSize {
+                *size
+            } else {
+                maxSize
+            }
+        }
+        YGMeasureModeUndefined => if !maxSize.is_nan() {
+            *mode = YGMeasureModeAtMost;
+            *size = maxSize;
+        },
+        _ => (),
+    }
 }
-
-////// START CORE LAYOUT
 
 static mut firstAbsoluteChild: YGNodeRef = ::std::ptr::null_mut();
 static mut currentAbsoluteChild: YGNodeRef = ::std::ptr::null_mut();
@@ -4730,7 +4730,6 @@ unsafe fn YGNodelayoutImpl(
                         childCrossMeasureMode
                     };
 
-                    let flex = CString::new("flex").unwrap();
                     // Recursively call the layout algorithm for this child with the updated
                     // main size.
                     YGLayoutNodeInternal(
@@ -4743,7 +4742,7 @@ unsafe fn YGNodelayoutImpl(
                         availableInnerWidth,
                         availableInnerHeight,
                         performLayout && !requiresStretchLayout,
-                        flex.as_ptr(),
+                        "flex",
                         config,
                     );
                     (*node).layout.hadOverflow |= (*currentRelativeChild).layout.hadOverflow;
@@ -5019,8 +5018,6 @@ unsafe fn YGNodelayoutImpl(
                                     YGMeasureModeExactly
                                 };
 
-                                let stretch = CString::new("stretch").unwrap();
-
                                 YGLayoutNodeInternal(
                                     child,
                                     childWidth,
@@ -5031,7 +5028,7 @@ unsafe fn YGNodelayoutImpl(
                                     availableInnerWidth,
                                     availableInnerHeight,
                                     true,
-                                    stretch.as_ptr(),
+                                    "stretch",
                                     config,
                                 );
                             }
@@ -5236,8 +5233,6 @@ unsafe fn YGNodelayoutImpl(
                                                 (*child).layout.measuredDimensions
                                                     [YGDimensionHeight as usize],
                                             )) {
-                                            let multiline_stretch =
-                                                CString::new("multiline-stretch").unwrap();
                                             YGLayoutNodeInternal(
                                                 child,
                                                 childWidth,
@@ -5248,7 +5243,7 @@ unsafe fn YGNodelayoutImpl(
                                                 availableInnerWidth,
                                                 availableInnerHeight,
                                                 true,
-                                                multiline_stretch.as_ptr(),
+                                                "multiline-stretch",
                                                 config,
                                             );
                                         }
