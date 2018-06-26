@@ -4060,133 +4060,166 @@ unsafe fn YGNodelayoutImpl(
         return;
     }
 
-    // const uint32_t childCount = YGNodeListCount((*node).children);
-    // if (childCount == 0)
-    // {
-    //     YGNodeEmptyContainerSetMeasuredDimensions(node,
-    //                                               availableWidth,
-    //                                               availableHeight,
-    //                                               widthMeasureMode,
-    //                                               heightMeasureMode,
-    //                                               parentWidth,
-    //                                               parentHeight);
-    //     return;
-    // }
+    let childCount = YGNodeListCount((*node).children);
+    if childCount == 0 {
+        YGNodeEmptyContainerSetMeasuredDimensions(
+            node,
+            availableWidth,
+            availableHeight,
+            widthMeasureMode,
+            heightMeasureMode,
+            parentWidth,
+            parentHeight,
+        );
+        return;
+    }
 
-    // // If we're not being asked to perform a full layout we can skip the algorithm if we already know
-    // // the size
-    // if (!performLayout && YGNodeFixedSizeSetMeasuredDimensions(node,
-    //                                                            availableWidth,
-    //                                                            availableHeight,
-    //                                                            widthMeasureMode,
-    //                                                            heightMeasureMode,
-    //                                                            parentWidth,
-    //                                                            parentHeight))
-    // {
-    //     return;
-    // }
+    // If we're not being asked to perform a full layout we can skip the algorithm if we already know
+    // the size
+    if !performLayout
+        && YGNodeFixedSizeSetMeasuredDimensions(
+            node,
+            availableWidth,
+            availableHeight,
+            widthMeasureMode,
+            heightMeasureMode,
+            parentWidth,
+            parentHeight,
+        ) {
+        return;
+    }
 
-    // // At this point we know we're going to perform work. Ensure that each child has a mutable copy.
-    // YGCloneChildrenIfNeeded(node);
+    // At this point we know we're going to perform work. Ensure that each child has a mutable copy.
+    YGCloneChildrenIfNeeded(node);
 
-    // // Reset layout flags, as they could have changed.
-    // (*node).layout.hadOverflow = false;
+    // Reset layout flags, as they could have changed.
+    (*node).layout.hadOverflow = false;
 
-    // // STEP 1: CALCULATE VALUES FOR REMAINDER OF ALGORITHM
-    // const YGFlexDirection mainAxis = YGResolveFlexDirection((*node).style.flexDirection, direction);
-    // const YGFlexDirection crossAxis = YGFlexDirectionCross(mainAxis, direction);
-    // const bool isMainAxisRow = YGFlexDirectionIsRow(mainAxis);
-    // const YGJustify justifyContent = (*node).style.justifyContent;
-    // const bool isNodeFlexWrap = (*node).style.flexWrap != YGWrapNoWrap;
+    // STEP 1: CALCULATE VALUES FOR REMAINDER OF ALGORITHM
+    let mainAxis = YGResolveFlexDirection((*node).style.flexDirection, direction);
+    let crossAxis = YGFlexDirectionCross(mainAxis, direction);
+    let isMainAxisRow = YGFlexDirectionIsRow(mainAxis);
+    let justifyContent = (*node).style.justifyContent;
+    let isNodeFlexWrap = (*node).style.flexWrap != YGWrapNoWrap;
 
-    // const float mainAxisParentSize = isMainAxisRow ? parentWidth : parentHeight;
-    // const float crossAxisParentSize = isMainAxisRow ? parentHeight : parentWidth;
+    let mainAxisParentSize = if isMainAxisRow {
+        parentWidth
+    } else {
+        parentHeight
+    };
+    let crossAxisParentSize = if isMainAxisRow {
+        parentHeight
+    } else {
+        parentWidth
+    };
 
-    // YGNodeRef firstAbsoluteChild = NULL;
-    // YGNodeRef currentAbsoluteChild = NULL;
+    // let firstAbsoluteChild = ::std::ptr::null_mut();
+    // let currentAbsoluteChild = ::std::ptr::null_mut();
 
-    // const float leadingPaddingAndBorderMain =
-    //     YGNodeLeadingPaddingAndBorder(node, mainAxis, parentWidth);
-    // const float trailingPaddingAndBorderMain =
-    //     YGNodeTrailingPaddingAndBorder(node, mainAxis, parentWidth);
-    // const float leadingPaddingAndBorderCross =
-    //     YGNodeLeadingPaddingAndBorder(node, crossAxis, parentWidth);
-    // const float paddingAndBorderAxisMain = YGNodePaddingAndBorderForAxis(node, mainAxis, parentWidth);
-    // const float paddingAndBorderAxisCross =
-    //     YGNodePaddingAndBorderForAxis(node, crossAxis, parentWidth);
+    let leadingPaddingAndBorderMain = YGNodeLeadingPaddingAndBorder(node, mainAxis, parentWidth);
+    let trailingPaddingAndBorderMain = YGNodeTrailingPaddingAndBorder(node, mainAxis, parentWidth);
+    let leadingPaddingAndBorderCross = YGNodeLeadingPaddingAndBorder(node, crossAxis, parentWidth);
+    let paddingAndBorderAxisMain = YGNodePaddingAndBorderForAxis(node, mainAxis, parentWidth);
+    let paddingAndBorderAxisCross = YGNodePaddingAndBorderForAxis(node, crossAxis, parentWidth);
 
-    // YGMeasureMode measureModeMainDim = isMainAxisRow ? widthMeasureMode : heightMeasureMode;
-    // YGMeasureMode measureModeCrossDim = isMainAxisRow ? heightMeasureMode : widthMeasureMode;
+    let measureModeMainDim = if isMainAxisRow {
+        widthMeasureMode
+    } else {
+        heightMeasureMode
+    };
+    let measureModeCrossDim = if isMainAxisRow {
+        heightMeasureMode
+    } else {
+        widthMeasureMode
+    };
 
-    // const float paddingAndBorderAxisRow =
-    //     isMainAxisRow ? paddingAndBorderAxisMain : paddingAndBorderAxisCross;
-    // const float paddingAndBorderAxisColumn =
-    //     isMainAxisRow ? paddingAndBorderAxisCross : paddingAndBorderAxisMain;
+    let paddingAndBorderAxisRow = if isMainAxisRow {
+        paddingAndBorderAxisMain
+    } else {
+        paddingAndBorderAxisCross
+    };
+    let paddingAndBorderAxisColumn = if isMainAxisRow {
+        paddingAndBorderAxisCross
+    } else {
+        paddingAndBorderAxisMain
+    };
 
-    // const float marginAxisRow = YGNodeMarginForAxis(node, YGFlexDirectionRow, parentWidth);
-    // const float marginAxisColumn = YGNodeMarginForAxis(node, YGFlexDirectionColumn, parentWidth);
+    let marginAxisRow = YGNodeMarginForAxis(node, YGFlexDirectionRow, parentWidth);
+    let marginAxisColumn = YGNodeMarginForAxis(node, YGFlexDirectionColumn, parentWidth);
 
-    // // STEP 2: DETERMINE AVAILABLE SIZE IN MAIN AND CROSS DIRECTIONS
-    // const float minInnerWidth =
-    //     YGResolveValue(&(*node).style.minDimensions[YGDimensionWidth], parentWidth) - marginAxisRow -
-    //     paddingAndBorderAxisRow;
-    // const float maxInnerWidth =
-    //     YGResolveValue(&(*node).style.maxDimensions[YGDimensionWidth], parentWidth) - marginAxisRow -
-    //     paddingAndBorderAxisRow;
-    // const float minInnerHeight =
-    //     YGResolveValue(&(*node).style.minDimensions[YGDimensionHeight], parentHeight) -
-    //     marginAxisColumn - paddingAndBorderAxisColumn;
-    // const float maxInnerHeight =
-    //     YGResolveValue(&(*node).style.maxDimensions[YGDimensionHeight], parentHeight) -
-    //     marginAxisColumn - paddingAndBorderAxisColumn;
-    // const float minInnerMainDim = isMainAxisRow ? minInnerWidth : minInnerHeight;
-    // const float maxInnerMainDim = isMainAxisRow ? maxInnerWidth : maxInnerHeight;
+    // STEP 2: DETERMINE AVAILABLE SIZE IN MAIN AND CROSS DIRECTIONS
+    let minInnerWidth = YGResolveValue(
+        &(*node).style.minDimensions[YGDimensionWidth as usize],
+        parentWidth,
+    ) - marginAxisRow - paddingAndBorderAxisRow;
+    let maxInnerWidth = YGResolveValue(
+        &(*node).style.maxDimensions[YGDimensionWidth as usize],
+        parentWidth,
+    ) - marginAxisRow - paddingAndBorderAxisRow;
+    let minInnerHeight = YGResolveValue(
+        &(*node).style.minDimensions[YGDimensionHeight as usize],
+        parentHeight,
+    ) - marginAxisColumn - paddingAndBorderAxisColumn;
+    let maxInnerHeight = YGResolveValue(
+        &(*node).style.maxDimensions[YGDimensionHeight as usize],
+        parentHeight,
+    ) - marginAxisColumn - paddingAndBorderAxisColumn;
+    let minInnerMainDim = if isMainAxisRow {
+        minInnerWidth
+    } else {
+        minInnerHeight
+    };
+    let maxInnerMainDim = if isMainAxisRow {
+        maxInnerWidth
+    } else {
+        maxInnerHeight
+    };
 
-    // // Max dimension overrides predefined dimension value; Min dimension in turn overrides both of the
-    // // above
-    // float availableInnerWidth = availableWidth - marginAxisRow - paddingAndBorderAxisRow;
-    // if (!isnan(availableInnerWidth))
-    // {
-    //     // We want to make sure our available width does not violate min and max constraints
-    //     availableInnerWidth = fmaxf(fminf(availableInnerWidth, maxInnerWidth), minInnerWidth);
-    // }
+    // Max dimension overrides predefined dimension value; Min dimension in turn overrides both of the
+    // above
+    let mut availableInnerWidth = availableWidth - marginAxisRow - paddingAndBorderAxisRow;
+    if (!availableInnerWidth.is_nan()) {
+        // We want to make sure our available width does not violate min and max constraints
+        availableInnerWidth = fmaxf(fminf(availableInnerWidth, maxInnerWidth), minInnerWidth);
+    }
 
-    // float availableInnerHeight = availableHeight - marginAxisColumn - paddingAndBorderAxisColumn;
-    // if (!isnan(availableInnerHeight))
-    // {
-    //     // We want to make sure our available height does not violate min and max constraints
-    //     availableInnerHeight = fmaxf(fminf(availableInnerHeight, maxInnerHeight), minInnerHeight);
-    // }
+    let mut availableInnerHeight = availableHeight - marginAxisColumn - paddingAndBorderAxisColumn;
+    if (!availableInnerHeight.is_nan()) {
+        // We want to make sure our available height does not violate min and max constraints
+        availableInnerHeight = fmaxf(fminf(availableInnerHeight, maxInnerHeight), minInnerHeight);
+    }
 
-    // float availableInnerMainDim = isMainAxisRow ? availableInnerWidth : availableInnerHeight;
-    // const float availableInnerCrossDim = isMainAxisRow ? availableInnerHeight : availableInnerWidth;
+    let availableInnerMainDim = if isMainAxisRow {
+        availableInnerWidth
+    } else {
+        availableInnerHeight
+    };
+    let availableInnerCrossDim = if isMainAxisRow {
+        availableInnerHeight
+    } else {
+        availableInnerWidth
+    };
 
-    // // If there is only one child with flexGrow + flexShrink it means we can set the
-    // // computedFlexBasis to 0 instead of measuring and shrinking / flexing the child to exactly
-    // // match the remaining space
-    // YGNodeRef singleFlexChild = NULL;
-    // if (measureModeMainDim == YGMeasureModeExactly)
-    // {
-    //     for (uint32_t i = 0; i < childCount; i++)
-    //     {
-    //         const YGNodeRef child = YGNodeGetChild(node, i);
-    //         if (singleFlexChild)
-    //         {
-    //             if (YGNodeIsFlex(child))
-    //             {
-    //                 // There is already a flexible child, abort.
-    //                 singleFlexChild = NULL;
-    //                 break;
-    //             }
-    //         }
-    //         else if (YGResolveFlexGrow(child) > 0.0f && YGNodeResolveFlexShrink(child) > 0.0f)
-    //         {
-    //             singleFlexChild = child;
-    //         }
-    //     }
-    // }
+    // If there is only one child with flexGrow + flexShrink it means we can set the
+    // computedFlexBasis to 0 instead of measuring and shrinking / flexing the child to exactly
+    // match the remaining space
+    let mut singleFlexChild: YGNodeRef = ::std::ptr::null_mut();
+    if measureModeMainDim == YGMeasureModeExactly {
+        for i in 0..childCount {
+            let child = YGNodeGetChild(node, i);
+            if (!singleFlexChild.is_null()) {
+                if (YGNodeIsFlex(child)) {
+                    // There is already a flexible child, abort.
+                    singleFlexChild = ::std::ptr::null_mut();
+                    break;
+                }
+            } else if YGResolveFlexGrow(child) > 0.0 && YGNodeResolveFlexShrink(child) > 0.0 {
+                singleFlexChild = child;
+            }
+        }
+    }
 
-    // float totalOuterFlexBasis = 0;
+    let totalOuterFlexBasis = 0;
 
     // // STEP 3: DETERMINE FLEX BASIS FOR EACH ITEM
     // for (uint32_t i = 0; i < childCount; i++)
