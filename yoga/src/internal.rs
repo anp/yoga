@@ -5069,193 +5069,209 @@ unsafe fn YGNodelayoutImpl(
             startOfLineIndex = endOfLineIndex;
         }
 
-        // // STEP 8: MULTI-LINE CONTENT ALIGNMENT
-        // if (performLayout && (lineCount > 1 || YGIsBaselineLayout(node)) &&
-        //     !isnan(availableInnerCrossDim))
-        // {
-        //     const float remainingAlignContentDim = availableInnerCrossDim - totalLineCrossDim;
+        // STEP 8: MULTI-LINE CONTENT ALIGNMENT
+        if performLayout
+            && (lineCount > 1 || YGIsBaselineLayout(node))
+            && !availableInnerCrossDim.is_nan()
+        {
+            let remainingAlignContentDim = availableInnerCrossDim - totalLineCrossDim;
 
-        //     float crossDimLead = 0;
-        //     float currentLead = leadingPaddingAndBorderCross;
+            let mut crossDimLead = 0.0;
+            let mut currentLead = leadingPaddingAndBorderCross;
 
-        //     switch ((*node).style.alignContent)
-        //     {
-        //     case YGAlignFlexEnd:
-        //         currentLead += remainingAlignContentDim;
-        //         break;
-        //     case YGAlignCenter:
-        //         currentLead += remainingAlignContentDim / 2;
-        //         break;
-        //     case YGAlignStretch:
-        //         if (availableInnerCrossDim > totalLineCrossDim)
-        //         {
-        //             crossDimLead = remainingAlignContentDim / lineCount;
-        //         }
-        //         break;
-        //     case YGAlignSpaceAround:
-        //         if (availableInnerCrossDim > totalLineCrossDim)
-        //         {
-        //             currentLead += remainingAlignContentDim / (2 * lineCount);
-        //             if (lineCount > 1)
-        //             {
-        //                 crossDimLead = remainingAlignContentDim / lineCount;
-        //             }
-        //         }
-        //         else
-        //         {
-        //             currentLead += remainingAlignContentDim / 2;
-        //         }
-        //         break;
-        //     case YGAlignSpaceBetween:
-        //         if (availableInnerCrossDim > totalLineCrossDim && lineCount > 1)
-        //         {
-        //             crossDimLead = remainingAlignContentDim / (lineCount - 1);
-        //         }
-        //         break;
-        //     case YGAlignAuto:
-        //     case YGAlignFlexStart:
-        //     case YGAlignBaseline:
-        //         break;
-        //     }
+            match (*node).style.alignContent {
+                YGAlignFlexEnd => currentLead += remainingAlignContentDim,
+                YGAlignCenter => currentLead += remainingAlignContentDim / 2.0,
+                YGAlignStretch => if availableInnerCrossDim > totalLineCrossDim {
+                    crossDimLead = remainingAlignContentDim / lineCount as f32;
+                },
+                YGAlignSpaceAround => if availableInnerCrossDim > totalLineCrossDim {
+                    currentLead += remainingAlignContentDim / (2.0 * lineCount as f32);
+                    if lineCount > 1 {
+                        crossDimLead = remainingAlignContentDim / lineCount as f32;
+                    }
+                } else {
+                    currentLead += remainingAlignContentDim / 2.0;
+                },
+                YGAlignSpaceBetween => {
+                    if availableInnerCrossDim > totalLineCrossDim && lineCount > 1 {
+                        crossDimLead = remainingAlignContentDim / (lineCount as f32 - 1.0);
+                    }
+                }
+                _ => (),
+            }
 
-        //     uint32_t endIndex = 0;
-        //     for (uint32_t i = 0; i < lineCount; i++)
-        //     {
-        //         const uint32_t startIndex = endIndex;
-        //         uint32_t ii;
+            let mut endIndex = 0;
+            for i in 0..lineCount {
+                let startIndex = endIndex;
 
-        //         // compute the line's height and find the endIndex
-        //         float lineHeight = 0;
-        //         float maxAscentForCurrentLine = 0;
-        //         float maxDescentForCurrentLine = 0;
-        //         for (ii = startIndex; ii < childCount; ii++)
-        //         {
-        //             const YGNodeRef child = YGNodeListGet((*node).children, ii);
-        //             if ((*child).style.display == YGDisplayNone)
-        //             {
-        //                 continue;
-        //             }
-        //             if ((*child).style.positionType == YGPositionTypeRelative)
-        //             {
-        //                 if ((*child).lineIndex != i)
-        //                 {
-        //                     break;
-        //                 }
-        //                 if (YGNodeIsLayoutDimDefined(child, crossAxis))
-        //                 {
-        //                     lineHeight = fmaxf(lineHeight,
-        //                                        (*child).layout.measuredDimensions[dim[crossAxis]] +
-        //                                            YGNodeMarginForAxis(child, crossAxis, availableInnerWidth));
-        //                 }
-        //                 if (YGNodeAlignItem(node, child) == YGAlignBaseline)
-        //                 {
-        //                     const float ascent =
-        //                         YGBaseline(child) +
-        //                         YGNodeLeadingMargin(child, YGFlexDirectionColumn, availableInnerWidth);
-        //                     const float descent =
-        //                         (*child).layout.measuredDimensions[YGDimensionHeight] +
-        //                         YGNodeMarginForAxis(child, YGFlexDirectionColumn, availableInnerWidth) - ascent;
-        //                     maxAscentForCurrentLine = fmaxf(maxAscentForCurrentLine, ascent);
-        //                     maxDescentForCurrentLine = fmaxf(maxDescentForCurrentLine, descent);
-        //                     lineHeight = fmaxf(lineHeight, maxAscentForCurrentLine + maxDescentForCurrentLine);
-        //                 }
-        //             }
-        //         }
-        //         endIndex = ii;
-        //         lineHeight += crossDimLead;
+                // compute the line's height and find the endIndex
+                let mut lineHeight = 0.0;
+                let mut maxAscentForCurrentLine = 0.0;
+                let mut maxDescentForCurrentLine = 0.0;
 
-        //         if (performLayout)
-        //         {
-        //             for (ii = startIndex; ii < endIndex; ii++)
-        //             {
-        //                 const YGNodeRef child = YGNodeListGet((*node).children, ii);
-        //                 if ((*child).style.display == YGDisplayNone)
-        //                 {
-        //                     continue;
-        //                 }
-        //                 if ((*child).style.positionType == YGPositionTypeRelative)
-        //                 {
-        //                     switch (YGNodeAlignItem(node, child))
-        //                     {
-        //                     case YGAlignFlexStart:
-        //                     {
-        //                         (*child).layout.position[pos[crossAxis]] =
-        //                             currentLead + YGNodeLeadingMargin(child, crossAxis, availableInnerWidth);
-        //                         break;
-        //                     }
-        //                     case YGAlignFlexEnd:
-        //                     {
-        //                         (*child).layout.position[pos[crossAxis]] =
-        //                             currentLead + lineHeight -
-        //                             YGNodeTrailingMargin(child, crossAxis, availableInnerWidth) -
-        //                             (*child).layout.measuredDimensions[dim[crossAxis]];
-        //                         break;
-        //                     }
-        //                     case YGAlignCenter:
-        //                     {
-        //                         float childHeight = (*child).layout.measuredDimensions[dim[crossAxis]];
-        //                         (*child).layout.position[pos[crossAxis]] =
-        //                             currentLead + (lineHeight - childHeight) / 2;
-        //                         break;
-        //                     }
-        //                     case YGAlignStretch:
-        //                     {
-        //                         (*child).layout.position[pos[crossAxis]] =
-        //                             currentLead + YGNodeLeadingMargin(child, crossAxis, availableInnerWidth);
+                for ii in startIndex..childCount {
+                    endIndex = ii;
+                    let child = YGNodeListGet((*node).children, ii);
+                    if (*child).style.display == YGDisplayNone {
+                        continue;
+                    }
+                    if (*child).style.positionType == YGPositionTypeRelative {
+                        if (*child).lineIndex != i {
+                            break;
+                        }
+                        if YGNodeIsLayoutDimDefined(child, crossAxis) {
+                            lineHeight = fmaxf(
+                                lineHeight,
+                                (*child).layout.measuredDimensions[dim[crossAxis as usize] as usize]
+                                    + YGNodeMarginForAxis(child, crossAxis, availableInnerWidth),
+                            );
+                        }
+                        if YGNodeAlignItem(node, child) == YGAlignBaseline {
+                            let ascent = YGBaseline(child)
+                                + YGNodeLeadingMargin(
+                                    child,
+                                    YGFlexDirectionColumn,
+                                    availableInnerWidth,
+                                );
+                            let descent = (*child).layout.measuredDimensions
+                                [YGDimensionHeight as usize]
+                                + YGNodeMarginForAxis(
+                                    child,
+                                    YGFlexDirectionColumn,
+                                    availableInnerWidth,
+                                ) - ascent;
+                            maxAscentForCurrentLine = fmaxf(maxAscentForCurrentLine, ascent);
+                            maxDescentForCurrentLine = fmaxf(maxDescentForCurrentLine, descent);
+                            lineHeight = fmaxf(
+                                lineHeight,
+                                maxAscentForCurrentLine + maxDescentForCurrentLine,
+                            );
+                        }
+                    }
+                }
+                lineHeight += crossDimLead;
 
-        //                         // Remeasure child with the line height as it as been only measured with the
-        //                         // parents height yet.
-        //                         if (!YGNodeIsStyleDimDefined(child, crossAxis, availableInnerCrossDim))
-        //                         {
-        //                             const float childWidth =
-        //                                 isMainAxisRow ? ((*child).layout.measuredDimensions[YGDimensionWidth] +
-        //                                                  YGNodeMarginForAxis(child, mainAxis, availableInnerWidth))
-        //                                               : lineHeight;
+                if performLayout {
+                    for ii in startIndex..endIndex {
+                        let child = YGNodeListGet((*node).children, ii);
+                        if (*child).style.display == YGDisplayNone {
+                            continue;
+                        }
+                        if (*child).style.positionType == YGPositionTypeRelative {
+                            match YGNodeAlignItem(node, child) {
+                                YGAlignFlexStart => {
+                                    (*child).layout.position[pos[crossAxis as usize] as usize] =
+                                        currentLead
+                                            + YGNodeLeadingMargin(
+                                                child,
+                                                crossAxis,
+                                                availableInnerWidth,
+                                            );
+                                }
+                                YGAlignFlexEnd => {
+                                    (*child).layout.position[pos[crossAxis as usize] as usize] =
+                                        currentLead + lineHeight
+                                            - YGNodeTrailingMargin(
+                                                child,
+                                                crossAxis,
+                                                availableInnerWidth,
+                                            )
+                                            - (*child).layout.measuredDimensions
+                                                [dim[crossAxis as usize] as usize];
+                                }
+                                YGAlignCenter => {
+                                    let mut childHeight = (*child).layout.measuredDimensions
+                                        [dim[crossAxis as usize] as usize];
+                                    (*child).layout.position[pos[crossAxis as usize] as usize] =
+                                        currentLead + (lineHeight - childHeight) / 2.0;
+                                }
+                                YGAlignStretch => {
+                                    (*child).layout.position[pos[crossAxis as usize] as usize] =
+                                        currentLead
+                                            + YGNodeLeadingMargin(
+                                                child,
+                                                crossAxis,
+                                                availableInnerWidth,
+                                            );
 
-        //                             const float childHeight =
-        //                                 !isMainAxisRow ? ((*child).layout.measuredDimensions[YGDimensionHeight] +
-        //                                                   YGNodeMarginForAxis(child, crossAxis, availableInnerWidth))
-        //                                                : lineHeight;
+                                    // Remeasure child with the line height as it as been only measured with the
+                                    // parents height yet.
+                                    if !YGNodeIsStyleDimDefined(
+                                        child,
+                                        crossAxis,
+                                        availableInnerCrossDim,
+                                    ) {
+                                        let childWidth = if isMainAxisRow {
+                                            ((*child).layout.measuredDimensions
+                                                [YGDimensionWidth as usize]
+                                                + YGNodeMarginForAxis(
+                                                    child,
+                                                    mainAxis,
+                                                    availableInnerWidth,
+                                                ))
+                                        } else {
+                                            lineHeight
+                                        };
 
-        //                             if (!(YGFloatsEqual(childWidth,
-        //                                                 (*child).layout.measuredDimensions[YGDimensionWidth]) &&
-        //                                   YGFloatsEqual(childHeight,
-        //                                                 (*child).layout.measuredDimensions[YGDimensionHeight])))
-        //                             {
-        //                                 YGLayoutNodeInternal(child,
-        //                                                      childWidth,
-        //                                                      childHeight,
-        //                                                      direction,
-        //                                                      YGMeasureModeExactly,
-        //                                                      YGMeasureModeExactly,
-        //                                                      availableInnerWidth,
-        //                                                      availableInnerHeight,
-        //                                                      true,
-        //                                                      "multiline-stretch",
-        //                                                      config);
-        //                             }
-        //                         }
-        //                         break;
-        //                     }
-        //                     case YGAlignBaseline:
-        //                     {
-        //                         (*child).layout.position[YGEdgeTop] =
-        //                             currentLead + maxAscentForCurrentLine - YGBaseline(child) +
-        //                             YGNodeLeadingPosition(child, YGFlexDirectionColumn, availableInnerCrossDim);
-        //                         break;
-        //                     }
-        //                     case YGAlignAuto:
-        //                     case YGAlignSpaceBetween:
-        //                     case YGAlignSpaceAround:
-        //                         break;
-        //                     }
-        //                 }
-        //             }
-        //         }
+                                        let childHeight = if !isMainAxisRow {
+                                            ((*child).layout.measuredDimensions
+                                                [YGDimensionHeight as usize]
+                                                + YGNodeMarginForAxis(
+                                                    child,
+                                                    crossAxis,
+                                                    availableInnerWidth,
+                                                ))
+                                        } else {
+                                            lineHeight
+                                        };
 
-        //         currentLead += lineHeight;
-        //     }
-        // }
+                                        if !(YGFloatsEqual(
+                                            childWidth,
+                                            (*child).layout.measuredDimensions
+                                                [YGDimensionWidth as usize],
+                                        )
+                                            && YGFloatsEqual(
+                                                childHeight,
+                                                (*child).layout.measuredDimensions
+                                                    [YGDimensionHeight as usize],
+                                            )) {
+                                            let multiline_stretch =
+                                                CString::new("multiline-stretch").unwrap();
+                                            YGLayoutNodeInternal(
+                                                child,
+                                                childWidth,
+                                                childHeight,
+                                                direction,
+                                                YGMeasureModeExactly,
+                                                YGMeasureModeExactly,
+                                                availableInnerWidth,
+                                                availableInnerHeight,
+                                                true,
+                                                multiline_stretch.as_ptr(),
+                                                config,
+                                            );
+                                        }
+                                    }
+                                }
+                                YGAlignBaseline => {
+                                    (*child).layout.position[YGEdgeTop as usize] =
+                                        currentLead + maxAscentForCurrentLine - YGBaseline(child)
+                                            + YGNodeLeadingPosition(
+                                                child,
+                                                YGFlexDirectionColumn,
+                                                availableInnerCrossDim,
+                                            );
+                                }
+                                _ => (),
+                            }
+                        }
+                    }
+                }
+
+                currentLead += lineHeight;
+            }
+        }
 
         // // STEP 9: COMPUTING FINAL DIMENSIONS
         // (*node).layout.measuredDimensions[YGDimensionWidth] = YGNodeBoundAxis(
