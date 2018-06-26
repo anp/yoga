@@ -1,8 +1,7 @@
 use internal;
 
 #[repr(u32)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Direction {
     Inherit = 0,
     LTR = 1,
@@ -12,9 +11,9 @@ pub enum Direction {
 impl From<Direction> for internal::YGDirection {
     fn from(d: Direction) -> internal::YGDirection {
         match d {
-            Direction::Inherit => internal::YGDirection::YGDirectionInherit,
-            Direction::LTR => internal::YGDirection::YGDirectionLTR,
-            Direction::RTL => internal::YGDirection::YGDirectionRTL,
+            Direction::Inherit => internal::YGDirectionInherit,
+            Direction::LTR => internal::YGDirectionLTR,
+            Direction::RTL => internal::YGDirectionRTL,
         }
     }
 }
@@ -22,9 +21,10 @@ impl From<Direction> for internal::YGDirection {
 impl From<internal::YGDirection> for Direction {
     fn from(d: internal::YGDirection) -> Direction {
         match d {
-            internal::YGDirection::YGDirectionInherit => Direction::Inherit,
-            internal::YGDirection::YGDirectionLTR => Direction::LTR,
-            internal::YGDirection::YGDirectionRTL => Direction::RTL,
+            internal::YGDirectionInherit => Direction::Inherit,
+            internal::YGDirectionLTR => Direction::LTR,
+            internal::YGDirectionRTL => Direction::RTL,
+            _ => unreachable!("invalid C enum received"),
         }
     }
 }

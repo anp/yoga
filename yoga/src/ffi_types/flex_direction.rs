@@ -1,8 +1,7 @@
 use internal;
 
 #[repr(u32)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum FlexDirection {
     Column = 0,
     ColumnReverse = 1,
@@ -13,10 +12,10 @@ pub enum FlexDirection {
 impl From<FlexDirection> for internal::YGFlexDirection {
     fn from(f: FlexDirection) -> internal::YGFlexDirection {
         match f {
-            FlexDirection::Column => internal::YGFlexDirection::YGFlexDirectionColumn,
-            FlexDirection::ColumnReverse => internal::YGFlexDirection::YGFlexDirectionColumnReverse,
-            FlexDirection::Row => internal::YGFlexDirection::YGFlexDirectionRow,
-            FlexDirection::RowReverse => internal::YGFlexDirection::YGFlexDirectionRowReverse,
+            FlexDirection::Column => internal::YGFlexDirectionColumn,
+            FlexDirection::ColumnReverse => internal::YGFlexDirectionColumnReverse,
+            FlexDirection::Row => internal::YGFlexDirectionRow,
+            FlexDirection::RowReverse => internal::YGFlexDirectionRowReverse,
         }
     }
 }
@@ -24,10 +23,11 @@ impl From<FlexDirection> for internal::YGFlexDirection {
 impl From<internal::YGFlexDirection> for FlexDirection {
     fn from(f: internal::YGFlexDirection) -> FlexDirection {
         match f {
-            internal::YGFlexDirection::YGFlexDirectionColumn => FlexDirection::Column,
-            internal::YGFlexDirection::YGFlexDirectionColumnReverse => FlexDirection::ColumnReverse,
-            internal::YGFlexDirection::YGFlexDirectionRow => FlexDirection::Row,
-            internal::YGFlexDirection::YGFlexDirectionRowReverse => FlexDirection::RowReverse,
+            internal::YGFlexDirectionColumn => FlexDirection::Column,
+            internal::YGFlexDirectionColumnReverse => FlexDirection::ColumnReverse,
+            internal::YGFlexDirectionRow => FlexDirection::Row,
+            internal::YGFlexDirectionRowReverse => FlexDirection::RowReverse,
+            _ => unreachable!("invalid C enum received"),
         }
     }
 }

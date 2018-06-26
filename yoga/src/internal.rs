@@ -1,6 +1,6 @@
 use std::ffi::CStr;
 
-use libc::{self, *};
+use libc;
 
 unsafe fn YGResolveValue(value: *const YGValue, parentSize: libc::c_float) -> libc::c_float {
     match (*value).unit {

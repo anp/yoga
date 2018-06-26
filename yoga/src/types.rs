@@ -5,27 +5,24 @@ pub use ffi_types::display::*;
 pub use ffi_types::edge::*;
 pub use ffi_types::flex_direction::*;
 pub use ffi_types::justify::*;
-pub use ffi_types::log_level::*;
 pub use ffi_types::measure_mode::*;
 pub use ffi_types::node_ref::*;
 pub use ffi_types::node_type::*;
 pub use ffi_types::overflow::*;
 pub use ffi_types::position_type::*;
-pub use ffi_types::print_options::*;
 pub use ffi_types::size::*;
 pub use ffi_types::style_unit::*;
 pub use ffi_types::undefined::*;
 pub use ffi_types::wrap::*;
+use libc::c_void;
 use ordered_float::OrderedFloat;
 use std::any::Any;
 use std::ops::Deref;
-use std::os::raw::c_void;
 
 pub type BaselineFunc = Option<extern "C" fn(NodeRef, f32, f32) -> f32>;
 pub type MeasureFunc = Option<extern "C" fn(NodeRef, f32, MeasureMode, f32, MeasureMode) -> Size>;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum FlexStyle {
     AlignContent(Align),
     AlignItems(Align),
@@ -80,8 +77,7 @@ pub enum FlexStyle {
     Width(StyleUnit),
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Layout {
     left: OrderedFloat<f32>,
     right: OrderedFloat<f32>,

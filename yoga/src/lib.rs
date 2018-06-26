@@ -14,7 +14,7 @@ extern crate libc;
 #[macro_use]
 extern crate log;
 
-mod internal;
+pub mod internal;
 
 mod ffi_types {
     pub mod align;
@@ -24,13 +24,11 @@ mod ffi_types {
     pub mod edge;
     pub mod flex_direction;
     pub mod justify;
-    pub mod log_level;
     pub mod measure_mode;
     pub mod node_ref;
     pub mod node_type;
     pub mod overflow;
     pub mod position_type;
-    pub mod print_options;
     pub mod size;
     pub mod style_unit;
     pub mod undefined;

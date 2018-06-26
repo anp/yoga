@@ -1,8 +1,7 @@
 use internal;
 
 #[repr(u32)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Align {
     Auto = 0,
     FlexStart = 1,
@@ -17,14 +16,14 @@ pub enum Align {
 impl From<Align> for internal::YGAlign {
     fn from(a: Align) -> internal::YGAlign {
         match a {
-            Align::Auto => internal::YGAlign::YGAlignAuto,
-            Align::FlexStart => internal::YGAlign::YGAlignFlexStart,
-            Align::Center => internal::YGAlign::YGAlignCenter,
-            Align::FlexEnd => internal::YGAlign::YGAlignFlexEnd,
-            Align::Stretch => internal::YGAlign::YGAlignStretch,
-            Align::Baseline => internal::YGAlign::YGAlignBaseline,
-            Align::SpaceBetween => internal::YGAlign::YGAlignSpaceBetween,
-            Align::SpaceAround => internal::YGAlign::YGAlignSpaceAround,
+            Align::Auto => internal::YGAlignAuto,
+            Align::FlexStart => internal::YGAlignFlexStart,
+            Align::Center => internal::YGAlignCenter,
+            Align::FlexEnd => internal::YGAlignFlexEnd,
+            Align::Stretch => internal::YGAlignStretch,
+            Align::Baseline => internal::YGAlignBaseline,
+            Align::SpaceBetween => internal::YGAlignSpaceBetween,
+            Align::SpaceAround => internal::YGAlignSpaceAround,
         }
     }
 }
@@ -32,14 +31,15 @@ impl From<Align> for internal::YGAlign {
 impl From<internal::YGAlign> for Align {
     fn from(a: internal::YGAlign) -> Align {
         match a {
-            internal::YGAlign::YGAlignAuto => Align::Auto,
-            internal::YGAlign::YGAlignFlexStart => Align::FlexStart,
-            internal::YGAlign::YGAlignCenter => Align::Center,
-            internal::YGAlign::YGAlignFlexEnd => Align::FlexEnd,
-            internal::YGAlign::YGAlignStretch => Align::Stretch,
-            internal::YGAlign::YGAlignBaseline => Align::Baseline,
-            internal::YGAlign::YGAlignSpaceBetween => Align::SpaceBetween,
-            internal::YGAlign::YGAlignSpaceAround => Align::SpaceAround,
+            internal::YGAlignAuto => Align::Auto,
+            internal::YGAlignFlexStart => Align::FlexStart,
+            internal::YGAlignCenter => Align::Center,
+            internal::YGAlignFlexEnd => Align::FlexEnd,
+            internal::YGAlignStretch => Align::Stretch,
+            internal::YGAlignBaseline => Align::Baseline,
+            internal::YGAlignSpaceBetween => Align::SpaceBetween,
+            internal::YGAlignSpaceAround => Align::SpaceAround,
+            _ => unreachable!("invalid C enum received"),
         }
     }
 }
