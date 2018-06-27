@@ -153,10 +153,7 @@ impl Node {
 
     pub fn set_flex_direction(&mut self, direction: FlexDirection) {
         unsafe {
-            internal::YGNodeStyleSetFlexDirection(
-                self.inner_node,
-                internal::YGFlexDirection::from(direction),
-            );
+            internal::YGNodeStyleSetFlexDirection(self.inner_node, direction);
         }
     }
 
