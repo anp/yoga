@@ -1068,6 +1068,7 @@ static inline bool YGValueEqual(const YGValue a, const YGValue b)
 
 static inline void YGResolveDimensions(YGNodeRef node)
 {
+  // NOTE(anp): does this loop one more time than it needs to?
   for (YGDimension dim = YGDimensionWidth; dim <= YGDimensionHeight; dim++)
   {
     if (node->style.maxDimensions[dim].unit != YGUnitUndefined &&
