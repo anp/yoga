@@ -6,7 +6,7 @@ use libc;
 
 use ffi_types::{
     align::Align, dimension::{Dimension, Dimensions, MeasuredDimensions, ResolvedDimensions},
-    direction::Direction,
+    direction::Direction, display::Display,
 };
 
 unsafe fn YGResolveValue(value: *const YGValue, parentSize: libc::c_float) -> libc::c_float {
@@ -68,8 +68,6 @@ pub const _ISOC_: _LIB_VERSION_TYPE = 3;
 pub const _POSIX_: _LIB_VERSION_TYPE = 2;
 pub const _SVID_: _LIB_VERSION_TYPE = 0;
 pub const _XOPEN_: _LIB_VERSION_TYPE = 1;
-pub const YGDisplayFlex: YGDisplay_0 = 0;
-pub const YGDisplayNone: YGDisplay_0 = 1;
 pub const YGEdgeAll: YGEdge_0 = 8;
 pub const YGEdgeBottom: YGEdge_0 = 3;
 pub const YGEdgeEnd: YGEdge_0 = 5;
@@ -119,8 +117,6 @@ pub type YGCachedMeasurement_0 = YGCachedMeasurement;
 pub type YGCalloc = Option<unsafe extern "C" fn(_: size_t, _: size_t) -> *mut libc::c_void>;
 pub type YGConfig = YGConfig_0;
 pub type YGConfigRef = *mut YGConfig_0;
-pub type YGDisplay = YGDisplay_0;
-pub type YGDisplay_0 = libc::c_uint;
 pub type YGEdge = YGEdge_0;
 pub type YGEdge_0 = libc::c_uint;
 pub type YGExperimentalFeature = libc::c_uint;
@@ -253,7 +249,7 @@ pub struct YGStyle {
     pub positionType: YGPositionType,
     pub flexWrap: YGWrap_0,
     pub overflow: YGOverflow_0,
-    pub display: YGDisplay,
+    pub display: Display,
     pub flex: libc::c_float,
     pub flexGrow: libc::c_float,
     pub flexShrink: libc::c_float,
@@ -437,7 +433,7 @@ static mut gYGNodeDefaults: YGNode = unsafe {
             positionType: YGPositionTypeRelative,
             flexWrap: YGWrapNoWrap,
             overflow: YGOverflowVisible,
-            display: YGDisplayFlex,
+            display: Display::Flex,
             flex: ::std::f32::NAN,
             flexGrow: ::std::f32::NAN,
             flexShrink: ::std::f32::NAN,
@@ -2944,14 +2940,14 @@ pub unsafe extern "C" fn YGNodeStyleGetOverflow(node: YGNodeRef) -> YGOverflow_0
     return (*node).style.overflow;
 }
 #[no_mangle]
-pub unsafe extern "C" fn YGNodeStyleSetDisplay(node: YGNodeRef, display: YGDisplay) -> () {
+pub unsafe extern "C" fn YGNodeStyleSetDisplay(node: YGNodeRef, display: Display) -> () {
     if (*node).style.display as libc::c_uint != display as libc::c_uint {
         (*node).style.display = display;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn YGNodeStyleGetDisplay(node: YGNodeRef) -> YGDisplay {
+pub unsafe extern "C" fn YGNodeStyleGetDisplay(node: YGNodeRef) -> Display {
     return (*node).style.display;
 }
 #[no_mangle]
@@ -4075,7 +4071,7 @@ unsafe fn YGNodelayoutImpl(
     for i in 0..childCount {
         {
             let child = YGNodeListGet((*node).children, i);
-            if (*child).style.display == YGDisplayNone {
+            if (*child).style.display == Display::None {
                 YGZeroOutLayoutRecursivly(child);
                 (*child).hasNewLayout = true;
                 (*child).isDirty = false;
@@ -4181,7 +4177,7 @@ unsafe fn YGNodelayoutImpl(
             let mut i = startOfLineIndex;
             while i < childCount {
                 let child = YGNodeListGet((*node).children, i);
-                if (*child).style.display == YGDisplayNone {
+                if (*child).style.display == Display::None {
                     continue;
                 }
                 (*child).lineIndex = lineCount;
@@ -4652,7 +4648,7 @@ unsafe fn YGNodelayoutImpl(
 
             for i in startOfLineIndex..endOfLineIndex {
                 let child = YGNodeListGet((*node).children, i);
-                if (*child).style.display == YGDisplayNone {
+                if (*child).style.display == Display::None {
                     continue;
                 }
                 if (*child).style.positionType == YGPositionTypeAbsolute
@@ -4747,7 +4743,7 @@ unsafe fn YGNodelayoutImpl(
             if performLayout {
                 for i in startOfLineIndex..endOfLineIndex {
                     let child = YGNodeListGet((*node).children, i);
-                    if (*child).style.display == YGDisplayNone {
+                    if (*child).style.display == Display::None {
                         continue;
                     }
                     if (*child).style.positionType == YGPositionTypeAbsolute {
@@ -4938,7 +4934,7 @@ unsafe fn YGNodelayoutImpl(
                 for ii in startIndex..childCount {
                     endIndex = ii;
                     let child = YGNodeListGet((*node).children, ii);
-                    if (*child).style.display == YGDisplayNone {
+                    if (*child).style.display == Display::None {
                         continue;
                     }
                     if (*child).style.positionType == YGPositionTypeRelative {
@@ -4976,7 +4972,7 @@ unsafe fn YGNodelayoutImpl(
                 if performLayout {
                     for ii in startIndex..endIndex {
                         let child = YGNodeListGet((*node).children, ii);
-                        if (*child).style.display == YGDisplayNone {
+                        if (*child).style.display == Display::None {
                             continue;
                         }
                         if (*child).style.positionType == YGPositionTypeRelative {
@@ -5203,7 +5199,7 @@ unsafe fn YGNodelayoutImpl(
             if needsMainTrailingPos || needsCrossTrailingPos {
                 for i in 0..childCount {
                     let child = YGNodeListGet((*node).children, i);
-                    if (*child).style.display == YGDisplayNone {
+                    if (*child).style.display == Display::None {
                         continue;
                     }
                     if needsMainTrailingPos {
