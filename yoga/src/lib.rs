@@ -147,10 +147,7 @@ impl Node {
 
     pub fn set_direction(&mut self, direction: Direction) {
         unsafe {
-            internal::YGNodeStyleSetDirection(
-                self.inner_node,
-                internal::YGDirection::from(direction),
-            );
+            internal::YGNodeStyleSetDirection(self.inner_node, direction);
         }
     }
 
@@ -467,7 +464,7 @@ impl Node {
                 self.inner_node,
                 available_width,
                 available_height,
-                internal::YGDirection::from(parent_direction),
+                parent_direction,
             );
         }
     }
