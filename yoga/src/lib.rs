@@ -4,15 +4,16 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 #![allow(unused_mut)]
-
-extern crate ordered_float;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#![allow(unknown_lints)]
+#![warn(clippy)]
 
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate ordered_float;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 pub mod internal;
 

@@ -15,14 +15,6 @@ type _IO_FILE_plus = libc::c_void;
 
 extern "C" {
     #[no_mangle]
-    fn fabs(_: libc::c_double) -> libc::c_double;
-    #[no_mangle]
-    fn fmodf(_: libc::c_float, _: libc::c_float) -> libc::c_float;
-    #[no_mangle]
-    fn fmaxf(_: libc::c_float, _: libc::c_float) -> libc::c_float;
-    #[no_mangle]
-    fn fminf(_: libc::c_float, _: libc::c_float) -> libc::c_float;
-    #[no_mangle]
     static mut signgam: libc::c_int;
     #[no_mangle]
     static mut _LIB_VERSION: _LIB_VERSION_TYPE;
@@ -106,7 +98,7 @@ impl PartialEq for YGValue {
             return true;
         }
 
-        return unsafe { fabs((self.value - other.value) as f64) < 0.0001 };
+        return (self.value - other.value).abs() < 0.0001;
     }
 }
 
@@ -367,7 +359,7 @@ pub unsafe extern "C" fn YGRoundValueToPixelGrid(
     forceFloor: bool,
 ) -> libc::c_float {
     let mut scaledValue: libc::c_float = value * pointScaleFactor;
-    let mut fractial: libc::c_float = fmodf(scaledValue, 1.0f64 as libc::c_float);
+    let mut fractial: libc::c_float = scaledValue % 1.0;
     if YGFloatsEqual(fractial, 0i32 as libc::c_float) {
         scaledValue = scaledValue - fractial;
     } else {
@@ -398,7 +390,7 @@ unsafe extern "C" fn YGFloatsEqual(a: libc::c_float, b: libc::c_float) -> bool {
     if a.is_nan() {
         return b.is_nan();
     };
-    return fabs((a - b) as libc::c_double) < 0.00009999999747378752f32 as libc::c_double;
+    return ((a - b).abs() as f64) < 0.00009999999747378752f32 as libc::c_double;
 }
 
 static mut YGValueUndefined: YGValue = YGValue_0 {
@@ -1727,14 +1719,12 @@ unsafe extern "C" fn YGNodeTrailingBorder(
     {
         return (*node).style.border[YGEdgeEnd as libc::c_int as usize].value;
     };
-    return fmaxf(
-        (*YGComputedEdgeValue(
-            (*node).style.border.as_mut_ptr() as *const YGValue,
-            trailing[axis as usize],
-            &mut YGValueZero as *mut YGValue,
-        )).value,
-        0.0f32,
-    );
+    return (*YGComputedEdgeValue(
+        (*node).style.border.as_mut_ptr() as *const YGValue,
+        trailing[axis as usize],
+        &mut YGValueZero as *mut YGValue,
+    )).value
+        .max(0.0f32);
 }
 unsafe extern "C" fn YGNodeTrailingPadding(
     node: YGNodeRef,
@@ -1754,17 +1744,14 @@ unsafe extern "C" fn YGNodeTrailingPadding(
             widthSize,
         );
     };
-    return fmaxf(
-        YGResolveValue(
-            YGComputedEdgeValue(
-                (*node).style.padding.as_mut_ptr() as *const YGValue,
-                trailing[axis as usize],
-                &mut YGValueZero as *mut YGValue,
-            ),
-            widthSize,
+    return YGResolveValue(
+        YGComputedEdgeValue(
+            (*node).style.padding.as_mut_ptr() as *const YGValue,
+            trailing[axis as usize],
+            &mut YGValueZero as *mut YGValue,
         ),
-        0.0f32,
-    );
+        widthSize,
+    ).max(0.0f32);
 }
 unsafe extern "C" fn YGNodeLeadingPaddingAndBorder(
     node: YGNodeRef,
@@ -1784,14 +1771,12 @@ unsafe extern "C" fn YGNodeLeadingBorder(
     {
         return (*node).style.border[YGEdgeStart as libc::c_int as usize].value;
     };
-    return fmaxf(
-        (*YGComputedEdgeValue(
-            (*node).style.border.as_mut_ptr() as *const YGValue,
-            leading[axis as usize],
-            &mut YGValueZero as *mut YGValue,
-        )).value,
-        0.0f32,
-    );
+    return (*YGComputedEdgeValue(
+        (*node).style.border.as_mut_ptr() as *const YGValue,
+        leading[axis as usize],
+        &mut YGValueZero as *mut YGValue,
+    )).value
+        .max(0.0f32);
 }
 unsafe extern "C" fn YGNodeLeadingPadding(
     node: YGNodeRef,
@@ -1811,17 +1796,14 @@ unsafe extern "C" fn YGNodeLeadingPadding(
             widthSize,
         );
     };
-    return fmaxf(
-        YGResolveValue(
-            YGComputedEdgeValue(
-                (*node).style.padding.as_mut_ptr() as *const YGValue,
-                leading[axis as usize],
-                &mut YGValueZero as *mut YGValue,
-            ),
-            widthSize,
+    return YGResolveValue(
+        YGComputedEdgeValue(
+            (*node).style.padding.as_mut_ptr() as *const YGValue,
+            leading[axis as usize],
+            &mut YGValueZero as *mut YGValue,
         ),
-        0.0f32,
-    );
+        widthSize,
+    ).max(0.0f32);
 }
 unsafe extern "C" fn YGNodeMarginForAxis(
     node: YGNodeRef,
@@ -2060,10 +2042,8 @@ unsafe extern "C" fn YGNodeBoundAxis(
     axisSize: libc::c_float,
     widthSize: libc::c_float,
 ) -> libc::c_float {
-    return fmaxf(
-        YGNodeBoundAxisWithinMinAndMax(node, axis, value, axisSize),
-        YGNodePaddingAndBorderForAxis(node, axis, widthSize),
-    );
+    return YGNodeBoundAxisWithinMinAndMax(node, axis, value, axisSize)
+        .max(YGNodePaddingAndBorderForAxis(node, axis, widthSize));
 }
 unsafe extern "C" fn YGNodeBoundAxisWithinMinAndMax(
     node: YGNodeRef,
@@ -2324,27 +2304,25 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
             ) as libc::c_int
                 && (*child).layout.computedFlexBasisGeneration != gCurrentGenerationCount
         {
-            (*child).layout.computedFlexBasis = fmaxf(
-                resolvedFlexBasis,
-                YGNodePaddingAndBorderForAxis(child, mainAxis, parentWidth),
-            );
+            (*child).layout.computedFlexBasis =
+                resolvedFlexBasis.max(YGNodePaddingAndBorderForAxis(child, mainAxis, parentWidth));
         };
     } else {
         if 0 != isMainAxisRow as libc::c_int && 0 != isRowStyleDimDefined as libc::c_int {
-            (*child).layout.computedFlexBasis = fmaxf(
-                YGResolveValue(
-                    (*child).resolvedDimensions[YGDimensionWidth as libc::c_int as usize],
-                    parentWidth,
-                ),
-                YGNodePaddingAndBorderForAxis(child, YGFlexDirectionRow, parentWidth),
-            );
+            (*child).layout.computedFlexBasis = YGResolveValue(
+                (*child).resolvedDimensions[YGDimensionWidth as libc::c_int as usize],
+                parentWidth,
+            ).max(YGNodePaddingAndBorderForAxis(
+                child,
+                YGFlexDirectionRow,
+                parentWidth,
+            ));
         } else {
             if !isMainAxisRow && 0 != isColumnStyleDimDefined as libc::c_int {
-                (*child).layout.computedFlexBasis = fmaxf(
-                    YGResolveValue(
-                        (*child).resolvedDimensions[YGDimensionHeight as libc::c_int as usize],
-                        parentHeight,
-                    ),
+                (*child).layout.computedFlexBasis = YGResolveValue(
+                    (*child).resolvedDimensions[YGDimensionHeight as libc::c_int as usize],
+                    parentHeight,
+                ).max(
                     YGNodePaddingAndBorderForAxis(child, YGFlexDirectionColumn, parentWidth),
                 );
             } else {
@@ -2476,10 +2454,9 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                     "measure",
                     config,
                 );
-                (*child).layout.computedFlexBasis = fmaxf(
-                    (*child).layout.measuredDimensions[dim[mainAxis as usize] as usize],
-                    YGNodePaddingAndBorderForAxis(child, mainAxis, parentWidth),
-                );
+                (*child).layout.computedFlexBasis = (*child).layout.measuredDimensions
+                    [dim[mainAxis as usize] as usize]
+                    .max(YGNodePaddingAndBorderForAxis(child, mainAxis, parentWidth));
             };
         };
     };
@@ -2675,18 +2652,12 @@ unsafe extern "C" fn YGNodeWithMeasureFuncSetMeasuredDimensions(
     let innerWidth: libc::c_float = if 0 != availableWidth.is_nan() as libc::c_int {
         availableWidth
     } else {
-        fmaxf(
-            0i32 as libc::c_float,
-            availableWidth - marginAxisRow - paddingAndBorderAxisRow,
-        )
+        (0i32 as libc::c_float).max(availableWidth - marginAxisRow - paddingAndBorderAxisRow)
     };
     let innerHeight: libc::c_float = if 0 != availableHeight.is_nan() as libc::c_int {
         availableHeight
     } else {
-        fmaxf(
-            0i32 as libc::c_float,
-            availableHeight - marginAxisColumn - paddingAndBorderAxisColumn,
-        )
+        (0i32 as libc::c_float).max(availableHeight - marginAxisColumn - paddingAndBorderAxisColumn)
     };
     if widthMeasureMode as libc::c_uint == YGMeasureModeExactly as libc::c_int as libc::c_uint
         && heightMeasureMode as libc::c_uint == YGMeasureModeExactly as libc::c_int as libc::c_uint
@@ -3843,10 +3814,10 @@ pub unsafe fn YGRoundToPixelGrid(
     // We multiply dimension by scale factor and if the result is close to the whole number, we don't
     // have any fraction
     // To verify if the result is close to whole number we want to check both floor and ceil numbers
-    let hasFractionalWidth = !YGFloatsEqual(fmodf(nodeWidth * pointScaleFactor, 1.0), 0.0)
-        && !YGFloatsEqual(fmodf(nodeWidth * pointScaleFactor, 1.0), 1.0);
-    let hasFractionalHeight = !YGFloatsEqual(fmodf(nodeHeight * pointScaleFactor, 1.0), 0.0)
-        && !YGFloatsEqual(fmodf(nodeHeight * pointScaleFactor, 1.0), 1.0);
+    let hasFractionalWidth = !YGFloatsEqual(nodeWidth * pointScaleFactor % 1.0, 0.0)
+        && !YGFloatsEqual(nodeWidth * pointScaleFactor % 1.0, 1.0);
+    let hasFractionalHeight = !YGFloatsEqual(nodeHeight * pointScaleFactor % 1.0, 0.0)
+        && !YGFloatsEqual(nodeHeight * pointScaleFactor % 1.0, 1.0);
 
     (*node).layout.dimensions[YGDimensionWidth as usize] = YGRoundValueToPixelGrid(
         absoluteNodeRight,
@@ -4180,13 +4151,13 @@ unsafe fn YGNodelayoutImpl(
     let mut availableInnerWidth = availableWidth - marginAxisRow - paddingAndBorderAxisRow;
     if !availableInnerWidth.is_nan() {
         // We want to make sure our available width does not violate min and max constraints
-        availableInnerWidth = fmaxf(fminf(availableInnerWidth, maxInnerWidth), minInnerWidth);
+        availableInnerWidth = availableInnerWidth.min(maxInnerWidth).max(minInnerWidth);
     }
 
     let mut availableInnerHeight = availableHeight - marginAxisColumn - paddingAndBorderAxisColumn;
     if !availableInnerHeight.is_nan() {
         // We want to make sure our available height does not violate min and max constraints
-        availableInnerHeight = fmaxf(fminf(availableInnerHeight, maxInnerHeight), minInnerHeight);
+        availableInnerHeight = availableInnerHeight.min(maxInnerHeight).max(minInnerHeight);
     }
 
     let mut availableInnerMainDim = if isMainAxisRow {
@@ -4301,10 +4272,10 @@ unsafe fn YGNodelayoutImpl(
         let mut lineCount = 0;
 
         // Accumulated cross dimensions of all lines so far.
-        let mut totalLineCrossDim = 0.0;
+        let mut totalLineCrossDim = 0.0f32;
 
         // Max main dimension of all the lines.
-        let mut maxLineMainDim = 0.0;
+        let mut maxLineMainDim = 0.0f32;
 
         while endOfLineIndex < childCount {
             // Number of items on the currently line. May be different than the
@@ -4317,11 +4288,11 @@ unsafe fn YGNodelayoutImpl(
             // of all the children on the current line. This will be used in order to
             // either set the dimensions of the node if none already exist or to compute
             // the remaining space left for the flexible children.
-            let mut sizeConsumedOnCurrentLine = 0.0;
-            let mut sizeConsumedOnCurrentLineIncludingMinConstraint = 0.0;
+            let mut sizeConsumedOnCurrentLine = 0.0f32;
+            let mut sizeConsumedOnCurrentLineIncludingMinConstraint = 0.0f32;
 
-            let mut totalFlexGrowFactors = 0.0;
-            let mut totalFlexShrinkScaledFactors = 0.0;
+            let mut totalFlexGrowFactors = 0.0f32;
+            let mut totalFlexShrinkScaledFactors = 0.0f32;
 
             // Maintain a linked list of the child nodes that can shrink and/or grow.
             let mut firstRelativeChild: YGNodeRef = ::std::ptr::null_mut();
@@ -4339,20 +4310,14 @@ unsafe fn YGNodelayoutImpl(
                 if (*child).style.positionType != YGPositionTypeAbsolute {
                     let childMarginMainAxis =
                         YGNodeMarginForAxis(child, mainAxis, availableInnerWidth);
-                    let flexBasisWithMaxConstraints = fminf(
-                        YGResolveValue(
-                            &(*child).style.maxDimensions[dim[mainAxis as usize] as usize],
-                            mainAxisParentSize,
-                        ),
-                        (*child).layout.computedFlexBasis,
-                    );
-                    let flexBasisWithMinAndMaxConstraints = fmaxf(
-                        YGResolveValue(
-                            &(*child).style.minDimensions[dim[mainAxis as usize] as usize],
-                            mainAxisParentSize,
-                        ),
-                        flexBasisWithMaxConstraints,
-                    );
+                    let flexBasisWithMaxConstraints = YGResolveValue(
+                        &(*child).style.maxDimensions[dim[mainAxis as usize] as usize],
+                        mainAxisParentSize,
+                    ).min((*child).layout.computedFlexBasis);
+                    let flexBasisWithMinAndMaxConstraints = YGResolveValue(
+                        &(*child).style.minDimensions[dim[mainAxis as usize] as usize],
+                        mainAxisParentSize,
+                    ).max(flexBasisWithMaxConstraints);
 
                     // If this is a multi-line flow and this item pushes us over the
                     // available size, we've
@@ -4482,20 +4447,16 @@ unsafe fn YGNodelayoutImpl(
                 let mut deltaFlexGrowFactors = 0.0;
                 currentRelativeChild = firstRelativeChild;
                 while !currentRelativeChild.is_null() {
-                    childFlexBasis = fminf(
+                    childFlexBasis = YGResolveValue(
+                        &(*currentRelativeChild).style.maxDimensions
+                            [dim[mainAxis as usize] as usize],
+                        mainAxisParentSize,
+                    ).min(
                         YGResolveValue(
-                            &(*currentRelativeChild).style.maxDimensions
+                            &(*currentRelativeChild).style.minDimensions
                                 [dim[mainAxis as usize] as usize],
                             mainAxisParentSize,
-                        ),
-                        fmaxf(
-                            YGResolveValue(
-                                &(*currentRelativeChild).style.minDimensions
-                                    [dim[mainAxis as usize] as usize],
-                                mainAxisParentSize,
-                            ),
-                            (*currentRelativeChild).layout.computedFlexBasis,
-                        ),
+                        ).max((*currentRelativeChild).layout.computedFlexBasis),
                     );
 
                     if remainingFreeSpace < 0.0 {
@@ -4564,20 +4525,16 @@ unsafe fn YGNodelayoutImpl(
                 deltaFreeSpace = 0.0;
                 currentRelativeChild = firstRelativeChild;
                 while !currentRelativeChild.is_null() {
-                    childFlexBasis = fminf(
+                    childFlexBasis = YGResolveValue(
+                        &(*currentRelativeChild).style.maxDimensions
+                            [dim[mainAxis as usize] as usize],
+                        mainAxisParentSize,
+                    ).min(
                         YGResolveValue(
-                            &(*currentRelativeChild).style.maxDimensions
+                            &(*currentRelativeChild).style.minDimensions
                                 [dim[mainAxis as usize] as usize],
                             mainAxisParentSize,
-                        ),
-                        fmaxf(
-                            YGResolveValue(
-                                &(*currentRelativeChild).style.minDimensions
-                                    [dim[mainAxis as usize] as usize],
-                                mainAxisParentSize,
-                            ),
-                            (*currentRelativeChild).layout.computedFlexBasis,
-                        ),
+                        ).max((*currentRelativeChild).layout.computedFlexBasis),
                     );
                     let mut updatedMainSize = childFlexBasis;
 
@@ -4774,8 +4731,7 @@ unsafe fn YGNodelayoutImpl(
                         mainAxisParentSize,
                     ) >= 0.0
                 {
-                    remainingFreeSpace = fmaxf(
-                        0.0,
+                    remainingFreeSpace = (0.0f32).max(
                         YGResolveValue(
                             &(*node).style.minDimensions[dim[mainAxis as usize] as usize],
                             mainAxisParentSize,
@@ -4805,8 +4761,7 @@ unsafe fn YGNodelayoutImpl(
                     YGJustifyFlexEnd => leadingMainDim = remainingFreeSpace,
                     YGJustifySpaceBetween => {
                         if itemsOnLine > 1 {
-                            betweenMainDim =
-                                fmaxf(remainingFreeSpace, 0.0) / (itemsOnLine - 1) as f32;
+                            betweenMainDim = remainingFreeSpace.max(0.0) / (itemsOnLine - 1) as f32;
                         } else {
                             betweenMainDim = 0.0;
                         }
@@ -4872,10 +4827,11 @@ unsafe fn YGNodelayoutImpl(
 
                             // The cross dimension is the max of the elements dimension since
                             // there can only be one element in that cross dimension.
-                            crossDim = fmaxf(
-                                crossDim,
-                                YGNodeDimWithMargin(child, crossAxis, availableInnerWidth),
-                            );
+                            crossDim = crossDim.max(YGNodeDimWithMargin(
+                                child,
+                                crossAxis,
+                                availableInnerWidth,
+                            ));
                         }
                     } else if performLayout {
                         (*child).layout.position[pos[mainAxis as usize] as usize] +=
@@ -5039,12 +4995,12 @@ unsafe fn YGNodelayoutImpl(
                             if (*YGMarginLeadingValue(child, crossAxis)).unit == YGUnitAuto
                                 && (*YGMarginTrailingValue(child, crossAxis)).unit == YGUnitAuto
                             {
-                                leadingCrossDim += fmaxf(0.0, remainingCrossDim / 2.0);
+                                leadingCrossDim += (remainingCrossDim / 2.0).max(0.0);
                             } else if (*YGMarginTrailingValue(child, crossAxis)).unit == YGUnitAuto
                             {
                                 // No-Op
                             } else if (*YGMarginLeadingValue(child, crossAxis)).unit == YGUnitAuto {
-                                leadingCrossDim += fmaxf(0.0f32, remainingCrossDim);
+                                leadingCrossDim += 0.0f32.max(remainingCrossDim);
                             } else if alignItem == YGAlignFlexStart {
                                 // No-Op
                             } else if alignItem == YGAlignCenter {
@@ -5061,7 +5017,7 @@ unsafe fn YGNodelayoutImpl(
             }
 
             totalLineCrossDim += crossDim;
-            maxLineMainDim = fmaxf(maxLineMainDim, mainDim);
+            maxLineMainDim = maxLineMainDim.max(mainDim);
             lineCount += 1;
             startOfLineIndex = endOfLineIndex;
         }
@@ -5103,9 +5059,9 @@ unsafe fn YGNodelayoutImpl(
                 let startIndex = endIndex;
 
                 // compute the line's height and find the endIndex
-                let mut lineHeight = 0.0;
-                let mut maxAscentForCurrentLine = 0.0;
-                let mut maxDescentForCurrentLine = 0.0;
+                let mut lineHeight = 0.0f32;
+                let mut maxAscentForCurrentLine = 0.0f32;
+                let mut maxDescentForCurrentLine = 0.0f32;
 
                 for ii in startIndex..childCount {
                     endIndex = ii;
@@ -5118,8 +5074,7 @@ unsafe fn YGNodelayoutImpl(
                             break;
                         }
                         if YGNodeIsLayoutDimDefined(child, crossAxis) {
-                            lineHeight = fmaxf(
-                                lineHeight,
+                            lineHeight = lineHeight.max(
                                 (*child).layout.measuredDimensions[dim[crossAxis as usize] as usize]
                                     + YGNodeMarginForAxis(child, crossAxis, availableInnerWidth),
                             );
@@ -5138,12 +5093,10 @@ unsafe fn YGNodelayoutImpl(
                                     YGFlexDirectionColumn,
                                     availableInnerWidth,
                                 ) - ascent;
-                            maxAscentForCurrentLine = fmaxf(maxAscentForCurrentLine, ascent);
-                            maxDescentForCurrentLine = fmaxf(maxDescentForCurrentLine, descent);
-                            lineHeight = fmaxf(
-                                lineHeight,
-                                maxAscentForCurrentLine + maxDescentForCurrentLine,
-                            );
+                            maxAscentForCurrentLine = maxAscentForCurrentLine.max(ascent);
+                            maxDescentForCurrentLine = maxDescentForCurrentLine.max(descent);
+                            lineHeight =
+                                lineHeight.max(maxAscentForCurrentLine + maxDescentForCurrentLine);
                         }
                     }
                 }
@@ -5302,18 +5255,15 @@ unsafe fn YGNodelayoutImpl(
         } else if measureModeMainDim == YGMeasureModeAtMost
             && (*node).style.overflow == YGOverflowScroll
         {
-            (*node).layout.measuredDimensions[dim[mainAxis as usize] as usize] = fmaxf(
-                fminf(
-                    availableInnerMainDim + paddingAndBorderAxisMain,
-                    YGNodeBoundAxisWithinMinAndMax(
+            (*node).layout.measuredDimensions[dim[mainAxis as usize] as usize] =
+                (availableInnerMainDim + paddingAndBorderAxisMain)
+                    .min(YGNodeBoundAxisWithinMinAndMax(
                         node,
                         mainAxis,
                         maxLineMainDim,
                         mainAxisParentSize,
-                    ),
-                ),
-                paddingAndBorderAxisMain,
-            );
+                    ))
+                    .max(paddingAndBorderAxisMain);
         }
 
         if measureModeCrossDim == YGMeasureModeUndefined
@@ -5332,18 +5282,15 @@ unsafe fn YGNodelayoutImpl(
         } else if measureModeCrossDim == YGMeasureModeAtMost
             && (*node).style.overflow == YGOverflowScroll
         {
-            (*node).layout.measuredDimensions[dim[crossAxis as usize] as usize] = fmaxf(
-                fminf(
-                    availableInnerCrossDim + paddingAndBorderAxisCross,
-                    YGNodeBoundAxisWithinMinAndMax(
+            (*node).layout.measuredDimensions[dim[crossAxis as usize] as usize] =
+                (availableInnerCrossDim + paddingAndBorderAxisCross)
+                    .max(YGNodeBoundAxisWithinMinAndMax(
                         node,
                         crossAxis,
                         totalLineCrossDim + paddingAndBorderAxisCross,
                         crossAxisParentSize,
-                    ),
-                ),
-                paddingAndBorderAxisCross,
-            );
+                    ))
+                    .max(paddingAndBorderAxisCross);
         }
 
         // As we only wrapped in normal direction yet, we need to reverse the positions on wrap-reverse.
