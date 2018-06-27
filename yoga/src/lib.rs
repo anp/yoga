@@ -174,19 +174,19 @@ impl Node {
 
     pub fn set_align_content(&mut self, align: Align) {
         unsafe {
-            internal::YGNodeStyleSetAlignContent(self.inner_node, internal::YGAlign::from(align));
+            internal::YGNodeStyleSetAlignContent(self.inner_node, align);
         }
     }
 
     pub fn set_align_items(&mut self, align: Align) {
         unsafe {
-            internal::YGNodeStyleSetAlignItems(self.inner_node, internal::YGAlign::from(align));
+            internal::YGNodeStyleSetAlignItems(self.inner_node, align);
         }
     }
 
     pub fn set_align_self(&mut self, align: Align) {
         unsafe {
-            internal::YGNodeStyleSetAlignSelf(self.inner_node, internal::YGAlign::from(align));
+            internal::YGNodeStyleSetAlignSelf(self.inner_node, align);
         }
     }
 

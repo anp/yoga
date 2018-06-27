@@ -2,6 +2,8 @@ use std::ffi::CStr;
 
 use libc;
 
+use ffi_types::align::Align;
+
 unsafe fn YGResolveValue(value: *const YGValue, parentSize: libc::c_float) -> libc::c_float {
     match (*value).unit {
         YGUnitPoint => (*value).value,
@@ -15,7 +17,7 @@ type _IO_FILE_plus = libc::c_void;
 
 extern "C" {
     #[no_mangle]
-    static mut signgam: libc::c_int;
+    static mut signgam: i32;
     #[no_mangle]
     static mut _LIB_VERSION: _LIB_VERSION_TYPE;
     #[no_mangle]
@@ -31,7 +33,7 @@ extern "C" {
     #[no_mangle]
     static mut stderr: *mut _IO_FILE;
     #[no_mangle]
-    static mut sys_nerr: libc::c_int;
+    static mut sys_nerr: i32;
     #[no_mangle]
     static sys_errlist: [*const libc::c_char; 0];
     #[no_mangle]
@@ -47,26 +49,112 @@ extern "C" {
     #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     #[no_mangle]
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
+    fn memset(_: *mut libc::c_void, _: i32, _: libc::c_ulong) -> *mut libc::c_void;
     #[no_mangle]
-    fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> libc::c_int;
+    fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> i32;
     #[no_mangle]
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
 }
+pub type YGNodeClonedFunc =
+    Option<unsafe extern "C" fn(_: YGNodeRef, _: YGNodeRef, _: YGNodeRef, _: i32) -> ()>;
+
 pub const _IEEE_: _LIB_VERSION_TYPE = -1;
-pub const YGOverflowScroll: YGOverflow = 2;
-pub type YGFree = Option<unsafe extern "C" fn(_: *mut libc::c_void) -> ()>;
-pub const YGEdgeRight: YGEdge_0 = 2;
-pub const YGEdgeVertical: YGEdge_0 = 7;
-pub type YGWrap = libc::c_uint;
+pub const _ISOC_: _LIB_VERSION_TYPE = 3;
+pub const _POSIX_: _LIB_VERSION_TYPE = 2;
+pub const _SVID_: _LIB_VERSION_TYPE = 0;
+pub const _XOPEN_: _LIB_VERSION_TYPE = 1;
+pub const YGDimensionHeight: YGDimension_0 = 1;
+pub const YGDimensionWidth: YGDimension_0 = 0;
 pub const YGDirectionInherit: YGDirection = 0;
-pub const YGAlignSpaceAround: YGAlign = 7;
-pub const YGFlexDirectionColumnReverse: YGFlexDirection = 1;
-pub const YGJustifyCenter: YGJustify_0 = 1;
-pub type YGPositionType = YGPositionType_0;
-pub type YGEdge = YGEdge_0;
-pub type va_list = __builtin_va_list;
+pub const YGDirectionLTR: YGDirection = 1;
+pub const YGDirectionRTL: YGDirection = 2;
+pub const YGDisplayFlex: YGDisplay_0 = 0;
+pub const YGDisplayNone: YGDisplay_0 = 1;
+pub const YGEdgeAll: YGEdge_0 = 8;
+pub const YGEdgeBottom: YGEdge_0 = 3;
+pub const YGEdgeEnd: YGEdge_0 = 5;
+pub const YGEdgeLeft: YGEdge_0 = 0;
+pub const YGEdgeRight: YGEdge_0 = 2;
 pub const YGEdgeStart: YGEdge_0 = 4;
+pub const YGEdgeTop: YGEdge_0 = 1;
+pub const YGEdgeVertical: YGEdge_0 = 7;
+pub const YGExperimentalFeatureWebFlexBasis: YGExperimentalFeature = 0;
+pub const YGFlexDirectionColumn: YGFlexDirection = 0;
+pub const YGFlexDirectionColumnReverse: YGFlexDirection = 1;
+pub const YGFlexDirectionRow: YGFlexDirection = 2;
+pub const YGFlexDirectionRowReverse: YGFlexDirection = 3;
+pub const YGJustifyCenter: YGJustify_0 = 1;
+pub const YGJustifyFlexEnd: YGJustify_0 = 2;
+pub const YGJustifyFlexStart: YGJustify_0 = 0;
+pub const YGJustifySpaceAround: YGJustify_0 = 4;
+pub const YGJustifySpaceBetween: YGJustify_0 = 3;
+pub const YGMeasureModeAtMost: YGMeasureMode_0 = 2;
+pub const YGMeasureModeExactly: YGMeasureMode_0 = 1;
+pub const YGMeasureModeUndefined: YGMeasureMode_0 = 0;
+pub const YGNodeTypeDefault: YGNodeType = 0;
+pub const YGNodeTypeText: YGNodeType = 1;
+pub const YGOverflowHidden: YGOverflow = 1;
+pub const YGOverflowScroll: YGOverflow = 2;
+pub const YGOverflowVisible: YGOverflow = 0;
+pub const YGPositionTypeAbsolute: YGPositionType_0 = 1;
+pub const YGPositionTypeRelative: YGPositionType_0 = 0;
+pub const YGUnitAuto: YGUnit = 3;
+pub const YGUnitPercent: YGUnit = 2;
+pub const YGUnitPoint: YGUnit = 1;
+pub const YGUnitUndefined: YGUnit = 0;
+pub const YGWrapNoWrap: YGWrap = 0;
+pub const YGWrapWrap: YGWrap = 1;
+pub const YGWrapWrapReverse: YGWrap = 2;
+pub type __builtin_va_list = [__va_list_tag; 1];
+pub type __off_t = i64;
+pub type __off64_t = i64;
+pub type _IO_lock_t = ();
+pub type _LIB_VERSION_TYPE = i32;
+pub type FILE = _IO_FILE;
+pub type int32_t = i32;
+pub type size_t = libc::c_ulong;
+pub type uint32_t = libc::c_uint;
+pub type va_list = __builtin_va_list;
+pub type YGCachedMeasurement_0 = YGCachedMeasurement;
+pub type YGCalloc = Option<unsafe extern "C" fn(_: size_t, _: size_t) -> *mut libc::c_void>;
+pub type YGConfig = YGConfig_0;
+pub type YGConfigRef = *mut YGConfig_0;
+pub type YGDimension = YGDimension_0;
+pub type YGDimension_0 = libc::c_uint;
+pub type YGDirection = libc::c_uint;
+pub type YGDirection_0 = YGDirection;
+pub type YGDisplay = YGDisplay_0;
+pub type YGDisplay_0 = libc::c_uint;
+pub type YGEdge = YGEdge_0;
+pub type YGEdge_0 = libc::c_uint;
+pub type YGExperimentalFeature = libc::c_uint;
+pub type YGExperimentalFeature_0 = YGExperimentalFeature;
+pub type YGFlexDirection = libc::c_uint;
+pub type YGFlexDirection_0 = YGFlexDirection;
+pub type YGFree = Option<unsafe extern "C" fn(_: *mut libc::c_void) -> ()>;
+pub type YGJustify = YGJustify_0;
+pub type YGJustify_0 = libc::c_uint;
+pub type YGLayout_0 = YGLayout;
+pub type YGMalloc = Option<unsafe extern "C" fn(_: size_t) -> *mut libc::c_void>;
+pub type YGMeasureMode = YGMeasureMode_0;
+pub type YGMeasureMode_0 = libc::c_uint;
+pub type YGNode = YGNode_0;
+pub type YGNodeListRef = *mut YGNodeList;
+pub type YGNodeRef = *mut YGNode_0;
+pub type YGNodeType = libc::c_uint;
+pub type YGNodeType_0 = YGNodeType;
+pub type YGOverflow = libc::c_uint;
+pub type YGOverflow_0 = YGOverflow;
+pub type YGPositionType = YGPositionType_0;
+pub type YGPositionType_0 = libc::c_uint;
+pub type YGSize_0 = YGSize;
+pub type YGStringStream_0 = YGStringStream;
+pub type YGStyle_0 = YGStyle;
+pub type YGUnit = libc::c_uint;
+pub type YGUnit_0 = YGUnit;
+pub type YGValue = YGValue_0;
+pub type YGWrap = libc::c_uint;
+pub type YGWrap_0 = YGWrap;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -75,12 +163,6 @@ pub struct YGNodeList {
     pub count: uint32_t,
     pub items: *mut YGNodeRef,
 }
-pub type YGOverflow = libc::c_uint;
-pub type YGValue = YGValue_0;
-pub type YGAlign = libc::c_uint;
-pub const YGEdgeLeft: YGEdge_0 = 0;
-pub type YGNodeListRef = *mut YGNodeList;
-pub const YGEdgeAll: YGEdge_0 = 8;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGValue_0 {
@@ -101,15 +183,6 @@ impl PartialEq for YGValue {
         return (self.value - other.value).abs() < 0.0001;
     }
 }
-
-pub const YGMeasureModeExactly: YGMeasureMode_0 = 1;
-pub const YGWrapNoWrap: YGWrap = 0;
-pub type YGWrap_0 = YGWrap;
-pub type YGOverflow_0 = YGOverflow;
-pub const YGAlignStretch: YGAlign = 4;
-pub type YGDirection = libc::c_uint;
-pub const YGWrapWrap: YGWrap = 1;
-pub const YGEdgeTop: YGEdge_0 = 1;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -132,22 +205,6 @@ pub struct YGLayout {
 }
 pub type YGRealloc =
     Option<unsafe extern "C" fn(_: *mut libc::c_void, _: size_t) -> *mut libc::c_void>;
-pub const YGOverflowHidden: YGOverflow = 1;
-pub const YGUnitPercent: YGUnit = 2;
-pub type YGJustify = YGJustify_0;
-pub const YGUnitPoint: YGUnit = 1;
-pub const YGDisplayFlex: YGDisplay_0 = 0;
-pub type YGLayout_0 = YGLayout;
-pub type YGDisplay = YGDisplay_0;
-pub type YGAlign_0 = YGAlign;
-pub const YGFlexDirectionRowReverse: YGFlexDirection = 3;
-pub type YGMalloc = Option<unsafe extern "C" fn(_: size_t) -> *mut libc::c_void>;
-pub type FILE = _IO_FILE;
-pub type YGFlexDirection = libc::c_uint;
-pub type size_t = libc::c_ulong;
-pub const YGAlignAuto: YGAlign = 0;
-pub const YGNodeTypeText: YGNodeType = 1;
-pub const YGDimensionHeight: YGDimension_0 = 1;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGStringStream {
@@ -158,7 +215,7 @@ pub struct YGStringStream {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct _IO_FILE {
-    pub _flags: libc::c_int,
+    pub _flags: i32,
     pub _IO_read_ptr: *mut libc::c_char,
     pub _IO_read_end: *mut libc::c_char,
     pub _IO_read_base: *mut libc::c_char,
@@ -172,8 +229,8 @@ pub struct _IO_FILE {
     pub _IO_save_end: *mut libc::c_char,
     pub _markers: *mut _IO_marker,
     pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
+    pub _fileno: i32,
+    pub _flags2: i32,
     pub _old_offset: __off_t,
     pub _cur_column: libc::c_ushort,
     pub _vtable_offset: libc::c_schar,
@@ -185,19 +242,18 @@ pub struct _IO_FILE {
     pub __pad3: *mut libc::c_void,
     pub __pad4: *mut libc::c_void,
     pub __pad5: size_t,
-    pub _mode: libc::c_int,
+    pub _mode: i32,
     pub _unused2: [libc::c_char; 20],
 }
-pub const YGMeasureModeAtMost: YGMeasureMode_0 = 2;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGStyle {
     pub direction: YGDirection_0,
     pub flexDirection: YGFlexDirection_0,
     pub justifyContent: YGJustify,
-    pub alignContent: YGAlign_0,
-    pub alignItems: YGAlign_0,
-    pub alignSelf: YGAlign_0,
+    pub alignContent: Align,
+    pub alignItems: Align,
+    pub alignSelf: Align,
     pub positionType: YGPositionType,
     pub flexWrap: YGWrap_0,
     pub overflow: YGOverflow_0,
@@ -215,20 +271,6 @@ pub struct YGStyle {
     pub maxDimensions: [YGValue; 2],
     pub aspectRatio: libc::c_float,
 }
-pub type YGDimension = YGDimension_0;
-pub const YGAlignBaseline: YGAlign = 5;
-pub type YGStringStream_0 = YGStringStream;
-pub const YGEdgeEnd: YGEdge_0 = 5;
-pub const _XOPEN_: _LIB_VERSION_TYPE = 1;
-pub type __off_t = libc::c_long;
-pub const _SVID_: _LIB_VERSION_TYPE = 0;
-pub const YGUnitUndefined: YGUnit = 0;
-pub type uint32_t = libc::c_uint;
-pub type YGPositionType_0 = libc::c_uint;
-pub type YGConfigRef = *mut YGConfig_0;
-pub type YGEdge_0 = libc::c_uint;
-pub const YGAlignFlexEnd: YGAlign = 3;
-pub const YGOverflowVisible: YGOverflow = 0;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct __va_list_tag {
@@ -248,61 +290,19 @@ pub struct YGCachedMeasurement {
     pub computedWidth: libc::c_float,
     pub computedHeight: libc::c_float,
 }
-pub const _ISOC_: _LIB_VERSION_TYPE = 3;
-pub type YGUnit = libc::c_uint;
-pub type YGDirection_0 = YGDirection;
-pub type YGMeasureMode = YGMeasureMode_0;
-pub const YGUnitAuto: YGUnit = 3;
-pub type YGJustify_0 = libc::c_uint;
-pub const YGJustifySpaceBetween: YGJustify_0 = 3;
-pub type YGConfig = YGConfig_0;
-pub const YGExperimentalFeatureWebFlexBasis: YGExperimentalFeature = 0;
-pub const YGDimensionWidth: YGDimension_0 = 0;
-pub const YGDirectionRTL: YGDirection = 2;
-pub type YGStyle_0 = YGStyle;
-pub const YGJustifyFlexStart: YGJustify_0 = 0;
-pub type YGNodeType = libc::c_uint;
-pub type _LIB_VERSION_TYPE = libc::c_int;
-pub type YGNodeType_0 = YGNodeType;
-pub type YGExperimentalFeature = libc::c_uint;
-pub type __builtin_va_list = [__va_list_tag; 1];
-pub type YGNodeClonedFunc =
-    Option<unsafe extern "C" fn(_: YGNodeRef, _: YGNodeRef, _: YGNodeRef, _: libc::c_int) -> ()>;
-pub const YGAlignFlexStart: YGAlign = 1;
-pub type int32_t = libc::c_int;
-pub const YGJustifySpaceAround: YGJustify_0 = 4;
-pub const YGAlignSpaceBetween: YGAlign = 6;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGSize {
     pub width: libc::c_float,
     pub height: libc::c_float,
 }
-pub type YGDisplay_0 = libc::c_uint;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct _IO_marker {
     pub _next: *mut _IO_marker,
     pub _sbuf: *mut _IO_FILE,
-    pub _pos: libc::c_int,
+    pub _pos: i32,
 }
-pub const YGWrapWrapReverse: YGWrap = 2;
-pub const YGMeasureModeUndefined: YGMeasureMode_0 = 0;
-pub const YGDisplayNone: YGDisplay_0 = 1;
-pub type YGCachedMeasurement_0 = YGCachedMeasurement;
-pub type YGMeasureMode_0 = libc::c_uint;
-pub type YGExperimentalFeature_0 = YGExperimentalFeature;
-pub const YGFlexDirectionColumn: YGFlexDirection = 0;
-pub type YGUnit_0 = YGUnit;
-pub const YGNodeTypeDefault: YGNodeType = 0;
-pub const YGJustifyFlexEnd: YGJustify_0 = 2;
-pub type YGNodeRef = *mut YGNode_0;
-pub type YGFlexDirection_0 = YGFlexDirection;
-pub type _IO_lock_t = ();
-pub type YGNode = YGNode_0;
-pub type YGDimension_0 = libc::c_uint;
-pub const YGFlexDirectionRow: YGFlexDirection = 2;
-pub const _POSIX_: _LIB_VERSION_TYPE = 2;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGNode_0 {
@@ -332,14 +332,6 @@ pub type YGMeasureFunc = Option<
         _: YGMeasureMode,
     ) -> YGSize_0,
 >;
-pub const YGPositionTypeAbsolute: YGPositionType_0 = 1;
-pub const YGAlignCenter: YGAlign = 2;
-pub const YGEdgeBottom: YGEdge_0 = 3;
-pub const YGPositionTypeRelative: YGPositionType_0 = 0;
-pub type __off64_t = libc::c_long;
-pub const YGDirectionLTR: YGDirection = 1;
-pub type YGCalloc = Option<unsafe extern "C" fn(_: size_t, _: size_t) -> *mut libc::c_void>;
-pub type YGSize_0 = YGSize;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct YGConfig_0 {
@@ -373,9 +365,7 @@ pub unsafe extern "C" fn YGRoundValueToPixelGrid(
                     scaledValue = scaledValue - fractial;
                 } else {
                     scaledValue = scaledValue - fractial
-                        + if fractial > 0.5f32
-                            || 0 != YGFloatsEqual(fractial, 0.5f32) as libc::c_int
-                        {
+                        + if fractial > 0.5f32 || 0 != YGFloatsEqual(fractial, 0.5f32) as i32 {
                             1.0f32
                         } else {
                             0.0f32
@@ -431,7 +421,7 @@ pub unsafe extern "C" fn YGNodeNewWithConfig(config: YGConfigRef) -> YGNodeRef {
     );
     if (*config).useWebDefaults {
         (*node).style.flexDirection = YGFlexDirectionRow;
-        (*node).style.alignContent = YGAlignStretch;
+        (*node).style.alignContent = Align::Stretch;
     };
     (*node).config = config;
     return node;
@@ -444,9 +434,9 @@ static mut gYGNodeDefaults: YGNode = unsafe {
             direction: YGDirectionInherit,
             flexDirection: YGFlexDirectionColumn,
             justifyContent: YGJustifyFlexStart,
-            alignContent: YGAlignFlexStart,
-            alignItems: YGAlignStretch,
-            alignSelf: YGAlignAuto,
+            alignContent: Align::FlexStart,
+            alignItems: Align::Stretch,
+            alignSelf: Align::Auto,
             positionType: YGPositionTypeRelative,
             flexWrap: YGWrapNoWrap,
             overflow: YGOverflowVisible,
@@ -908,7 +898,7 @@ pub unsafe extern "C" fn YGNodeRemoveChild(parent: YGNodeRef, excludedChild: YGN
                             oldChild,
                             newChild,
                             parent,
-                            nextInsertIndex as libc::c_int,
+                            nextInsertIndex as i32,
                         );
                     };
                     nextInsertIndex = nextInsertIndex.wrapping_add(1);
@@ -963,7 +953,7 @@ pub unsafe extern "C" fn YGNodeReset(node: YGNodeRef) -> () {
     );
     if (*config).useWebDefaults {
         (*node).style.flexDirection = YGFlexDirectionRow;
-        (*node).style.alignContent = YGAlignStretch;
+        (*node).style.alignContent = Align::Stretch;
     };
     (*node).config = config;
 }
@@ -1066,10 +1056,7 @@ unsafe extern "C" fn YGCloneChildrenIfNeeded(parent: YGNodeRef) -> () {
                 (*newChild).parent = parent;
                 if cloneNodeCallback.is_some() {
                     cloneNodeCallback.expect("non-null function pointer")(
-                        oldChild,
-                        newChild,
-                        parent,
-                        i as libc::c_int,
+                        oldChild, newChild, parent, i as i32,
                     );
                 };
             }
@@ -1134,29 +1121,27 @@ pub unsafe extern "C" fn YGNodeCalculateLayout(
     let mut widthMeasureMode: YGMeasureMode;
     if YGNodeIsStyleDimDefined(node, YGFlexDirectionRow, parentWidth) {
         width = YGResolveValue(
-            (*node).resolvedDimensions[dim[YGFlexDirectionRow as libc::c_int as usize] as usize],
+            (*node).resolvedDimensions[dim[YGFlexDirectionRow as i32 as usize] as usize],
             parentWidth,
         ) + YGNodeMarginForAxis(node, YGFlexDirectionRow, parentWidth);
         widthMeasureMode = YGMeasureModeExactly;
     } else {
         if YGResolveValue(
-            &mut (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize]
-                as *mut YGValue,
+            &mut (*node).style.maxDimensions[YGDimensionWidth as i32 as usize] as *mut YGValue,
             parentWidth,
         ) >= 0.0f32
         {
             width = YGResolveValue(
-                &mut (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize]
-                    as *mut YGValue,
+                &mut (*node).style.maxDimensions[YGDimensionWidth as i32 as usize] as *mut YGValue,
                 parentWidth,
             );
             widthMeasureMode = YGMeasureModeAtMost;
         } else {
             width = parentWidth;
-            widthMeasureMode = (if 0 != width.is_nan() as libc::c_int {
-                YGMeasureModeUndefined as libc::c_int
+            widthMeasureMode = (if 0 != width.is_nan() as i32 {
+                YGMeasureModeUndefined as i32
             } else {
-                YGMeasureModeExactly as libc::c_int
+                YGMeasureModeExactly as i32
             }) as YGMeasureMode;
         };
     };
@@ -1164,29 +1149,27 @@ pub unsafe extern "C" fn YGNodeCalculateLayout(
     let mut heightMeasureMode: YGMeasureMode;
     if YGNodeIsStyleDimDefined(node, YGFlexDirectionColumn, parentHeight) {
         height = YGResolveValue(
-            (*node).resolvedDimensions[dim[YGFlexDirectionColumn as libc::c_int as usize] as usize],
+            (*node).resolvedDimensions[dim[YGFlexDirectionColumn as i32 as usize] as usize],
             parentHeight,
         ) + YGNodeMarginForAxis(node, YGFlexDirectionColumn, parentWidth);
         heightMeasureMode = YGMeasureModeExactly;
     } else {
         if YGResolveValue(
-            &mut (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize]
-                as *mut YGValue,
+            &mut (*node).style.maxDimensions[YGDimensionHeight as i32 as usize] as *mut YGValue,
             parentHeight,
         ) >= 0.0f32
         {
             height = YGResolveValue(
-                &mut (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize]
-                    as *mut YGValue,
+                &mut (*node).style.maxDimensions[YGDimensionHeight as i32 as usize] as *mut YGValue,
                 parentHeight,
             );
             heightMeasureMode = YGMeasureModeAtMost;
         } else {
             height = parentHeight;
-            heightMeasureMode = (if 0 != height.is_nan() as libc::c_int {
-                YGMeasureModeUndefined as libc::c_int
+            heightMeasureMode = (if 0 != height.is_nan() as i32 {
+                YGMeasureModeUndefined as i32
             } else {
-                YGMeasureModeExactly as libc::c_int
+                YGMeasureModeExactly as i32
             }) as YGMeasureMode;
         };
     };
@@ -1219,34 +1202,33 @@ unsafe extern "C" fn YGComputedEdgeValue(
     edge: YGEdge,
     defaultValue: *const YGValue,
 ) -> *const YGValue {
-    if (*edges.offset(edge as isize)).unit as libc::c_uint
-        != YGUnitUndefined as libc::c_int as libc::c_uint
+    if (*edges.offset(edge as isize)).unit as libc::c_uint != YGUnitUndefined as i32 as libc::c_uint
     {
         return &*edges.offset(edge as isize) as *const YGValue;
     };
-    if (edge as libc::c_uint == YGEdgeTop as libc::c_int as libc::c_uint
-        || edge as libc::c_uint == YGEdgeBottom as libc::c_int as libc::c_uint)
-        && (*edges.offset(YGEdgeVertical as libc::c_int as isize)).unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if (edge as libc::c_uint == YGEdgeTop as i32 as libc::c_uint
+        || edge as libc::c_uint == YGEdgeBottom as i32 as libc::c_uint)
+        && (*edges.offset(YGEdgeVertical as i32 as isize)).unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
     {
-        return &*edges.offset(YGEdgeVertical as libc::c_int as isize) as *const YGValue;
+        return &*edges.offset(YGEdgeVertical as i32 as isize) as *const YGValue;
     };
-    if (edge as libc::c_uint == YGEdgeLeft as libc::c_int as libc::c_uint
-        || edge as libc::c_uint == YGEdgeRight as libc::c_int as libc::c_uint
-        || edge as libc::c_uint == YGEdgeStart as libc::c_int as libc::c_uint
-        || edge as libc::c_uint == YGEdgeEnd as libc::c_int as libc::c_uint)
-        && (*edges.offset(YGEdgeHorizontal as libc::c_int as isize)).unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if (edge as libc::c_uint == YGEdgeLeft as i32 as libc::c_uint
+        || edge as libc::c_uint == YGEdgeRight as i32 as libc::c_uint
+        || edge as libc::c_uint == YGEdgeStart as i32 as libc::c_uint
+        || edge as libc::c_uint == YGEdgeEnd as i32 as libc::c_uint)
+        && (*edges.offset(YGEdgeHorizontal as i32 as isize)).unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
     {
-        return &*edges.offset(YGEdgeHorizontal as libc::c_int as isize) as *const YGValue;
+        return &*edges.offset(YGEdgeHorizontal as i32 as isize) as *const YGValue;
     };
-    if (*edges.offset(YGEdgeAll as libc::c_int as isize)).unit as libc::c_uint
-        != YGUnitUndefined as libc::c_int as libc::c_uint
+    if (*edges.offset(YGEdgeAll as i32 as isize)).unit as libc::c_uint
+        != YGUnitUndefined as i32 as libc::c_uint
     {
-        return &*edges.offset(YGEdgeAll as libc::c_int as isize) as *const YGValue;
+        return &*edges.offset(YGEdgeAll as i32 as isize) as *const YGValue;
     };
-    if edge as libc::c_uint == YGEdgeStart as libc::c_int as libc::c_uint
-        || edge as libc::c_uint == YGEdgeEnd as libc::c_int as libc::c_uint
+    if edge as libc::c_uint == YGEdgeStart as i32 as libc::c_uint
+        || edge as libc::c_uint == YGEdgeEnd as i32 as libc::c_uint
     {
         return &YGValueUndefined as *const YGValue;
     };
@@ -1262,7 +1244,7 @@ unsafe extern "C" fn YGNodeSetPosition(
     let directionRespectingRoot: YGDirection_0 = (if !(*node).parent.is_null() {
         direction as libc::c_uint
     } else {
-        YGDirectionLTR as libc::c_int as libc::c_uint
+        YGDirectionLTR as i32 as libc::c_uint
     }) as YGDirection_0;
     let mainAxis: YGFlexDirection_0 =
         YGResolveFlexDirection((*node).style.flexDirection, directionRespectingRoot);
@@ -1282,13 +1264,11 @@ unsafe extern "C" fn YGResolveFlexDirection(
     flexDirection: YGFlexDirection_0,
     direction: YGDirection_0,
 ) -> YGFlexDirection_0 {
-    if direction as libc::c_uint == YGDirectionRTL as libc::c_int as libc::c_uint {
-        if flexDirection as libc::c_uint == YGFlexDirectionRow as libc::c_int as libc::c_uint {
+    if direction as libc::c_uint == YGDirectionRTL as i32 as libc::c_uint {
+        if flexDirection as libc::c_uint == YGFlexDirectionRow as i32 as libc::c_uint {
             return YGFlexDirectionRowReverse;
         } else {
-            if flexDirection as libc::c_uint
-                == YGFlexDirectionRowReverse as libc::c_int as libc::c_uint
-            {
+            if flexDirection as libc::c_uint == YGFlexDirectionRowReverse as i32 as libc::c_uint {
                 return YGFlexDirectionRow;
             };
         };
@@ -1299,23 +1279,22 @@ unsafe extern "C" fn YGFlexDirectionCross(
     flexDirection: YGFlexDirection_0,
     direction: YGDirection_0,
 ) -> YGFlexDirection_0 {
-    return (if 0 != YGFlexDirectionIsColumn(flexDirection) as libc::c_int {
+    return (if 0 != YGFlexDirectionIsColumn(flexDirection) as i32 {
         YGResolveFlexDirection(YGFlexDirectionRow, direction) as libc::c_uint
     } else {
-        YGFlexDirectionColumn as libc::c_int as libc::c_uint
+        YGFlexDirectionColumn as i32 as libc::c_uint
     }) as YGFlexDirection_0;
 }
 unsafe extern "C" fn YGFlexDirectionIsColumn(flexDirection: YGFlexDirection_0) -> bool {
-    return flexDirection as libc::c_uint == YGFlexDirectionColumn as libc::c_int as libc::c_uint
-        || flexDirection as libc::c_uint
-            == YGFlexDirectionColumnReverse as libc::c_int as libc::c_uint;
+    return flexDirection as libc::c_uint == YGFlexDirectionColumn as i32 as libc::c_uint
+        || flexDirection as libc::c_uint == YGFlexDirectionColumnReverse as i32 as libc::c_uint;
 }
 unsafe extern "C" fn YGNodeRelativePosition(
     node: YGNodeRef,
     axis: YGFlexDirection_0,
     axisSize: libc::c_float,
 ) -> libc::c_float {
-    return if 0 != YGNodeIsLeadingPosDefined(node, axis) as libc::c_int {
+    return if 0 != YGNodeIsLeadingPosDefined(node, axis) as i32 {
         YGNodeLeadingPosition(node, axis, axisSize)
     } else {
         -YGNodeTrailingPosition(node, axis, axisSize)
@@ -1332,9 +1311,7 @@ unsafe extern "C" fn YGNodeTrailingPosition(
             YGEdgeEnd,
             &YGValueUndefined as *const YGValue,
         );
-        if (*trailingPosition).unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
-        {
+        if (*trailingPosition).unit as libc::c_uint != YGUnitUndefined as i32 as libc::c_uint {
             return YGResolveValue(trailingPosition, axisSize);
         };
     };
@@ -1343,9 +1320,7 @@ unsafe extern "C" fn YGNodeTrailingPosition(
         trailing[axis as usize],
         &YGValueUndefined as *const YGValue,
     );
-    return if (*trailingPosition).unit as libc::c_uint
-        == YGUnitUndefined as libc::c_int as libc::c_uint
-    {
+    return if (*trailingPosition).unit as libc::c_uint == YGUnitUndefined as i32 as libc::c_uint {
         0.0f32
     } else {
         YGResolveValue(trailingPosition, axisSize)
@@ -1353,9 +1328,8 @@ unsafe extern "C" fn YGNodeTrailingPosition(
 }
 static mut trailing: [YGEdge; 4] = [YGEdgeBottom, YGEdgeTop, YGEdgeRight, YGEdgeLeft];
 unsafe extern "C" fn YGFlexDirectionIsRow(flexDirection: YGFlexDirection_0) -> bool {
-    return flexDirection as libc::c_uint == YGFlexDirectionRow as libc::c_int as libc::c_uint
-        || flexDirection as libc::c_uint
-            == YGFlexDirectionRowReverse as libc::c_int as libc::c_uint;
+    return flexDirection as libc::c_uint == YGFlexDirectionRow as i32 as libc::c_uint
+        || flexDirection as libc::c_uint == YGFlexDirectionRowReverse as i32 as libc::c_uint;
 }
 unsafe extern "C" fn YGNodeLeadingPosition(
     node: YGNodeRef,
@@ -1368,8 +1342,7 @@ unsafe extern "C" fn YGNodeLeadingPosition(
             YGEdgeStart,
             &YGValueUndefined as *const YGValue,
         );
-        if (*leadingPosition).unit as libc::c_uint != YGUnitUndefined as libc::c_int as libc::c_uint
-        {
+        if (*leadingPosition).unit as libc::c_uint != YGUnitUndefined as i32 as libc::c_uint {
             return YGResolveValue(leadingPosition, axisSize);
         };
     };
@@ -1378,9 +1351,7 @@ unsafe extern "C" fn YGNodeLeadingPosition(
         leading[axis as usize],
         &YGValueUndefined as *const YGValue,
     );
-    return if (*leadingPosition).unit as libc::c_uint
-        == YGUnitUndefined as libc::c_int as libc::c_uint
-    {
+    return if (*leadingPosition).unit as libc::c_uint == YGUnitUndefined as i32 as libc::c_uint {
         0.0f32
     } else {
         YGResolveValue(leadingPosition, axisSize)
@@ -1388,29 +1359,29 @@ unsafe extern "C" fn YGNodeLeadingPosition(
 }
 static mut leading: [YGEdge; 4] = [YGEdgeTop, YGEdgeBottom, YGEdgeLeft, YGEdgeRight];
 unsafe extern "C" fn YGNodeIsLeadingPosDefined(node: YGNodeRef, axis: YGFlexDirection_0) -> bool {
-    return 0 != YGFlexDirectionIsRow(axis) as libc::c_int
+    return 0 != YGFlexDirectionIsRow(axis) as i32
         && (*YGComputedEdgeValue(
             (*node).style.position.as_mut_ptr() as *const YGValue,
             YGEdgeStart,
             &YGValueUndefined as *const YGValue,
-        )).unit as libc::c_uint != YGUnitUndefined as libc::c_int as libc::c_uint
+        )).unit as libc::c_uint != YGUnitUndefined as i32 as libc::c_uint
         || (*YGComputedEdgeValue(
             (*node).style.position.as_mut_ptr() as *const YGValue,
             leading[axis as usize],
             &YGValueUndefined as *const YGValue,
-        )).unit as libc::c_uint != YGUnitUndefined as libc::c_int as libc::c_uint;
+        )).unit as libc::c_uint != YGUnitUndefined as i32 as libc::c_uint;
 }
 unsafe extern "C" fn YGNodeTrailingMargin(
     node: YGNodeRef,
     axis: YGFlexDirection_0,
     widthSize: libc::c_float,
 ) -> libc::c_float {
-    if 0 != YGFlexDirectionIsRow(axis) as libc::c_int
-        && (*node).style.margin[YGEdgeEnd as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if 0 != YGFlexDirectionIsRow(axis) as i32
+        && (*node).style.margin[YGEdgeEnd as i32 as usize].unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
     {
         return YGResolveValueMargin(
-            &mut (*node).style.margin[YGEdgeEnd as libc::c_int as usize] as *mut YGValue,
+            &mut (*node).style.margin[YGEdgeEnd as i32 as usize] as *mut YGValue,
             widthSize,
         );
     };
@@ -1431,7 +1402,7 @@ unsafe extern "C" fn YGResolveValueMargin(
     value: *const YGValue,
     parentSize: libc::c_float,
 ) -> libc::c_float {
-    return if (*value).unit as libc::c_uint == YGUnitAuto as libc::c_int as libc::c_uint {
+    return if (*value).unit as libc::c_uint == YGUnitAuto as i32 as libc::c_uint {
         0i32 as libc::c_float
     } else {
         YGResolveValue(value, parentSize)
@@ -1442,12 +1413,12 @@ unsafe extern "C" fn YGNodeLeadingMargin(
     axis: YGFlexDirection_0,
     widthSize: libc::c_float,
 ) -> libc::c_float {
-    if 0 != YGFlexDirectionIsRow(axis) as libc::c_int
-        && (*node).style.margin[YGEdgeStart as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if 0 != YGFlexDirectionIsRow(axis) as i32
+        && (*node).style.margin[YGEdgeStart as i32 as usize].unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
     {
         return YGResolveValueMargin(
-            &mut (*node).style.margin[YGEdgeStart as libc::c_int as usize] as *mut YGValue,
+            &mut (*node).style.margin[YGEdgeStart as i32 as usize] as *mut YGValue,
             widthSize,
         );
     };
@@ -1477,7 +1448,7 @@ pub unsafe extern "C" fn YGLayoutNodeInternal(
     trace!("layout for reason {} on node {:?}", reason, node);
     let mut layout: *mut YGLayout_0 = &mut (*node).layout as *mut YGLayout_0;
     gDepth = gDepth.wrapping_add(1);
-    let needToVisitNode: bool = 0 != (*node).isDirty as libc::c_int
+    let needToVisitNode: bool = 0 != (*node).isDirty as i32
         && (*layout).generationCount != gCurrentGenerationCount
         || (*layout).lastParentDirection as libc::c_uint != parentDirection as libc::c_uint;
     if needToVisitNode {
@@ -1538,10 +1509,9 @@ pub unsafe extern "C" fn YGLayoutNodeInternal(
         };
     } else {
         if performLayout {
-            if 0 != YGFloatsEqual((*layout).cachedLayout.availableWidth, availableWidth)
-                as libc::c_int
-                && 0 != YGFloatsEqual((*layout).cachedLayout.availableHeight, availableHeight)
-                    as libc::c_int
+            if 0 != YGFloatsEqual((*layout).cachedLayout.availableWidth, availableWidth) as i32
+                && 0
+                    != YGFloatsEqual((*layout).cachedLayout.availableHeight, availableHeight) as i32
                 && (*layout).cachedLayout.widthMeasureMode as libc::c_uint
                     == widthMeasureMode as libc::c_uint
                 && (*layout).cachedLayout.heightMeasureMode as libc::c_uint
@@ -1556,11 +1526,11 @@ pub unsafe extern "C" fn YGLayoutNodeInternal(
                     if 0 != YGFloatsEqual(
                         (*layout).cachedMeasurements[i as usize].availableWidth,
                         availableWidth,
-                    ) as libc::c_int
+                    ) as i32
                         && 0 != YGFloatsEqual(
                             (*layout).cachedMeasurements[i as usize].availableHeight,
                             availableHeight,
-                        ) as libc::c_int
+                        ) as i32
                         && (*layout).cachedMeasurements[i as usize].widthMeasureMode as libc::c_uint
                             == widthMeasureMode as libc::c_uint
                         && (*layout).cachedMeasurements[i as usize].heightMeasureMode
@@ -1577,9 +1547,9 @@ pub unsafe extern "C" fn YGLayoutNodeInternal(
         };
     };
     if !needToVisitNode && !cachedResults.is_null() {
-        (*layout).measuredDimensions[YGDimensionWidth as libc::c_int as usize] =
+        (*layout).measuredDimensions[YGDimensionWidth as i32 as usize] =
             (*cachedResults).computedWidth;
-        (*layout).measuredDimensions[YGDimensionHeight as libc::c_int as usize] =
+        (*layout).measuredDimensions[YGDimensionHeight as i32 as usize] =
             (*cachedResults).computedHeight;
     } else {
         YGNodelayoutImpl(
@@ -1614,22 +1584,22 @@ pub unsafe extern "C" fn YGLayoutNodeInternal(
             (*newCacheEntry).widthMeasureMode = widthMeasureMode;
             (*newCacheEntry).heightMeasureMode = heightMeasureMode;
             (*newCacheEntry).computedWidth =
-                (*layout).measuredDimensions[YGDimensionWidth as libc::c_int as usize];
+                (*layout).measuredDimensions[YGDimensionWidth as i32 as usize];
             (*newCacheEntry).computedHeight =
-                (*layout).measuredDimensions[YGDimensionHeight as libc::c_int as usize];
+                (*layout).measuredDimensions[YGDimensionHeight as i32 as usize];
         };
     };
     if performLayout {
-        (*node).layout.dimensions[YGDimensionWidth as libc::c_int as usize] =
-            (*node).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize];
-        (*node).layout.dimensions[YGDimensionHeight as libc::c_int as usize] =
-            (*node).layout.measuredDimensions[YGDimensionHeight as libc::c_int as usize];
+        (*node).layout.dimensions[YGDimensionWidth as i32 as usize] =
+            (*node).layout.measuredDimensions[YGDimensionWidth as i32 as usize];
+        (*node).layout.dimensions[YGDimensionHeight as i32 as usize] =
+            (*node).layout.measuredDimensions[YGDimensionHeight as i32 as usize];
         (*node).hasNewLayout = 0 != 1i32;
         (*node).isDirty = 0 != 0i32;
     };
     gDepth = gDepth.wrapping_sub(1);
     (*layout).generationCount = gCurrentGenerationCount;
-    return 0 != needToVisitNode as libc::c_int || cachedResults.is_null();
+    return 0 != needToVisitNode as i32 || cachedResults.is_null();
 }
 #[no_mangle]
 pub static mut gCurrentGenerationCount: uint32_t = 0i32 as uint32_t;
@@ -1652,7 +1622,7 @@ unsafe extern "C" fn YGMeasureModeName(
     if mode as libc::c_uint >= 3i32 as libc::c_uint {
         return b"\x00" as *const u8 as *const libc::c_char;
     };
-    return if 0 != performLayout as libc::c_int {
+    return if 0 != performLayout as i32 {
         kLayoutModeNames[mode as usize]
     } else {
         kMeasureModeNames[mode as usize]
@@ -1662,14 +1632,11 @@ unsafe extern "C" fn YGNodeResolveDirection(
     node: YGNodeRef,
     parentDirection: YGDirection_0,
 ) -> YGDirection_0 {
-    if (*node).style.direction as libc::c_uint == YGDirectionInherit as libc::c_int as libc::c_uint
-    {
-        return (if parentDirection as libc::c_uint
-            > YGDirectionInherit as libc::c_int as libc::c_uint
-        {
+    if (*node).style.direction as libc::c_uint == YGDirectionInherit as i32 as libc::c_uint {
+        return (if parentDirection as libc::c_uint > YGDirectionInherit as i32 as libc::c_uint {
             parentDirection as libc::c_uint
         } else {
-            YGDirectionLTR as libc::c_int as libc::c_uint
+            YGDirectionLTR as i32 as libc::c_uint
         }) as YGDirection_0;
     } else {
         return (*node).style.direction;
@@ -1712,12 +1679,12 @@ unsafe extern "C" fn YGNodeTrailingBorder(
     node: YGNodeRef,
     axis: YGFlexDirection_0,
 ) -> libc::c_float {
-    if 0 != YGFlexDirectionIsRow(axis) as libc::c_int
-        && (*node).style.border[YGEdgeEnd as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
-        && (*node).style.border[YGEdgeEnd as libc::c_int as usize].value >= 0.0f32
+    if 0 != YGFlexDirectionIsRow(axis) as i32
+        && (*node).style.border[YGEdgeEnd as i32 as usize].unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
+        && (*node).style.border[YGEdgeEnd as i32 as usize].value >= 0.0f32
     {
-        return (*node).style.border[YGEdgeEnd as libc::c_int as usize].value;
+        return (*node).style.border[YGEdgeEnd as i32 as usize].value;
     };
     return (*YGComputedEdgeValue(
         (*node).style.border.as_mut_ptr() as *const YGValue,
@@ -1731,16 +1698,16 @@ unsafe extern "C" fn YGNodeTrailingPadding(
     axis: YGFlexDirection_0,
     widthSize: libc::c_float,
 ) -> libc::c_float {
-    if 0 != YGFlexDirectionIsRow(axis) as libc::c_int
-        && (*node).style.padding[YGEdgeEnd as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if 0 != YGFlexDirectionIsRow(axis) as i32
+        && (*node).style.padding[YGEdgeEnd as i32 as usize].unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
         && YGResolveValue(
-            &mut (*node).style.padding[YGEdgeEnd as libc::c_int as usize] as *mut YGValue,
+            &mut (*node).style.padding[YGEdgeEnd as i32 as usize] as *mut YGValue,
             widthSize,
         ) >= 0.0f32
     {
         return YGResolveValue(
-            &mut (*node).style.padding[YGEdgeEnd as libc::c_int as usize] as *mut YGValue,
+            &mut (*node).style.padding[YGEdgeEnd as i32 as usize] as *mut YGValue,
             widthSize,
         );
     };
@@ -1764,12 +1731,12 @@ unsafe extern "C" fn YGNodeLeadingBorder(
     node: YGNodeRef,
     axis: YGFlexDirection_0,
 ) -> libc::c_float {
-    if 0 != YGFlexDirectionIsRow(axis) as libc::c_int
-        && (*node).style.border[YGEdgeStart as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
-        && (*node).style.border[YGEdgeStart as libc::c_int as usize].value >= 0.0f32
+    if 0 != YGFlexDirectionIsRow(axis) as i32
+        && (*node).style.border[YGEdgeStart as i32 as usize].unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
+        && (*node).style.border[YGEdgeStart as i32 as usize].value >= 0.0f32
     {
-        return (*node).style.border[YGEdgeStart as libc::c_int as usize].value;
+        return (*node).style.border[YGEdgeStart as i32 as usize].value;
     };
     return (*YGComputedEdgeValue(
         (*node).style.border.as_mut_ptr() as *const YGValue,
@@ -1783,16 +1750,16 @@ unsafe extern "C" fn YGNodeLeadingPadding(
     axis: YGFlexDirection_0,
     widthSize: libc::c_float,
 ) -> libc::c_float {
-    if 0 != YGFlexDirectionIsRow(axis) as libc::c_int
-        && (*node).style.padding[YGEdgeStart as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if 0 != YGFlexDirectionIsRow(axis) as i32
+        && (*node).style.padding[YGEdgeStart as i32 as usize].unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
         && YGResolveValue(
-            &mut (*node).style.padding[YGEdgeStart as libc::c_int as usize] as *mut YGValue,
+            &mut (*node).style.padding[YGEdgeStart as i32 as usize] as *mut YGValue,
             widthSize,
         ) >= 0.0f32
     {
         return YGResolveValue(
-            &mut (*node).style.padding[YGEdgeStart as libc::c_int as usize] as *mut YGValue,
+            &mut (*node).style.padding[YGEdgeStart as i32 as usize] as *mut YGValue,
             widthSize,
         );
     };
@@ -1833,14 +1800,14 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
     let marginColumn: libc::c_float = YGNodeMarginForAxis(child, YGFlexDirectionColumn, width);
     if YGNodeIsStyleDimDefined(child, YGFlexDirectionRow, width) {
         childWidth = YGResolveValue(
-            (*child).resolvedDimensions[YGDimensionWidth as libc::c_int as usize],
+            (*child).resolvedDimensions[YGDimensionWidth as i32 as usize],
             width,
         ) + marginRow;
     } else {
-        if 0 != YGNodeIsLeadingPosDefined(child, YGFlexDirectionRow) as libc::c_int
-            && 0 != YGNodeIsTrailingPosDefined(child, YGFlexDirectionRow) as libc::c_int
+        if 0 != YGNodeIsLeadingPosDefined(child, YGFlexDirectionRow) as i32
+            && 0 != YGNodeIsTrailingPosDefined(child, YGFlexDirectionRow) as i32
         {
-            childWidth = (*node).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize]
+            childWidth = (*node).layout.measuredDimensions[YGDimensionWidth as i32 as usize]
                 - (YGNodeLeadingBorder(node, YGFlexDirectionRow)
                     + YGNodeTrailingBorder(node, YGFlexDirectionRow))
                 - (YGNodeLeadingPosition(child, YGFlexDirectionRow, width)
@@ -1850,15 +1817,14 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
     };
     if YGNodeIsStyleDimDefined(child, YGFlexDirectionColumn, height) {
         childHeight = YGResolveValue(
-            (*child).resolvedDimensions[YGDimensionHeight as libc::c_int as usize],
+            (*child).resolvedDimensions[YGDimensionHeight as i32 as usize],
             height,
         ) + marginColumn;
     } else {
-        if 0 != YGNodeIsLeadingPosDefined(child, YGFlexDirectionColumn) as libc::c_int
-            && 0 != YGNodeIsTrailingPosDefined(child, YGFlexDirectionColumn) as libc::c_int
+        if 0 != YGNodeIsLeadingPosDefined(child, YGFlexDirectionColumn) as i32
+            && 0 != YGNodeIsTrailingPosDefined(child, YGFlexDirectionColumn) as i32
         {
-            childHeight = (*node).layout.measuredDimensions
-                [YGDimensionHeight as libc::c_int as usize]
+            childHeight = (*node).layout.measuredDimensions[YGDimensionHeight as i32 as usize]
                 - (YGNodeLeadingBorder(node, YGFlexDirectionColumn)
                     + YGNodeTrailingBorder(node, YGFlexDirectionColumn))
                 - (YGNodeLeadingPosition(child, YGFlexDirectionColumn, height)
@@ -1866,7 +1832,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
             childHeight = YGNodeBoundAxis(child, YGFlexDirectionColumn, childHeight, height, width);
         };
     };
-    if 0 != childWidth.is_nan() as libc::c_int ^ childHeight.is_nan() as libc::c_int {
+    if 0 != childWidth.is_nan() as i32 ^ childHeight.is_nan() as i32 {
         if !(*child).style.aspectRatio.is_nan() {
             if childWidth.is_nan() {
                 childWidth = marginRow + (childHeight - marginColumn) * (*child).style.aspectRatio;
@@ -1878,20 +1844,20 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
             };
         };
     };
-    if 0 != childWidth.is_nan() as libc::c_int || 0 != childHeight.is_nan() as libc::c_int {
-        childWidthMeasureMode = (if 0 != childWidth.is_nan() as libc::c_int {
-            YGMeasureModeUndefined as libc::c_int
+    if 0 != childWidth.is_nan() as i32 || 0 != childHeight.is_nan() as i32 {
+        childWidthMeasureMode = (if 0 != childWidth.is_nan() as i32 {
+            YGMeasureModeUndefined as i32
         } else {
-            YGMeasureModeExactly as libc::c_int
+            YGMeasureModeExactly as i32
         }) as YGMeasureMode;
-        childHeightMeasureMode = (if 0 != childHeight.is_nan() as libc::c_int {
-            YGMeasureModeUndefined as libc::c_int
+        childHeightMeasureMode = (if 0 != childHeight.is_nan() as i32 {
+            YGMeasureModeUndefined as i32
         } else {
-            YGMeasureModeExactly as libc::c_int
+            YGMeasureModeExactly as i32
         }) as YGMeasureMode;
         if !isMainAxisRow
-            && 0 != childWidth.is_nan() as libc::c_int
-            && widthMode as libc::c_uint != YGMeasureModeUndefined as libc::c_int as libc::c_uint
+            && 0 != childWidth.is_nan() as i32
+            && widthMode as libc::c_uint != YGMeasureModeUndefined as i32 as libc::c_uint
             && width > 0i32 as libc::c_float
         {
             childWidth = width;
@@ -1910,9 +1876,9 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
             "abs-measure",
             config,
         );
-        childWidth = (*child).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize]
+        childWidth = (*child).layout.measuredDimensions[YGDimensionWidth as i32 as usize]
             + YGNodeMarginForAxis(child, YGFlexDirectionRow, width);
-        childHeight = (*child).layout.measuredDimensions[YGDimensionHeight as libc::c_int as usize]
+        childHeight = (*child).layout.measuredDimensions[YGDimensionHeight as i32 as usize]
             + YGNodeMarginForAxis(child, YGFlexDirectionColumn, width);
     };
     YGLayoutNodeInternal(
@@ -1928,7 +1894,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
         "abs-layout",
         config,
     );
-    if 0 != YGNodeIsTrailingPosDefined(child, mainAxis) as libc::c_int
+    if 0 != YGNodeIsTrailingPosDefined(child, mainAxis) as i32
         && !YGNodeIsLeadingPosDefined(child, mainAxis)
     {
         (*child).layout.position[leading[mainAxis as usize] as usize] =
@@ -1939,7 +1905,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
                 - YGNodeTrailingPosition(
                     child,
                     mainAxis,
-                    if 0 != isMainAxisRow as libc::c_int {
+                    if 0 != isMainAxisRow as i32 {
                         width
                     } else {
                         height
@@ -1948,7 +1914,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
     } else {
         if !YGNodeIsLeadingPosDefined(child, mainAxis)
             && (*node).style.justifyContent as libc::c_uint
-                == YGJustifyCenter as libc::c_int as libc::c_uint
+                == YGJustifyCenter as i32 as libc::c_uint
         {
             (*child).layout.position[leading[mainAxis as usize] as usize] =
                 ((*node).layout.measuredDimensions[dim[mainAxis as usize] as usize]
@@ -1957,7 +1923,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
         } else {
             if !YGNodeIsLeadingPosDefined(child, mainAxis)
                 && (*node).style.justifyContent as libc::c_uint
-                    == YGJustifyFlexEnd as libc::c_int as libc::c_uint
+                    == YGJustifyFlexEnd as i32 as libc::c_uint
             {
                 (*child).layout.position[leading[mainAxis as usize] as usize] =
                     (*node).layout.measuredDimensions[dim[mainAxis as usize] as usize]
@@ -1965,7 +1931,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
             };
         };
     };
-    if 0 != YGNodeIsTrailingPosDefined(child, crossAxis) as libc::c_int
+    if 0 != YGNodeIsTrailingPosDefined(child, crossAxis) as i32
         && !YGNodeIsLeadingPosDefined(child, crossAxis)
     {
         (*child).layout.position[leading[crossAxis as usize] as usize] =
@@ -1976,7 +1942,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
                 - YGNodeTrailingPosition(
                     child,
                     crossAxis,
-                    if 0 != isMainAxisRow as libc::c_int {
+                    if 0 != isMainAxisRow as i32 {
                         height
                     } else {
                         width
@@ -1984,8 +1950,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
                 );
     } else {
         if !YGNodeIsLeadingPosDefined(child, crossAxis)
-            && YGNodeAlignItem(node, child) as libc::c_uint
-                == YGAlignCenter as libc::c_int as libc::c_uint
+            && YGNodeAlignItem(node, child) as libc::c_uint == Align::Center as i32 as libc::c_uint
         {
             (*child).layout.position[leading[crossAxis as usize] as usize] =
                 ((*node).layout.measuredDimensions[dim[crossAxis as usize] as usize]
@@ -1994,11 +1959,9 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
         } else {
             if !YGNodeIsLeadingPosDefined(child, crossAxis)
                 && 0 != (YGNodeAlignItem(node, child) as libc::c_uint
-                    == YGAlignFlexEnd as libc::c_int as libc::c_uint)
-                    as libc::c_int
+                    == Align::FlexEnd as i32 as libc::c_uint) as i32
                     ^ ((*node).style.flexWrap as libc::c_uint
-                        == YGWrapWrapReverse as libc::c_int as libc::c_uint)
-                        as libc::c_int
+                        == YGWrapWrapReverse as i32 as libc::c_uint) as i32
             {
                 (*child).layout.position[leading[crossAxis as usize] as usize] =
                     (*node).layout.measuredDimensions[dim[crossAxis as usize] as usize]
@@ -2007,33 +1970,31 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
         };
     };
 }
-unsafe extern "C" fn YGNodeAlignItem(node: YGNodeRef, child: YGNodeRef) -> YGAlign_0 {
-    let align: YGAlign_0 = (if (*child).style.alignSelf as libc::c_uint
-        == YGAlignAuto as libc::c_int as libc::c_uint
-    {
-        (*node).style.alignItems as libc::c_uint
+unsafe extern "C" fn YGNodeAlignItem(node: YGNodeRef, child: YGNodeRef) -> Align {
+    let align: Align = if (*child).style.alignSelf == Align::Auto {
+        (*node).style.alignItems
     } else {
-        (*child).style.alignSelf as libc::c_uint
-    }) as YGAlign_0;
-    if align as libc::c_uint == YGAlignBaseline as libc::c_int as libc::c_uint
-        && 0 != YGFlexDirectionIsColumn((*node).style.flexDirection) as libc::c_int
+        (*child).style.alignSelf
+    };
+
+    if align == Align::Baseline && 0 != YGFlexDirectionIsColumn((*node).style.flexDirection) as i32
     {
-        return YGAlignFlexStart;
+        return Align::FlexStart;
     };
     return align;
 }
 unsafe extern "C" fn YGNodeIsTrailingPosDefined(node: YGNodeRef, axis: YGFlexDirection_0) -> bool {
-    return 0 != YGFlexDirectionIsRow(axis) as libc::c_int
+    return 0 != YGFlexDirectionIsRow(axis) as i32
         && (*YGComputedEdgeValue(
             (*node).style.position.as_mut_ptr() as *const YGValue,
             YGEdgeEnd,
             &YGValueUndefined as *const YGValue,
-        )).unit as libc::c_uint != YGUnitUndefined as libc::c_int as libc::c_uint
+        )).unit as libc::c_uint != YGUnitUndefined as i32 as libc::c_uint
         || (*YGComputedEdgeValue(
             (*node).style.position.as_mut_ptr() as *const YGValue,
             trailing[axis as usize],
             &YGValueUndefined as *const YGValue,
-        )).unit as libc::c_uint != YGUnitUndefined as libc::c_int as libc::c_uint;
+        )).unit as libc::c_uint != YGUnitUndefined as i32 as libc::c_uint;
 }
 unsafe extern "C" fn YGNodeBoundAxis(
     node: YGNodeRef,
@@ -2055,25 +2016,21 @@ unsafe extern "C" fn YGNodeBoundAxisWithinMinAndMax(
     let mut max: libc::c_float = ::std::f32::NAN;
     if YGFlexDirectionIsColumn(axis) {
         min = YGResolveValue(
-            &mut (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize]
-                as *mut YGValue,
+            &mut (*node).style.minDimensions[YGDimensionHeight as i32 as usize] as *mut YGValue,
             axisSize,
         );
         max = YGResolveValue(
-            &mut (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize]
-                as *mut YGValue,
+            &mut (*node).style.maxDimensions[YGDimensionHeight as i32 as usize] as *mut YGValue,
             axisSize,
         );
     } else {
         if YGFlexDirectionIsRow(axis) {
             min = YGResolveValue(
-                &mut (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize]
-                    as *mut YGValue,
+                &mut (*node).style.minDimensions[YGDimensionWidth as i32 as usize] as *mut YGValue,
                 axisSize,
             );
             max = YGResolveValue(
-                &mut (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize]
-                    as *mut YGValue,
+                &mut (*node).style.maxDimensions[YGDimensionWidth as i32 as usize] as *mut YGValue,
                 axisSize,
             );
         };
@@ -2093,23 +2050,23 @@ unsafe extern "C" fn YGNodeIsStyleDimDefined(
     parentSize: libc::c_float,
 ) -> bool {
     return !((*(*node).resolvedDimensions[dim[axis as usize] as usize]).unit as libc::c_uint
-        == YGUnitAuto as libc::c_int as libc::c_uint
+        == YGUnitAuto as i32 as libc::c_uint
         || (*(*node).resolvedDimensions[dim[axis as usize] as usize]).unit as libc::c_uint
-            == YGUnitUndefined as libc::c_int as libc::c_uint
+            == YGUnitUndefined as i32 as libc::c_uint
         || (*(*node).resolvedDimensions[dim[axis as usize] as usize]).unit as libc::c_uint
-            == YGUnitPoint as libc::c_int as libc::c_uint
+            == YGUnitPoint as i32 as libc::c_uint
             && (*(*node).resolvedDimensions[dim[axis as usize] as usize]).value < 0.0f32
         || (*(*node).resolvedDimensions[dim[axis as usize] as usize]).unit as libc::c_uint
-            == YGUnitPercent as libc::c_int as libc::c_uint
+            == YGUnitPercent as i32 as libc::c_uint
             && ((*(*node).resolvedDimensions[dim[axis as usize] as usize]).value < 0.0f32
-                || 0 != parentSize.is_nan() as libc::c_int));
+                || 0 != parentSize.is_nan() as i32));
 }
 unsafe extern "C" fn YGBaseline(node: YGNodeRef) -> libc::c_float {
     if (*node).baseline.is_some() {
         let baseline: libc::c_float = (*node).baseline.expect("non-null function pointer")(
             node,
-            (*node).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize],
-            (*node).layout.measuredDimensions[YGDimensionHeight as libc::c_int as usize],
+            (*node).layout.measuredDimensions[YGDimensionWidth as i32 as usize],
+            (*node).layout.measuredDimensions[YGDimensionHeight as i32 as usize],
         );
         YGAssertWithNode(
             node,
@@ -2131,12 +2088,12 @@ unsafe extern "C" fn YGBaseline(node: YGNodeRef) -> libc::c_float {
                         break 'loop5;
                     };
                     if (*child).style.positionType as libc::c_uint
-                        == YGPositionTypeAbsolute as libc::c_int as libc::c_uint
+                        == YGPositionTypeAbsolute as i32 as libc::c_uint
                     {
                         break 'body3;
                     };
                     if YGNodeAlignItem(node, child) as libc::c_uint
-                        == YGAlignBaseline as libc::c_int as libc::c_uint
+                        == Align::Baseline as i32 as libc::c_uint
                     {
                         baselineChild = child;
                         break 'loop5;
@@ -2151,10 +2108,10 @@ unsafe extern "C" fn YGBaseline(node: YGNodeRef) -> libc::c_float {
         }
     }
     if baselineChild.is_null() {
-        return (*node).layout.measuredDimensions[YGDimensionHeight as libc::c_int as usize];
+        return (*node).layout.measuredDimensions[YGDimensionHeight as i32 as usize];
     };
     let baseline: libc::c_float = YGBaseline(baselineChild);
-    return baseline + (*baselineChild).layout.position[YGEdgeTop as libc::c_int as usize];
+    return baseline + (*baselineChild).layout.position[YGEdgeTop as i32 as usize];
 }
 unsafe extern "C" fn YGNodeIsLayoutDimDefined(node: YGNodeRef, axis: YGFlexDirection_0) -> bool {
     let value: libc::c_float = (*node).layout.measuredDimensions[dim[axis as usize] as usize];
@@ -2164,7 +2121,7 @@ unsafe extern "C" fn YGIsBaselineLayout(node: YGNodeRef) -> bool {
     if YGFlexDirectionIsColumn((*node).style.flexDirection) {
         return 0 != 0i32;
     };
-    if (*node).style.alignItems as libc::c_uint == YGAlignBaseline as libc::c_int as libc::c_uint {
+    if (*node).style.alignItems as libc::c_uint == Align::Baseline as i32 as libc::c_uint {
         return 0 != 1i32;
     };
     let childCount: uint32_t = YGNodeGetChildCount(node);
@@ -2174,9 +2131,9 @@ unsafe extern "C" fn YGIsBaselineLayout(node: YGNodeRef) -> bool {
             {
                 let child: YGNodeRef = YGNodeGetChild(node, i);
                 if (*child).style.positionType as libc::c_uint
-                    == YGPositionTypeRelative as libc::c_int as libc::c_uint
+                    == YGPositionTypeRelative as i32 as libc::c_uint
                     && (*child).style.alignSelf as libc::c_uint
-                        == YGAlignBaseline as libc::c_int as libc::c_uint
+                        == Align::Baseline as i32 as libc::c_uint
                 {
                     return 0 != 1i32;
                 };
@@ -2199,11 +2156,11 @@ unsafe extern "C" fn YGMarginLeadingValue(
     node: YGNodeRef,
     axis: YGFlexDirection_0,
 ) -> *mut YGValue {
-    if 0 != YGFlexDirectionIsRow(axis) as libc::c_int
-        && (*node).style.margin[YGEdgeStart as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if 0 != YGFlexDirectionIsRow(axis) as i32
+        && (*node).style.margin[YGEdgeStart as i32 as usize].unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
     {
-        return &mut (*node).style.margin[YGEdgeStart as libc::c_int as usize] as *mut YGValue;
+        return &mut (*node).style.margin[YGEdgeStart as i32 as usize] as *mut YGValue;
     } else {
         return &mut (*node).style.margin[leading[axis as usize] as usize] as *mut YGValue;
     };
@@ -2212,11 +2169,11 @@ unsafe extern "C" fn YGMarginTrailingValue(
     node: YGNodeRef,
     axis: YGFlexDirection_0,
 ) -> *mut YGValue {
-    if 0 != YGFlexDirectionIsRow(axis) as libc::c_int
-        && (*node).style.margin[YGEdgeEnd as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if 0 != YGFlexDirectionIsRow(axis) as i32
+        && (*node).style.margin[YGEdgeEnd as i32 as usize].unit as libc::c_uint
+            != YGUnitUndefined as i32 as libc::c_uint
     {
-        return &mut (*node).style.margin[YGEdgeEnd as libc::c_int as usize] as *mut YGValue;
+        return &mut (*node).style.margin[YGEdgeEnd as i32 as usize] as *mut YGValue;
     } else {
         return &mut (*node).style.margin[trailing[axis as usize] as usize] as *mut YGValue;
     };
@@ -2247,7 +2204,7 @@ unsafe extern "C" fn YGNodeResolveFlexShrink(node: YGNodeRef) -> libc::c_float {
     {
         return -(*node).style.flex;
     };
-    return if 0 != (*(*node).config).useWebDefaults as libc::c_int {
+    return if 0 != (*(*node).config).useWebDefaults as i32 {
         kWebDefaultFlexShrink
     } else {
         kDefaultFlexShrink
@@ -2257,7 +2214,7 @@ static mut kDefaultFlexShrink: libc::c_float = 0.0f32;
 static mut kWebDefaultFlexShrink: libc::c_float = 1.0f32;
 unsafe extern "C" fn YGNodeIsFlex(node: YGNodeRef) -> bool {
     return (*node).style.positionType as libc::c_uint
-        == YGPositionTypeRelative as libc::c_int as libc::c_uint
+        == YGPositionTypeRelative as i32 as libc::c_uint
         && (YGResolveFlexGrow(node) != 0i32 as libc::c_float
             || YGNodeResolveFlexShrink(node) != 0i32 as libc::c_float);
 }
@@ -2276,12 +2233,12 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
     let mainAxis: YGFlexDirection_0 =
         YGResolveFlexDirection((*node).style.flexDirection, direction);
     let isMainAxisRow: bool = YGFlexDirectionIsRow(mainAxis);
-    let mainAxisSize: libc::c_float = if 0 != isMainAxisRow as libc::c_int {
+    let mainAxisSize: libc::c_float = if 0 != isMainAxisRow as i32 {
         width
     } else {
         height
     };
-    let mainAxisParentSize: libc::c_float = if 0 != isMainAxisRow as libc::c_int {
+    let mainAxisParentSize: libc::c_float = if 0 != isMainAxisRow as i32 {
         parentWidth
     } else {
         parentHeight
@@ -2301,16 +2258,16 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
             || 0 != YGConfigIsExperimentalFeatureEnabled(
                 (*child).config,
                 YGExperimentalFeatureWebFlexBasis,
-            ) as libc::c_int
+            ) as i32
                 && (*child).layout.computedFlexBasisGeneration != gCurrentGenerationCount
         {
             (*child).layout.computedFlexBasis =
                 resolvedFlexBasis.max(YGNodePaddingAndBorderForAxis(child, mainAxis, parentWidth));
         };
     } else {
-        if 0 != isMainAxisRow as libc::c_int && 0 != isRowStyleDimDefined as libc::c_int {
+        if 0 != isMainAxisRow as i32 && 0 != isRowStyleDimDefined as i32 {
             (*child).layout.computedFlexBasis = YGResolveValue(
-                (*child).resolvedDimensions[YGDimensionWidth as libc::c_int as usize],
+                (*child).resolvedDimensions[YGDimensionWidth as i32 as usize],
                 parentWidth,
             ).max(YGNodePaddingAndBorderForAxis(
                 child,
@@ -2318,9 +2275,9 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                 parentWidth,
             ));
         } else {
-            if !isMainAxisRow && 0 != isColumnStyleDimDefined as libc::c_int {
+            if !isMainAxisRow && 0 != isColumnStyleDimDefined as i32 {
                 (*child).layout.computedFlexBasis = YGResolveValue(
-                    (*child).resolvedDimensions[YGDimensionHeight as libc::c_int as usize],
+                    (*child).resolvedDimensions[YGDimensionHeight as i32 as usize],
                     parentHeight,
                 ).max(
                     YGNodePaddingAndBorderForAxis(child, YGFlexDirectionColumn, parentWidth),
@@ -2336,36 +2293,36 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                     YGNodeMarginForAxis(child, YGFlexDirectionColumn, parentWidth);
                 if isRowStyleDimDefined {
                     childWidth = YGResolveValue(
-                        (*child).resolvedDimensions[YGDimensionWidth as libc::c_int as usize],
+                        (*child).resolvedDimensions[YGDimensionWidth as i32 as usize],
                         parentWidth,
                     ) + marginRow;
                     childWidthMeasureMode = YGMeasureModeExactly;
                 };
                 if isColumnStyleDimDefined {
                     childHeight = YGResolveValue(
-                        (*child).resolvedDimensions[YGDimensionHeight as libc::c_int as usize],
+                        (*child).resolvedDimensions[YGDimensionHeight as i32 as usize],
                         parentHeight,
                     ) + marginColumn;
                     childHeightMeasureMode = YGMeasureModeExactly;
                 };
                 if !isMainAxisRow
                     && (*node).style.overflow as libc::c_uint
-                        == YGOverflowScroll as libc::c_int as libc::c_uint
+                        == YGOverflowScroll as i32 as libc::c_uint
                     || (*node).style.overflow as libc::c_uint
-                        != YGOverflowScroll as libc::c_int as libc::c_uint
+                        != YGOverflowScroll as i32 as libc::c_uint
                 {
-                    if 0 != childWidth.is_nan() as libc::c_int && !width.is_nan() {
+                    if 0 != childWidth.is_nan() as i32 && !width.is_nan() {
                         childWidth = width;
                         childWidthMeasureMode = YGMeasureModeAtMost;
                     };
                 };
-                if 0 != isMainAxisRow as libc::c_int
+                if 0 != isMainAxisRow as i32
                     && (*node).style.overflow as libc::c_uint
-                        == YGOverflowScroll as libc::c_int as libc::c_uint
+                        == YGOverflowScroll as i32 as libc::c_uint
                     || (*node).style.overflow as libc::c_uint
-                        != YGOverflowScroll as libc::c_int as libc::c_uint
+                        != YGOverflowScroll as i32 as libc::c_uint
                 {
-                    if 0 != childHeight.is_nan() as libc::c_int && !height.is_nan() {
+                    if 0 != childHeight.is_nan() as i32 && !height.is_nan() {
                         childHeight = height;
                         childHeightMeasureMode = YGMeasureModeAtMost;
                     };
@@ -2373,14 +2330,14 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                 if !(*child).style.aspectRatio.is_nan() {
                     if !isMainAxisRow
                         && childWidthMeasureMode as libc::c_uint
-                            == YGMeasureModeExactly as libc::c_int as libc::c_uint
+                            == YGMeasureModeExactly as i32 as libc::c_uint
                     {
                         childHeight = (childWidth - marginRow) / (*child).style.aspectRatio;
                         childHeightMeasureMode = YGMeasureModeExactly;
                     } else {
-                        if 0 != isMainAxisRow as libc::c_int
+                        if 0 != isMainAxisRow as i32
                             && childHeightMeasureMode as libc::c_uint
-                                == YGMeasureModeExactly as libc::c_int as libc::c_uint
+                                == YGMeasureModeExactly as i32 as libc::c_uint
                         {
                             childWidth = (childHeight - marginColumn) * (*child).style.aspectRatio;
                             childWidthMeasureMode = YGMeasureModeExactly;
@@ -2388,16 +2345,15 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                     };
                 };
                 let hasExactWidth: bool = !width.is_nan()
-                    && widthMode as libc::c_uint
-                        == YGMeasureModeExactly as libc::c_int as libc::c_uint;
+                    && widthMode as libc::c_uint == YGMeasureModeExactly as i32 as libc::c_uint;
                 let childWidthStretch: bool = YGNodeAlignItem(node, child) as libc::c_uint
-                    == YGAlignStretch as libc::c_int as libc::c_uint
+                    == Align::Stretch as i32 as libc::c_uint
                     && childWidthMeasureMode as libc::c_uint
-                        != YGMeasureModeExactly as libc::c_int as libc::c_uint;
+                        != YGMeasureModeExactly as i32 as libc::c_uint;
                 if !isMainAxisRow
                     && !isRowStyleDimDefined
-                    && 0 != hasExactWidth as libc::c_int
-                    && 0 != childWidthStretch as libc::c_int
+                    && 0 != hasExactWidth as i32
+                    && 0 != childWidthStretch as i32
                 {
                     childWidth = width;
                     childWidthMeasureMode = YGMeasureModeExactly;
@@ -2407,16 +2363,15 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                     };
                 };
                 let hasExactHeight: bool = !height.is_nan()
-                    && heightMode as libc::c_uint
-                        == YGMeasureModeExactly as libc::c_int as libc::c_uint;
+                    && heightMode as libc::c_uint == YGMeasureModeExactly as i32 as libc::c_uint;
                 let childHeightStretch: bool = YGNodeAlignItem(node, child) as libc::c_uint
-                    == YGAlignStretch as libc::c_int as libc::c_uint
+                    == Align::Stretch as i32 as libc::c_uint
                     && childHeightMeasureMode as libc::c_uint
-                        != YGMeasureModeExactly as libc::c_int as libc::c_uint;
-                if 0 != isMainAxisRow as libc::c_int
+                        != YGMeasureModeExactly as i32 as libc::c_uint;
+                if 0 != isMainAxisRow as i32
                     && !isColumnStyleDimDefined
-                    && 0 != hasExactHeight as libc::c_int
-                    && 0 != childHeightStretch as libc::c_int
+                    && 0 != hasExactHeight as i32
+                    && 0 != childHeightStretch as i32
                 {
                     childHeight = height;
                     childHeightMeasureMode = YGMeasureModeExactly;
@@ -2463,14 +2418,13 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
     (*child).layout.computedFlexBasisGeneration = gCurrentGenerationCount;
 }
 unsafe extern "C" fn YGNodeResolveFlexBasisPtr(node: YGNodeRef) -> *const YGValue {
-    if (*node).style.flexBasis.unit as libc::c_uint != YGUnitAuto as libc::c_int as libc::c_uint
-        && (*node).style.flexBasis.unit as libc::c_uint
-            != YGUnitUndefined as libc::c_int as libc::c_uint
+    if (*node).style.flexBasis.unit as libc::c_uint != YGUnitAuto as i32 as libc::c_uint
+        && (*node).style.flexBasis.unit as libc::c_uint != YGUnitUndefined as i32 as libc::c_uint
     {
         return &mut (*node).style.flexBasis as *mut YGValue;
     };
     if !(*node).style.flex.is_nan() && (*node).style.flex > 0.0f32 {
-        return if 0 != (*(*node).config).useWebDefaults as libc::c_int {
+        return if 0 != (*(*node).config).useWebDefaults as i32 {
             &YGValueAuto as *const YGValue
         } else {
             &mut YGValueZero as *mut YGValue
@@ -2487,10 +2441,10 @@ pub unsafe extern "C" fn YGConfigIsExperimentalFeatureEnabled(
 }
 unsafe extern "C" fn YGResolveDimensions(mut node: YGNodeRef) -> () {
     let mut dim_0: YGDimension = YGDimensionWidth;
-    while dim_0 as libc::c_uint <= YGDimensionHeight as libc::c_int as libc::c_uint {
+    while dim_0 as libc::c_uint <= YGDimensionHeight as i32 as libc::c_uint {
         {
             if (*node).style.maxDimensions[dim_0 as usize].unit as libc::c_uint
-                != YGUnitUndefined as libc::c_int as libc::c_uint
+                != YGUnitUndefined as i32 as libc::c_uint
                 && (*node).style.maxDimensions[dim_0 as usize]
                     != (*node).style.minDimensions[dim_0 as usize]
             {
@@ -2533,50 +2487,45 @@ unsafe extern "C" fn YGNodeFixedSizeSetMeasuredDimensions(
     parentWidth: libc::c_float,
     parentHeight: libc::c_float,
 ) -> bool {
-    if widthMeasureMode as libc::c_uint == YGMeasureModeAtMost as libc::c_int as libc::c_uint
+    if widthMeasureMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
         && availableWidth <= 0.0f32
-        || heightMeasureMode as libc::c_uint == YGMeasureModeAtMost as libc::c_int as libc::c_uint
+        || heightMeasureMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
             && availableHeight <= 0.0f32
-        || widthMeasureMode as libc::c_uint == YGMeasureModeExactly as libc::c_int as libc::c_uint
-            && heightMeasureMode as libc::c_uint
-                == YGMeasureModeExactly as libc::c_int as libc::c_uint
+        || widthMeasureMode as libc::c_uint == YGMeasureModeExactly as i32 as libc::c_uint
+            && heightMeasureMode as libc::c_uint == YGMeasureModeExactly as i32 as libc::c_uint
     {
         let marginAxisColumn: libc::c_float =
             YGNodeMarginForAxis(node, YGFlexDirectionColumn, parentWidth);
         let marginAxisRow: libc::c_float =
             YGNodeMarginForAxis(node, YGFlexDirectionRow, parentWidth);
-        (*node).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize] =
-            YGNodeBoundAxis(
-                node,
-                YGFlexDirectionRow,
-                if 0 != availableWidth.is_nan() as libc::c_int
-                    || widthMeasureMode as libc::c_uint
-                        == YGMeasureModeAtMost as libc::c_int as libc::c_uint
-                        && availableWidth < 0.0f32
-                {
-                    0.0f32
-                } else {
-                    availableWidth - marginAxisRow
-                },
-                parentWidth,
-                parentWidth,
-            );
-        (*node).layout.measuredDimensions[YGDimensionHeight as libc::c_int as usize] =
-            YGNodeBoundAxis(
-                node,
-                YGFlexDirectionColumn,
-                if 0 != availableHeight.is_nan() as libc::c_int
-                    || heightMeasureMode as libc::c_uint
-                        == YGMeasureModeAtMost as libc::c_int as libc::c_uint
-                        && availableHeight < 0.0f32
-                {
-                    0.0f32
-                } else {
-                    availableHeight - marginAxisColumn
-                },
-                parentHeight,
-                parentWidth,
-            );
+        (*node).layout.measuredDimensions[YGDimensionWidth as i32 as usize] = YGNodeBoundAxis(
+            node,
+            YGFlexDirectionRow,
+            if 0 != availableWidth.is_nan() as i32
+                || widthMeasureMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
+                    && availableWidth < 0.0f32
+            {
+                0.0f32
+            } else {
+                availableWidth - marginAxisRow
+            },
+            parentWidth,
+            parentWidth,
+        );
+        (*node).layout.measuredDimensions[YGDimensionHeight as i32 as usize] = YGNodeBoundAxis(
+            node,
+            YGFlexDirectionColumn,
+            if 0 != availableHeight.is_nan() as i32
+                || heightMeasureMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
+                    && availableHeight < 0.0f32
+            {
+                0.0f32
+            } else {
+                availableHeight - marginAxisColumn
+            },
+            parentHeight,
+            parentWidth,
+        );
         return 0 != 1i32;
     };
     return 0 != 0i32;
@@ -2597,12 +2546,11 @@ unsafe extern "C" fn YGNodeEmptyContainerSetMeasuredDimensions(
     let marginAxisRow: libc::c_float = YGNodeMarginForAxis(node, YGFlexDirectionRow, parentWidth);
     let marginAxisColumn: libc::c_float =
         YGNodeMarginForAxis(node, YGFlexDirectionColumn, parentWidth);
-    (*node).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize] = YGNodeBoundAxis(
+    (*node).layout.measuredDimensions[YGDimensionWidth as i32 as usize] = YGNodeBoundAxis(
         node,
         YGFlexDirectionRow,
-        if widthMeasureMode as libc::c_uint == YGMeasureModeUndefined as libc::c_int as libc::c_uint
-            || widthMeasureMode as libc::c_uint
-                == YGMeasureModeAtMost as libc::c_int as libc::c_uint
+        if widthMeasureMode as libc::c_uint == YGMeasureModeUndefined as i32 as libc::c_uint
+            || widthMeasureMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
         {
             paddingAndBorderAxisRow
         } else {
@@ -2611,13 +2559,11 @@ unsafe extern "C" fn YGNodeEmptyContainerSetMeasuredDimensions(
         parentWidth,
         parentWidth,
     );
-    (*node).layout.measuredDimensions[YGDimensionHeight as libc::c_int as usize] = YGNodeBoundAxis(
+    (*node).layout.measuredDimensions[YGDimensionHeight as i32 as usize] = YGNodeBoundAxis(
         node,
         YGFlexDirectionColumn,
-        if heightMeasureMode as libc::c_uint
-            == YGMeasureModeUndefined as libc::c_int as libc::c_uint
-            || heightMeasureMode as libc::c_uint
-                == YGMeasureModeAtMost as libc::c_int as libc::c_uint
+        if heightMeasureMode as libc::c_uint == YGMeasureModeUndefined as i32 as libc::c_uint
+            || heightMeasureMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
         {
             paddingAndBorderAxisColumn
         } else {
@@ -2649,35 +2595,33 @@ unsafe extern "C" fn YGNodeWithMeasureFuncSetMeasuredDimensions(
         YGNodeMarginForAxis(node, YGFlexDirectionRow, availableWidth);
     let marginAxisColumn: libc::c_float =
         YGNodeMarginForAxis(node, YGFlexDirectionColumn, availableWidth);
-    let innerWidth: libc::c_float = if 0 != availableWidth.is_nan() as libc::c_int {
+    let innerWidth: libc::c_float = if 0 != availableWidth.is_nan() as i32 {
         availableWidth
     } else {
         (0i32 as libc::c_float).max(availableWidth - marginAxisRow - paddingAndBorderAxisRow)
     };
-    let innerHeight: libc::c_float = if 0 != availableHeight.is_nan() as libc::c_int {
+    let innerHeight: libc::c_float = if 0 != availableHeight.is_nan() as i32 {
         availableHeight
     } else {
         (0i32 as libc::c_float).max(availableHeight - marginAxisColumn - paddingAndBorderAxisColumn)
     };
-    if widthMeasureMode as libc::c_uint == YGMeasureModeExactly as libc::c_int as libc::c_uint
-        && heightMeasureMode as libc::c_uint == YGMeasureModeExactly as libc::c_int as libc::c_uint
+    if widthMeasureMode as libc::c_uint == YGMeasureModeExactly as i32 as libc::c_uint
+        && heightMeasureMode as libc::c_uint == YGMeasureModeExactly as i32 as libc::c_uint
     {
-        (*node).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize] =
-            YGNodeBoundAxis(
-                node,
-                YGFlexDirectionRow,
-                availableWidth - marginAxisRow,
-                parentWidth,
-                parentWidth,
-            );
-        (*node).layout.measuredDimensions[YGDimensionHeight as libc::c_int as usize] =
-            YGNodeBoundAxis(
-                node,
-                YGFlexDirectionColumn,
-                availableHeight - marginAxisColumn,
-                parentHeight,
-                parentWidth,
-            );
+        (*node).layout.measuredDimensions[YGDimensionWidth as i32 as usize] = YGNodeBoundAxis(
+            node,
+            YGFlexDirectionRow,
+            availableWidth - marginAxisRow,
+            parentWidth,
+            parentWidth,
+        );
+        (*node).layout.measuredDimensions[YGDimensionHeight as i32 as usize] = YGNodeBoundAxis(
+            node,
+            YGFlexDirectionColumn,
+            availableHeight - marginAxisColumn,
+            parentHeight,
+            parentWidth,
+        );
     } else {
         let measuredSize: YGSize_0 = (*node).measure.expect("non-null function pointer")(
             node,
@@ -2686,38 +2630,32 @@ unsafe extern "C" fn YGNodeWithMeasureFuncSetMeasuredDimensions(
             innerHeight,
             heightMeasureMode,
         );
-        (*node).layout.measuredDimensions[YGDimensionWidth as libc::c_int as usize] =
-            YGNodeBoundAxis(
-                node,
-                YGFlexDirectionRow,
-                if widthMeasureMode as libc::c_uint
-                    == YGMeasureModeUndefined as libc::c_int as libc::c_uint
-                    || widthMeasureMode as libc::c_uint
-                        == YGMeasureModeAtMost as libc::c_int as libc::c_uint
-                {
-                    measuredSize.width + paddingAndBorderAxisRow
-                } else {
-                    availableWidth - marginAxisRow
-                },
-                availableWidth,
-                availableWidth,
-            );
-        (*node).layout.measuredDimensions[YGDimensionHeight as libc::c_int as usize] =
-            YGNodeBoundAxis(
-                node,
-                YGFlexDirectionColumn,
-                if heightMeasureMode as libc::c_uint
-                    == YGMeasureModeUndefined as libc::c_int as libc::c_uint
-                    || heightMeasureMode as libc::c_uint
-                        == YGMeasureModeAtMost as libc::c_int as libc::c_uint
-                {
-                    measuredSize.height + paddingAndBorderAxisColumn
-                } else {
-                    availableHeight - marginAxisColumn
-                },
-                availableHeight,
-                availableWidth,
-            );
+        (*node).layout.measuredDimensions[YGDimensionWidth as i32 as usize] = YGNodeBoundAxis(
+            node,
+            YGFlexDirectionRow,
+            if widthMeasureMode as libc::c_uint == YGMeasureModeUndefined as i32 as libc::c_uint
+                || widthMeasureMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
+            {
+                measuredSize.width + paddingAndBorderAxisRow
+            } else {
+                availableWidth - marginAxisRow
+            },
+            availableWidth,
+            availableWidth,
+        );
+        (*node).layout.measuredDimensions[YGDimensionHeight as i32 as usize] = YGNodeBoundAxis(
+            node,
+            YGFlexDirectionColumn,
+            if heightMeasureMode as libc::c_uint == YGMeasureModeUndefined as i32 as libc::c_uint
+                || heightMeasureMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
+            {
+                measuredSize.height + paddingAndBorderAxisColumn
+            } else {
+                availableHeight - marginAxisColumn
+            },
+            availableHeight,
+            availableWidth,
+        );
     };
 }
 #[no_mangle]
@@ -2741,69 +2679,69 @@ pub unsafe extern "C" fn YGNodeCanUseCachedMeasurement(
     };
     let mut useRoundedComparison: bool =
         !config.is_null() && (*config).pointScaleFactor != 0i32 as libc::c_float;
-    let effectiveWidth: libc::c_float = if 0 != useRoundedComparison as libc::c_int {
+    let effectiveWidth: libc::c_float = if 0 != useRoundedComparison as i32 {
         YGRoundValueToPixelGrid(width, (*config).pointScaleFactor, 0 != 0i32, 0 != 0i32)
     } else {
         width
     };
-    let effectiveHeight: libc::c_float = if 0 != useRoundedComparison as libc::c_int {
+    let effectiveHeight: libc::c_float = if 0 != useRoundedComparison as i32 {
         YGRoundValueToPixelGrid(height, (*config).pointScaleFactor, 0 != 0i32, 0 != 0i32)
     } else {
         height
     };
-    let effectiveLastWidth: libc::c_float = if 0 != useRoundedComparison as libc::c_int {
+    let effectiveLastWidth: libc::c_float = if 0 != useRoundedComparison as i32 {
         YGRoundValueToPixelGrid(lastWidth, (*config).pointScaleFactor, 0 != 0i32, 0 != 0i32)
     } else {
         lastWidth
     };
-    let effectiveLastHeight: libc::c_float = if 0 != useRoundedComparison as libc::c_int {
+    let effectiveLastHeight: libc::c_float = if 0 != useRoundedComparison as i32 {
         YGRoundValueToPixelGrid(lastHeight, (*config).pointScaleFactor, 0 != 0i32, 0 != 0i32)
     } else {
         lastHeight
     };
     let hasSameWidthSpec: bool = lastWidthMode as libc::c_uint == widthMode as libc::c_uint
-        && 0 != YGFloatsEqual(effectiveLastWidth, effectiveWidth) as libc::c_int;
+        && 0 != YGFloatsEqual(effectiveLastWidth, effectiveWidth) as i32;
     let hasSameHeightSpec: bool = lastHeightMode as libc::c_uint == heightMode as libc::c_uint
-        && 0 != YGFloatsEqual(effectiveLastHeight, effectiveHeight) as libc::c_int;
-    let widthIsCompatible: bool = 0 != hasSameWidthSpec as libc::c_int
+        && 0 != YGFloatsEqual(effectiveLastHeight, effectiveHeight) as i32;
+    let widthIsCompatible: bool = 0 != hasSameWidthSpec as i32
         || 0 != YGMeasureModeSizeIsExactAndMatchesOldMeasuredSize(
             widthMode,
             width - marginRow,
             lastComputedWidth,
-        ) as libc::c_int
+        ) as i32
         || 0 != YGMeasureModeOldSizeIsUnspecifiedAndStillFits(
             widthMode,
             width - marginRow,
             lastWidthMode,
             lastComputedWidth,
-        ) as libc::c_int
+        ) as i32
         || 0 != YGMeasureModeNewMeasureSizeIsStricterAndStillValid(
             widthMode,
             width - marginRow,
             lastWidthMode,
             lastWidth,
             lastComputedWidth,
-        ) as libc::c_int;
-    let heightIsCompatible: bool = 0 != hasSameHeightSpec as libc::c_int
+        ) as i32;
+    let heightIsCompatible: bool = 0 != hasSameHeightSpec as i32
         || 0 != YGMeasureModeSizeIsExactAndMatchesOldMeasuredSize(
             heightMode,
             height - marginColumn,
             lastComputedHeight,
-        ) as libc::c_int
+        ) as i32
         || 0 != YGMeasureModeOldSizeIsUnspecifiedAndStillFits(
             heightMode,
             height - marginColumn,
             lastHeightMode,
             lastComputedHeight,
-        ) as libc::c_int
+        ) as i32
         || 0 != YGMeasureModeNewMeasureSizeIsStricterAndStillValid(
             heightMode,
             height - marginColumn,
             lastHeightMode,
             lastHeight,
             lastComputedHeight,
-        ) as libc::c_int;
-    return 0 != widthIsCompatible as libc::c_int && 0 != heightIsCompatible as libc::c_int;
+        ) as i32;
+    return 0 != widthIsCompatible as i32 && 0 != heightIsCompatible as i32;
 }
 unsafe extern "C" fn YGMeasureModeNewMeasureSizeIsStricterAndStillValid(
     mut sizeMode: YGMeasureMode,
@@ -2812,10 +2750,10 @@ unsafe extern "C" fn YGMeasureModeNewMeasureSizeIsStricterAndStillValid(
     mut lastSize: libc::c_float,
     mut lastComputedSize: libc::c_float,
 ) -> bool {
-    return lastSizeMode as libc::c_uint == YGMeasureModeAtMost as libc::c_int as libc::c_uint
-        && sizeMode as libc::c_uint == YGMeasureModeAtMost as libc::c_int as libc::c_uint
+    return lastSizeMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
+        && sizeMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
         && lastSize > size
-        && (lastComputedSize <= size || 0 != YGFloatsEqual(size, lastComputedSize) as libc::c_int);
+        && (lastComputedSize <= size || 0 != YGFloatsEqual(size, lastComputedSize) as i32);
 }
 unsafe extern "C" fn YGMeasureModeOldSizeIsUnspecifiedAndStillFits(
     mut sizeMode: YGMeasureMode,
@@ -2823,17 +2761,17 @@ unsafe extern "C" fn YGMeasureModeOldSizeIsUnspecifiedAndStillFits(
     mut lastSizeMode: YGMeasureMode,
     mut lastComputedSize: libc::c_float,
 ) -> bool {
-    return sizeMode as libc::c_uint == YGMeasureModeAtMost as libc::c_int as libc::c_uint
-        && lastSizeMode as libc::c_uint == YGMeasureModeUndefined as libc::c_int as libc::c_uint
-        && (size >= lastComputedSize || 0 != YGFloatsEqual(size, lastComputedSize) as libc::c_int);
+    return sizeMode as libc::c_uint == YGMeasureModeAtMost as i32 as libc::c_uint
+        && lastSizeMode as libc::c_uint == YGMeasureModeUndefined as i32 as libc::c_uint
+        && (size >= lastComputedSize || 0 != YGFloatsEqual(size, lastComputedSize) as i32);
 }
 unsafe extern "C" fn YGMeasureModeSizeIsExactAndMatchesOldMeasuredSize(
     mut sizeMode: YGMeasureMode,
     mut size: libc::c_float,
     mut lastComputedSize: libc::c_float,
 ) -> bool {
-    return sizeMode as libc::c_uint == YGMeasureModeExactly as libc::c_int as libc::c_uint
-        && 0 != YGFloatsEqual(size, lastComputedSize) as libc::c_int;
+    return sizeMode as libc::c_uint == YGMeasureModeExactly as i32 as libc::c_uint
+        && 0 != YGFloatsEqual(size, lastComputedSize) as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeMarkDirty(node: YGNodeRef) -> () {
@@ -2963,39 +2901,36 @@ pub unsafe extern "C" fn YGNodeStyleGetJustifyContent(node: YGNodeRef) -> YGJust
     return (*node).style.justifyContent;
 }
 #[no_mangle]
-pub unsafe extern "C" fn YGNodeStyleSetAlignContent(
-    node: YGNodeRef,
-    alignContent: YGAlign_0,
-) -> () {
+pub unsafe extern "C" fn YGNodeStyleSetAlignContent(node: YGNodeRef, alignContent: Align) -> () {
     if (*node).style.alignContent as libc::c_uint != alignContent as libc::c_uint {
         (*node).style.alignContent = alignContent;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn YGNodeStyleGetAlignContent(node: YGNodeRef) -> YGAlign_0 {
+pub unsafe extern "C" fn YGNodeStyleGetAlignContent(node: YGNodeRef) -> Align {
     return (*node).style.alignContent;
 }
 #[no_mangle]
-pub unsafe extern "C" fn YGNodeStyleSetAlignItems(node: YGNodeRef, alignItems: YGAlign_0) -> () {
+pub unsafe extern "C" fn YGNodeStyleSetAlignItems(node: YGNodeRef, alignItems: Align) -> () {
     if (*node).style.alignItems as libc::c_uint != alignItems as libc::c_uint {
         (*node).style.alignItems = alignItems;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn YGNodeStyleGetAlignItems(node: YGNodeRef) -> YGAlign_0 {
+pub unsafe extern "C" fn YGNodeStyleGetAlignItems(node: YGNodeRef) -> Align {
     return (*node).style.alignItems;
 }
 #[no_mangle]
-pub unsafe extern "C" fn YGNodeStyleSetAlignSelf(node: YGNodeRef, alignSelf: YGAlign_0) -> () {
+pub unsafe extern "C" fn YGNodeStyleSetAlignSelf(node: YGNodeRef, alignSelf: Align) -> () {
     if (*node).style.alignSelf as libc::c_uint != alignSelf as libc::c_uint {
         (*node).style.alignSelf = alignSelf;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn YGNodeStyleGetAlignSelf(node: YGNodeRef) -> YGAlign_0 {
+pub unsafe extern "C" fn YGNodeStyleGetAlignSelf(node: YGNodeRef) -> Align {
     return (*node).style.alignSelf;
 }
 #[no_mangle]
@@ -3065,7 +3000,7 @@ pub unsafe extern "C" fn YGNodeStyleSetFlexGrow(node: YGNodeRef, flexGrow: libc:
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleGetFlexGrow(node: YGNodeRef) -> libc::c_float {
-    return if 0 != (*node).style.flexGrow.is_nan() as libc::c_int {
+    return if 0 != (*node).style.flexGrow.is_nan() as i32 {
         kDefaultFlexGrow
     } else {
         (*node).style.flexGrow
@@ -3084,7 +3019,7 @@ pub unsafe extern "C" fn YGNodeStyleSetFlexShrink(
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleGetFlexShrink(node: YGNodeRef) -> libc::c_float {
     return if (*node).style.flexShrink.is_nan() {
-        if 0 != (*(*node).config).useWebDefaults as libc::c_int {
+        if 0 != (*(*node).config).useWebDefaults as i32 {
             kWebDefaultFlexShrink
         } else {
             kDefaultFlexShrink
@@ -3096,14 +3031,13 @@ pub unsafe extern "C" fn YGNodeStyleGetFlexShrink(node: YGNodeRef) -> libc::c_fl
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetFlexBasis(node: YGNodeRef, flexBasis: libc::c_float) -> () {
     if (*node).style.flexBasis.value != flexBasis
-        || (*node).style.flexBasis.unit as libc::c_uint
-            != YGUnitPoint as libc::c_int as libc::c_uint
+        || (*node).style.flexBasis.unit as libc::c_uint != YGUnitPoint as i32 as libc::c_uint
     {
         (*node).style.flexBasis.value = flexBasis;
-        (*node).style.flexBasis.unit = (if 0 != flexBasis.is_nan() as libc::c_int {
-            YGUnitAuto as libc::c_int
+        (*node).style.flexBasis.unit = (if 0 != flexBasis.is_nan() as i32 {
+            YGUnitAuto as i32
         } else {
-            YGUnitPoint as libc::c_int
+            YGUnitPoint as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3114,14 +3048,13 @@ pub unsafe extern "C" fn YGNodeStyleSetFlexBasisPercent(
     flexBasis: libc::c_float,
 ) -> () {
     if (*node).style.flexBasis.value != flexBasis
-        || (*node).style.flexBasis.unit as libc::c_uint
-            != YGUnitPercent as libc::c_int as libc::c_uint
+        || (*node).style.flexBasis.unit as libc::c_uint != YGUnitPercent as i32 as libc::c_uint
     {
         (*node).style.flexBasis.value = flexBasis;
-        (*node).style.flexBasis.unit = (if 0 != flexBasis.is_nan() as libc::c_int {
-            YGUnitAuto as libc::c_int
+        (*node).style.flexBasis.unit = (if 0 != flexBasis.is_nan() as i32 {
+            YGUnitAuto as i32
         } else {
-            YGUnitPercent as libc::c_int
+            YGUnitPercent as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3132,7 +3065,7 @@ pub unsafe extern "C" fn YGNodeStyleGetFlexBasis(node: YGNodeRef) -> YGValue {
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetFlexBasisAuto(node: YGNodeRef) -> () {
-    if (*node).style.flexBasis.unit as libc::c_uint != YGUnitAuto as libc::c_int as libc::c_uint {
+    if (*node).style.flexBasis.unit as libc::c_uint != YGUnitAuto as i32 as libc::c_uint {
         (*node).style.flexBasis.value = ::std::f32::NAN;
         (*node).style.flexBasis.unit = YGUnitAuto;
         YGNodeMarkDirtyInternal(node);
@@ -3146,13 +3079,13 @@ pub unsafe extern "C" fn YGNodeStyleSetPosition(
 ) -> () {
     if (*node).style.position[edge as usize].value != position
         || (*node).style.position[edge as usize].unit as libc::c_uint
-            != YGUnitPoint as libc::c_int as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
         (*node).style.position[edge as usize].value = position;
-        (*node).style.position[edge as usize].unit = (if 0 != position.is_nan() as libc::c_int {
-            YGUnitUndefined as libc::c_int
+        (*node).style.position[edge as usize].unit = (if 0 != position.is_nan() as i32 {
+            YGUnitUndefined as i32
         } else {
-            YGUnitPoint as libc::c_int
+            YGUnitPoint as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3165,13 +3098,13 @@ pub unsafe extern "C" fn YGNodeStyleSetPositionPercent(
 ) -> () {
     if (*node).style.position[edge as usize].value != position
         || (*node).style.position[edge as usize].unit as libc::c_uint
-            != YGUnitPercent as libc::c_int as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
         (*node).style.position[edge as usize].value = position;
-        (*node).style.position[edge as usize].unit = (if 0 != position.is_nan() as libc::c_int {
-            YGUnitUndefined as libc::c_int
+        (*node).style.position[edge as usize].unit = (if 0 != position.is_nan() as i32 {
+            YGUnitUndefined as i32
         } else {
-            YGUnitPercent as libc::c_int
+            YGUnitPercent as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3188,13 +3121,13 @@ pub unsafe extern "C" fn YGNodeStyleSetMargin(
 ) -> () {
     if (*node).style.margin[edge as usize].value != margin
         || (*node).style.margin[edge as usize].unit as libc::c_uint
-            != YGUnitPoint as libc::c_int as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
         (*node).style.margin[edge as usize].value = margin;
-        (*node).style.margin[edge as usize].unit = (if 0 != margin.is_nan() as libc::c_int {
-            YGUnitUndefined as libc::c_int
+        (*node).style.margin[edge as usize].unit = (if 0 != margin.is_nan() as i32 {
+            YGUnitUndefined as i32
         } else {
-            YGUnitPoint as libc::c_int
+            YGUnitPoint as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3207,13 +3140,13 @@ pub unsafe extern "C" fn YGNodeStyleSetMarginPercent(
 ) -> () {
     if (*node).style.margin[edge as usize].value != margin
         || (*node).style.margin[edge as usize].unit as libc::c_uint
-            != YGUnitPercent as libc::c_int as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
         (*node).style.margin[edge as usize].value = margin;
-        (*node).style.margin[edge as usize].unit = (if 0 != margin.is_nan() as libc::c_int {
-            YGUnitUndefined as libc::c_int
+        (*node).style.margin[edge as usize].unit = (if 0 != margin.is_nan() as i32 {
+            YGUnitUndefined as i32
         } else {
-            YGUnitPercent as libc::c_int
+            YGUnitPercent as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3224,8 +3157,7 @@ pub unsafe extern "C" fn YGNodeStyleGetMargin(node: YGNodeRef, edge: YGEdge) -> 
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetMarginAuto(node: YGNodeRef, edge: YGEdge) -> () {
-    if (*node).style.margin[edge as usize].unit as libc::c_uint
-        != YGUnitAuto as libc::c_int as libc::c_uint
+    if (*node).style.margin[edge as usize].unit as libc::c_uint != YGUnitAuto as i32 as libc::c_uint
     {
         (*node).style.margin[edge as usize].value = ::std::f32::NAN;
         (*node).style.margin[edge as usize].unit = YGUnitAuto;
@@ -3240,13 +3172,13 @@ pub unsafe extern "C" fn YGNodeStyleSetPadding(
 ) -> () {
     if (*node).style.padding[edge as usize].value != padding
         || (*node).style.padding[edge as usize].unit as libc::c_uint
-            != YGUnitPoint as libc::c_int as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
         (*node).style.padding[edge as usize].value = padding;
-        (*node).style.padding[edge as usize].unit = (if 0 != padding.is_nan() as libc::c_int {
-            YGUnitUndefined as libc::c_int
+        (*node).style.padding[edge as usize].unit = (if 0 != padding.is_nan() as i32 {
+            YGUnitUndefined as i32
         } else {
-            YGUnitPoint as libc::c_int
+            YGUnitPoint as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3259,13 +3191,13 @@ pub unsafe extern "C" fn YGNodeStyleSetPaddingPercent(
 ) -> () {
     if (*node).style.padding[edge as usize].value != padding
         || (*node).style.padding[edge as usize].unit as libc::c_uint
-            != YGUnitPercent as libc::c_int as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
         (*node).style.padding[edge as usize].value = padding;
-        (*node).style.padding[edge as usize].unit = (if 0 != padding.is_nan() as libc::c_int {
-            YGUnitUndefined as libc::c_int
+        (*node).style.padding[edge as usize].unit = (if 0 != padding.is_nan() as i32 {
+            YGUnitUndefined as i32
         } else {
-            YGUnitPercent as libc::c_int
+            YGUnitPercent as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3282,13 +3214,13 @@ pub unsafe extern "C" fn YGNodeStyleSetBorder(
 ) -> () {
     if (*node).style.border[edge as usize].value != border
         || (*node).style.border[edge as usize].unit as libc::c_uint
-            != YGUnitPoint as libc::c_int as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
         (*node).style.border[edge as usize].value = border;
-        (*node).style.border[edge as usize].unit = (if 0 != border.is_nan() as libc::c_int {
-            YGUnitUndefined as libc::c_int
+        (*node).style.border[edge as usize].unit = (if 0 != border.is_nan() as i32 {
+            YGUnitUndefined as i32
         } else {
-            YGUnitPoint as libc::c_int
+            YGUnitPoint as i32
         }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3299,108 +3231,108 @@ pub unsafe extern "C" fn YGNodeStyleGetBorder(node: YGNodeRef, edge: YGEdge) -> 
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetWidth(node: YGNodeRef, width: libc::c_float) -> () {
-    if (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].value != width
-        || (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitPoint as libc::c_int as libc::c_uint
+    if (*node).style.dimensions[YGDimensionWidth as i32 as usize].value != width
+        || (*node).style.dimensions[YGDimensionWidth as i32 as usize].unit as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
-        (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].value = width;
-        (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].unit =
-            (if 0 != width.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.dimensions[YGDimensionWidth as i32 as usize].value = width;
+        (*node).style.dimensions[YGDimensionWidth as i32 as usize].unit =
+            (if 0 != width.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPoint as libc::c_int
+                YGUnitPoint as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetWidthPercent(node: YGNodeRef, width: libc::c_float) -> () {
-    if (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].value != width
-        || (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitPercent as libc::c_int as libc::c_uint
+    if (*node).style.dimensions[YGDimensionWidth as i32 as usize].value != width
+        || (*node).style.dimensions[YGDimensionWidth as i32 as usize].unit as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
-        (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].value = width;
-        (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].unit =
-            (if 0 != width.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.dimensions[YGDimensionWidth as i32 as usize].value = width;
+        (*node).style.dimensions[YGDimensionWidth as i32 as usize].unit =
+            (if 0 != width.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPercent as libc::c_int
+                YGUnitPercent as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleGetWidth(node: YGNodeRef) -> YGValue {
-    return (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize];
+    return (*node).style.dimensions[YGDimensionWidth as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetWidthAuto(node: YGNodeRef) -> () {
-    if (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].unit as libc::c_uint
-        != YGUnitAuto as libc::c_int as libc::c_uint
+    if (*node).style.dimensions[YGDimensionWidth as i32 as usize].unit as libc::c_uint
+        != YGUnitAuto as i32 as libc::c_uint
     {
-        (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].value = ::std::f32::NAN;
-        (*node).style.dimensions[YGDimensionWidth as libc::c_int as usize].unit = YGUnitAuto;
+        (*node).style.dimensions[YGDimensionWidth as i32 as usize].value = ::std::f32::NAN;
+        (*node).style.dimensions[YGDimensionWidth as i32 as usize].unit = YGUnitAuto;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetHeight(node: YGNodeRef, height: libc::c_float) -> () {
-    if (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].value != height
-        || (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitPoint as libc::c_int as libc::c_uint
+    if (*node).style.dimensions[YGDimensionHeight as i32 as usize].value != height
+        || (*node).style.dimensions[YGDimensionHeight as i32 as usize].unit as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
-        (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].value = height;
-        (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].unit =
-            (if 0 != height.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.dimensions[YGDimensionHeight as i32 as usize].value = height;
+        (*node).style.dimensions[YGDimensionHeight as i32 as usize].unit =
+            (if 0 != height.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPoint as libc::c_int
+                YGUnitPoint as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetHeightPercent(node: YGNodeRef, height: libc::c_float) -> () {
-    if (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].value != height
-        || (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].unit as libc::c_uint
-            != YGUnitPercent as libc::c_int as libc::c_uint
+    if (*node).style.dimensions[YGDimensionHeight as i32 as usize].value != height
+        || (*node).style.dimensions[YGDimensionHeight as i32 as usize].unit as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
-        (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].value = height;
-        (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].unit =
-            (if 0 != height.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.dimensions[YGDimensionHeight as i32 as usize].value = height;
+        (*node).style.dimensions[YGDimensionHeight as i32 as usize].unit =
+            (if 0 != height.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPercent as libc::c_int
+                YGUnitPercent as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleGetHeight(node: YGNodeRef) -> YGValue {
-    return (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize];
+    return (*node).style.dimensions[YGDimensionHeight as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetHeightAuto(node: YGNodeRef) -> () {
-    if (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].unit as libc::c_uint
-        != YGUnitAuto as libc::c_int as libc::c_uint
+    if (*node).style.dimensions[YGDimensionHeight as i32 as usize].unit as libc::c_uint
+        != YGUnitAuto as i32 as libc::c_uint
     {
-        (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].value = ::std::f32::NAN;
-        (*node).style.dimensions[YGDimensionHeight as libc::c_int as usize].unit = YGUnitAuto;
+        (*node).style.dimensions[YGDimensionHeight as i32 as usize].value = ::std::f32::NAN;
+        (*node).style.dimensions[YGDimensionHeight as i32 as usize].unit = YGUnitAuto;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetMinWidth(node: YGNodeRef, minWidth: libc::c_float) -> () {
-    if (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize].value != minWidth
-        || (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize].unit
-            as libc::c_uint != YGUnitPoint as libc::c_int as libc::c_uint
+    if (*node).style.minDimensions[YGDimensionWidth as i32 as usize].value != minWidth
+        || (*node).style.minDimensions[YGDimensionWidth as i32 as usize].unit as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
-        (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize].value = minWidth;
-        (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize].unit =
-            (if 0 != minWidth.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.minDimensions[YGDimensionWidth as i32 as usize].value = minWidth;
+        (*node).style.minDimensions[YGDimensionWidth as i32 as usize].unit =
+            (if 0 != minWidth.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPoint as libc::c_int
+                YGUnitPoint as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3410,36 +3342,36 @@ pub unsafe extern "C" fn YGNodeStyleSetMinWidthPercent(
     node: YGNodeRef,
     minWidth: libc::c_float,
 ) -> () {
-    if (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize].value != minWidth
-        || (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize].unit
-            as libc::c_uint != YGUnitPercent as libc::c_int as libc::c_uint
+    if (*node).style.minDimensions[YGDimensionWidth as i32 as usize].value != minWidth
+        || (*node).style.minDimensions[YGDimensionWidth as i32 as usize].unit as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
-        (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize].value = minWidth;
-        (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize].unit =
-            (if 0 != minWidth.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.minDimensions[YGDimensionWidth as i32 as usize].value = minWidth;
+        (*node).style.minDimensions[YGDimensionWidth as i32 as usize].unit =
+            (if 0 != minWidth.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPercent as libc::c_int
+                YGUnitPercent as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleGetMinWidth(node: YGNodeRef) -> YGValue {
-    return (*node).style.minDimensions[YGDimensionWidth as libc::c_int as usize];
+    return (*node).style.minDimensions[YGDimensionWidth as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetMinHeight(node: YGNodeRef, minHeight: libc::c_float) -> () {
-    if (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize].value != minHeight
-        || (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize].unit
-            as libc::c_uint != YGUnitPoint as libc::c_int as libc::c_uint
+    if (*node).style.minDimensions[YGDimensionHeight as i32 as usize].value != minHeight
+        || (*node).style.minDimensions[YGDimensionHeight as i32 as usize].unit as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
-        (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize].value = minHeight;
-        (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize].unit =
-            (if 0 != minHeight.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.minDimensions[YGDimensionHeight as i32 as usize].value = minHeight;
+        (*node).style.minDimensions[YGDimensionHeight as i32 as usize].unit =
+            (if 0 != minHeight.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPoint as libc::c_int
+                YGUnitPoint as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3449,36 +3381,36 @@ pub unsafe extern "C" fn YGNodeStyleSetMinHeightPercent(
     node: YGNodeRef,
     minHeight: libc::c_float,
 ) -> () {
-    if (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize].value != minHeight
-        || (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize].unit
-            as libc::c_uint != YGUnitPercent as libc::c_int as libc::c_uint
+    if (*node).style.minDimensions[YGDimensionHeight as i32 as usize].value != minHeight
+        || (*node).style.minDimensions[YGDimensionHeight as i32 as usize].unit as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
-        (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize].value = minHeight;
-        (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize].unit =
-            (if 0 != minHeight.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.minDimensions[YGDimensionHeight as i32 as usize].value = minHeight;
+        (*node).style.minDimensions[YGDimensionHeight as i32 as usize].unit =
+            (if 0 != minHeight.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPercent as libc::c_int
+                YGUnitPercent as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleGetMinHeight(node: YGNodeRef) -> YGValue {
-    return (*node).style.minDimensions[YGDimensionHeight as libc::c_int as usize];
+    return (*node).style.minDimensions[YGDimensionHeight as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetMaxWidth(node: YGNodeRef, maxWidth: libc::c_float) -> () {
-    if (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize].value != maxWidth
-        || (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize].unit
-            as libc::c_uint != YGUnitPoint as libc::c_int as libc::c_uint
+    if (*node).style.maxDimensions[YGDimensionWidth as i32 as usize].value != maxWidth
+        || (*node).style.maxDimensions[YGDimensionWidth as i32 as usize].unit as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
-        (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize].value = maxWidth;
-        (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize].unit =
-            (if 0 != maxWidth.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.maxDimensions[YGDimensionWidth as i32 as usize].value = maxWidth;
+        (*node).style.maxDimensions[YGDimensionWidth as i32 as usize].unit =
+            (if 0 != maxWidth.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPoint as libc::c_int
+                YGUnitPoint as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3488,36 +3420,36 @@ pub unsafe extern "C" fn YGNodeStyleSetMaxWidthPercent(
     node: YGNodeRef,
     maxWidth: libc::c_float,
 ) -> () {
-    if (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize].value != maxWidth
-        || (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize].unit
-            as libc::c_uint != YGUnitPercent as libc::c_int as libc::c_uint
+    if (*node).style.maxDimensions[YGDimensionWidth as i32 as usize].value != maxWidth
+        || (*node).style.maxDimensions[YGDimensionWidth as i32 as usize].unit as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
-        (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize].value = maxWidth;
-        (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize].unit =
-            (if 0 != maxWidth.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.maxDimensions[YGDimensionWidth as i32 as usize].value = maxWidth;
+        (*node).style.maxDimensions[YGDimensionWidth as i32 as usize].unit =
+            (if 0 != maxWidth.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPercent as libc::c_int
+                YGUnitPercent as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleGetMaxWidth(node: YGNodeRef) -> YGValue {
-    return (*node).style.maxDimensions[YGDimensionWidth as libc::c_int as usize];
+    return (*node).style.maxDimensions[YGDimensionWidth as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetMaxHeight(node: YGNodeRef, maxHeight: libc::c_float) -> () {
-    if (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize].value != maxHeight
-        || (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize].unit
-            as libc::c_uint != YGUnitPoint as libc::c_int as libc::c_uint
+    if (*node).style.maxDimensions[YGDimensionHeight as i32 as usize].value != maxHeight
+        || (*node).style.maxDimensions[YGDimensionHeight as i32 as usize].unit as libc::c_uint
+            != YGUnitPoint as i32 as libc::c_uint
     {
-        (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize].value = maxHeight;
-        (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize].unit =
-            (if 0 != maxHeight.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.maxDimensions[YGDimensionHeight as i32 as usize].value = maxHeight;
+        (*node).style.maxDimensions[YGDimensionHeight as i32 as usize].unit =
+            (if 0 != maxHeight.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPoint as libc::c_int
+                YGUnitPoint as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
@@ -3527,23 +3459,23 @@ pub unsafe extern "C" fn YGNodeStyleSetMaxHeightPercent(
     node: YGNodeRef,
     maxHeight: libc::c_float,
 ) -> () {
-    if (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize].value != maxHeight
-        || (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize].unit
-            as libc::c_uint != YGUnitPercent as libc::c_int as libc::c_uint
+    if (*node).style.maxDimensions[YGDimensionHeight as i32 as usize].value != maxHeight
+        || (*node).style.maxDimensions[YGDimensionHeight as i32 as usize].unit as libc::c_uint
+            != YGUnitPercent as i32 as libc::c_uint
     {
-        (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize].value = maxHeight;
-        (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize].unit =
-            (if 0 != maxHeight.is_nan() as libc::c_int {
-                YGUnitAuto as libc::c_int
+        (*node).style.maxDimensions[YGDimensionHeight as i32 as usize].value = maxHeight;
+        (*node).style.maxDimensions[YGDimensionHeight as i32 as usize].unit =
+            (if 0 != maxHeight.is_nan() as i32 {
+                YGUnitAuto as i32
             } else {
-                YGUnitPercent as libc::c_int
+                YGUnitPercent as i32
             }) as YGUnit_0;
         YGNodeMarkDirtyInternal(node);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleGetMaxHeight(node: YGNodeRef) -> YGValue {
-    return (*node).style.maxDimensions[YGDimensionHeight as libc::c_int as usize];
+    return (*node).style.maxDimensions[YGDimensionHeight as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeStyleSetAspectRatio(
@@ -3561,27 +3493,27 @@ pub unsafe extern "C" fn YGNodeStyleGetAspectRatio(node: YGNodeRef) -> libc::c_f
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeLayoutGetLeft(node: YGNodeRef) -> libc::c_float {
-    return (*node).layout.position[YGEdgeLeft as libc::c_int as usize];
+    return (*node).layout.position[YGEdgeLeft as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeLayoutGetTop(node: YGNodeRef) -> libc::c_float {
-    return (*node).layout.position[YGEdgeTop as libc::c_int as usize];
+    return (*node).layout.position[YGEdgeTop as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeLayoutGetRight(node: YGNodeRef) -> libc::c_float {
-    return (*node).layout.position[YGEdgeRight as libc::c_int as usize];
+    return (*node).layout.position[YGEdgeRight as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeLayoutGetBottom(node: YGNodeRef) -> libc::c_float {
-    return (*node).layout.position[YGEdgeBottom as libc::c_int as usize];
+    return (*node).layout.position[YGEdgeBottom as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeLayoutGetWidth(node: YGNodeRef) -> libc::c_float {
-    return (*node).layout.dimensions[YGDimensionWidth as libc::c_int as usize];
+    return (*node).layout.dimensions[YGDimensionWidth as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeLayoutGetHeight(node: YGNodeRef) -> libc::c_float {
-    return (*node).layout.dimensions[YGDimensionHeight as libc::c_int as usize];
+    return (*node).layout.dimensions[YGDimensionHeight as i32 as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn YGNodeLayoutGetDirection(node: YGNodeRef) -> YGDirection_0 {
@@ -3595,24 +3527,22 @@ pub unsafe extern "C" fn YGNodeLayoutGetHadOverflow(node: YGNodeRef) -> bool {
 pub unsafe extern "C" fn YGNodeLayoutGetMargin(node: YGNodeRef, edge: YGEdge) -> libc::c_float {
     YGAssertWithNode(
         node,
-        (edge as libc::c_uint) < YGEdgeEnd as libc::c_int as libc::c_uint,
+        (edge as libc::c_uint) < YGEdgeEnd as i32 as libc::c_uint,
         b"Cannot get layout properties of multi-edge shorthands\x00" as *const u8
             as *const libc::c_char,
     );
-    if edge as libc::c_uint == YGEdgeLeft as libc::c_int as libc::c_uint {
-        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as libc::c_int as libc::c_uint
-        {
-            return (*node).layout.margin[YGEdgeEnd as libc::c_int as usize];
+    if edge as libc::c_uint == YGEdgeLeft as i32 as libc::c_uint {
+        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as i32 as libc::c_uint {
+            return (*node).layout.margin[YGEdgeEnd as i32 as usize];
         } else {
-            return (*node).layout.margin[YGEdgeStart as libc::c_int as usize];
+            return (*node).layout.margin[YGEdgeStart as i32 as usize];
         };
     };
-    if edge as libc::c_uint == YGEdgeRight as libc::c_int as libc::c_uint {
-        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as libc::c_int as libc::c_uint
-        {
-            return (*node).layout.margin[YGEdgeStart as libc::c_int as usize];
+    if edge as libc::c_uint == YGEdgeRight as i32 as libc::c_uint {
+        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as i32 as libc::c_uint {
+            return (*node).layout.margin[YGEdgeStart as i32 as usize];
         } else {
-            return (*node).layout.margin[YGEdgeEnd as libc::c_int as usize];
+            return (*node).layout.margin[YGEdgeEnd as i32 as usize];
         };
     };
     return (*node).layout.margin[edge as usize];
@@ -3621,24 +3551,22 @@ pub unsafe extern "C" fn YGNodeLayoutGetMargin(node: YGNodeRef, edge: YGEdge) ->
 pub unsafe extern "C" fn YGNodeLayoutGetBorder(node: YGNodeRef, edge: YGEdge) -> libc::c_float {
     YGAssertWithNode(
         node,
-        (edge as libc::c_uint) < YGEdgeEnd as libc::c_int as libc::c_uint,
+        (edge as libc::c_uint) < YGEdgeEnd as i32 as libc::c_uint,
         b"Cannot get layout properties of multi-edge shorthands\x00" as *const u8
             as *const libc::c_char,
     );
-    if edge as libc::c_uint == YGEdgeLeft as libc::c_int as libc::c_uint {
-        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as libc::c_int as libc::c_uint
-        {
-            return (*node).layout.border[YGEdgeEnd as libc::c_int as usize];
+    if edge as libc::c_uint == YGEdgeLeft as i32 as libc::c_uint {
+        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as i32 as libc::c_uint {
+            return (*node).layout.border[YGEdgeEnd as i32 as usize];
         } else {
-            return (*node).layout.border[YGEdgeStart as libc::c_int as usize];
+            return (*node).layout.border[YGEdgeStart as i32 as usize];
         };
     };
-    if edge as libc::c_uint == YGEdgeRight as libc::c_int as libc::c_uint {
-        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as libc::c_int as libc::c_uint
-        {
-            return (*node).layout.border[YGEdgeStart as libc::c_int as usize];
+    if edge as libc::c_uint == YGEdgeRight as i32 as libc::c_uint {
+        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as i32 as libc::c_uint {
+            return (*node).layout.border[YGEdgeStart as i32 as usize];
         } else {
-            return (*node).layout.border[YGEdgeEnd as libc::c_int as usize];
+            return (*node).layout.border[YGEdgeEnd as i32 as usize];
         };
     };
     return (*node).layout.border[edge as usize];
@@ -3647,24 +3575,22 @@ pub unsafe extern "C" fn YGNodeLayoutGetBorder(node: YGNodeRef, edge: YGEdge) ->
 pub unsafe extern "C" fn YGNodeLayoutGetPadding(node: YGNodeRef, edge: YGEdge) -> libc::c_float {
     YGAssertWithNode(
         node,
-        (edge as libc::c_uint) < YGEdgeEnd as libc::c_int as libc::c_uint,
+        (edge as libc::c_uint) < YGEdgeEnd as i32 as libc::c_uint,
         b"Cannot get layout properties of multi-edge shorthands\x00" as *const u8
             as *const libc::c_char,
     );
-    if edge as libc::c_uint == YGEdgeLeft as libc::c_int as libc::c_uint {
-        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as libc::c_int as libc::c_uint
-        {
-            return (*node).layout.padding[YGEdgeEnd as libc::c_int as usize];
+    if edge as libc::c_uint == YGEdgeLeft as i32 as libc::c_uint {
+        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as i32 as libc::c_uint {
+            return (*node).layout.padding[YGEdgeEnd as i32 as usize];
         } else {
-            return (*node).layout.padding[YGEdgeStart as libc::c_int as usize];
+            return (*node).layout.padding[YGEdgeStart as i32 as usize];
         };
     };
-    if edge as libc::c_uint == YGEdgeRight as libc::c_int as libc::c_uint {
-        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as libc::c_int as libc::c_uint
-        {
-            return (*node).layout.padding[YGEdgeStart as libc::c_int as usize];
+    if edge as libc::c_uint == YGEdgeRight as i32 as libc::c_uint {
+        if (*node).layout.direction as libc::c_uint == YGDirectionRTL as i32 as libc::c_uint {
+            return (*node).layout.padding[YGEdgeStart as i32 as usize];
         } else {
-            return (*node).layout.padding[YGEdgeEnd as libc::c_int as usize];
+            return (*node).layout.padding[YGEdgeEnd as i32 as usize];
         };
     };
     return (*node).layout.padding[edge as usize];
@@ -4607,7 +4533,7 @@ unsafe fn YGNodelayoutImpl(
                         )
                         && measureModeCrossDim == YGMeasureModeExactly
                         && !(isNodeFlexWrap && flexBasisOverflows)
-                        && YGNodeAlignItem(node, currentRelativeChild) == YGAlignStretch
+                        && YGNodeAlignItem(node, currentRelativeChild) == Align::Stretch
                     {
                         childCrossSize = availableInnerCrossDim;
                         childCrossMeasureMode = YGMeasureModeExactly;
@@ -4663,7 +4589,7 @@ unsafe fn YGNodelayoutImpl(
                         crossAxis,
                         availableInnerCrossDim,
                     )
-                        && YGNodeAlignItem(node, currentRelativeChild) == YGAlignStretch;
+                        && YGNodeAlignItem(node, currentRelativeChild) == Align::Stretch;
 
                     let childWidth = if isMainAxisRow {
                         childMainSize
@@ -4910,7 +4836,7 @@ unsafe fn YGNodelayoutImpl(
                         // time, this time
                         // forcing the cross-axis size to be the computed cross size for the
                         // current line.
-                        if alignItem == YGAlignStretch
+                        if alignItem == Align::Stretch
                             && (*YGMarginLeadingValue(child, crossAxis)).unit != YGUnitAuto
                             && (*YGMarginTrailingValue(child, crossAxis)).unit != YGUnitAuto
                         {
@@ -5001,9 +4927,9 @@ unsafe fn YGNodelayoutImpl(
                                 // No-Op
                             } else if (*YGMarginLeadingValue(child, crossAxis)).unit == YGUnitAuto {
                                 leadingCrossDim += 0.0f32.max(remainingCrossDim);
-                            } else if alignItem == YGAlignFlexStart {
+                            } else if alignItem == Align::FlexStart {
                                 // No-Op
-                            } else if alignItem == YGAlignCenter {
+                            } else if alignItem == Align::Center {
                                 leadingCrossDim += remainingCrossDim / 2.0;
                             } else {
                                 leadingCrossDim += remainingCrossDim;
@@ -5033,12 +4959,12 @@ unsafe fn YGNodelayoutImpl(
             let mut currentLead = leadingPaddingAndBorderCross;
 
             match (*node).style.alignContent {
-                YGAlignFlexEnd => currentLead += remainingAlignContentDim,
-                YGAlignCenter => currentLead += remainingAlignContentDim / 2.0,
-                YGAlignStretch => if availableInnerCrossDim > totalLineCrossDim {
+                Align::FlexEnd => currentLead += remainingAlignContentDim,
+                Align::Center => currentLead += remainingAlignContentDim / 2.0,
+                Align::Stretch => if availableInnerCrossDim > totalLineCrossDim {
                     crossDimLead = remainingAlignContentDim / lineCount as f32;
                 },
-                YGAlignSpaceAround => if availableInnerCrossDim > totalLineCrossDim {
+                Align::SpaceAround => if availableInnerCrossDim > totalLineCrossDim {
                     currentLead += remainingAlignContentDim / (2.0 * lineCount as f32);
                     if lineCount > 1 {
                         crossDimLead = remainingAlignContentDim / lineCount as f32;
@@ -5046,7 +4972,7 @@ unsafe fn YGNodelayoutImpl(
                 } else {
                     currentLead += remainingAlignContentDim / 2.0;
                 },
-                YGAlignSpaceBetween => {
+                Align::SpaceBetween => {
                     if availableInnerCrossDim > totalLineCrossDim && lineCount > 1 {
                         crossDimLead = remainingAlignContentDim / (lineCount as f32 - 1.0);
                     }
@@ -5079,7 +5005,7 @@ unsafe fn YGNodelayoutImpl(
                                     + YGNodeMarginForAxis(child, crossAxis, availableInnerWidth),
                             );
                         }
-                        if YGNodeAlignItem(node, child) == YGAlignBaseline {
+                        if YGNodeAlignItem(node, child) == Align::Baseline {
                             let ascent = YGBaseline(child)
                                 + YGNodeLeadingMargin(
                                     child,
@@ -5110,7 +5036,7 @@ unsafe fn YGNodelayoutImpl(
                         }
                         if (*child).style.positionType == YGPositionTypeRelative {
                             match YGNodeAlignItem(node, child) {
-                                YGAlignFlexStart => {
+                                Align::FlexStart => {
                                     (*child).layout.position[pos[crossAxis as usize] as usize] =
                                         currentLead
                                             + YGNodeLeadingMargin(
@@ -5119,7 +5045,7 @@ unsafe fn YGNodelayoutImpl(
                                                 availableInnerWidth,
                                             );
                                 }
-                                YGAlignFlexEnd => {
+                                Align::FlexEnd => {
                                     (*child).layout.position[pos[crossAxis as usize] as usize] =
                                         currentLead + lineHeight
                                             - YGNodeTrailingMargin(
@@ -5130,13 +5056,13 @@ unsafe fn YGNodelayoutImpl(
                                             - (*child).layout.measuredDimensions
                                                 [dim[crossAxis as usize] as usize];
                                 }
-                                YGAlignCenter => {
+                                Align::Center => {
                                     let mut childHeight = (*child).layout.measuredDimensions
                                         [dim[crossAxis as usize] as usize];
                                     (*child).layout.position[pos[crossAxis as usize] as usize] =
                                         currentLead + (lineHeight - childHeight) / 2.0;
                                 }
-                                YGAlignStretch => {
+                                Align::Stretch => {
                                     (*child).layout.position[pos[crossAxis as usize] as usize] =
                                         currentLead
                                             + YGNodeLeadingMargin(
@@ -5202,7 +5128,7 @@ unsafe fn YGNodelayoutImpl(
                                         }
                                     }
                                 }
-                                YGAlignBaseline => {
+                                Align::Baseline => {
                                     (*child).layout.position[YGEdgeTop as usize] =
                                         currentLead + maxAscentForCurrentLine - YGBaseline(child)
                                             + YGNodeLeadingPosition(
