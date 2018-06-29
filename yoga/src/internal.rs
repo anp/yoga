@@ -11,6 +11,7 @@ use ffi_types::{
     align::Align, dimension::{Dimension, Dimensions, MeasuredDimensions, ResolvedDimensions},
     direction::Direction, display::Display, edge::Edge, flex_direction::FlexDirection,
     justify::Justify, measure_mode::MeasureMode, node_type::NodeType, overflow::Overflow,
+    position_type::PositionType,
 };
 
 unsafe fn YGResolveValue(value: *const YGValue, parentSize: c_float) -> c_float {
@@ -30,8 +31,6 @@ const _POSIX_: _LIB_VERSION_TYPE = 2;
 const _SVID_: _LIB_VERSION_TYPE = 0;
 const _XOPEN_: _LIB_VERSION_TYPE = 1;
 const YGExperimentalFeatureWebFlexBasis: YGExperimentalFeature = 0;
-pub const YGPositionTypeAbsolute: YGPositionType_0 = 1;
-pub const YGPositionTypeRelative: YGPositionType_0 = 0;
 pub const YGUnitAuto: YGUnit = 3;
 pub const YGUnitPercent: YGUnit = 2;
 pub const YGUnitPoint: YGUnit = 1;
@@ -60,8 +59,6 @@ type YGMalloc = Option<unsafe extern "C" fn(_: size_t) -> *mut c_void>;
 pub type YGNode = YGNode_0;
 pub type YGNodeListRef = *mut YGNodeList;
 pub type YGNodeRef = *mut YGNode_0;
-pub type YGPositionType = YGPositionType_0;
-type YGPositionType_0 = c_uint;
 type YGSize_0 = YGSize;
 type YGStringStream_0 = YGStringStream;
 type YGStyle_0 = YGStyle;
@@ -169,7 +166,7 @@ struct YGStyle {
     alignContent: Align,
     alignItems: Align,
     alignSelf: Align,
-    positionType: YGPositionType,
+    positionType: PositionType,
     flexWrap: YGWrap_0,
     overflow: Overflow,
     display: Display,
@@ -343,7 +340,7 @@ static mut gYGNodeDefaults: YGNode = unsafe {
             alignContent: Align::FlexStart,
             alignItems: Align::Stretch,
             alignSelf: Align::Auto,
-            positionType: YGPositionTypeRelative,
+            positionType: PositionType::Relative,
             flexWrap: YGWrapNoWrap,
             overflow: Overflow::Visible,
             display: Display::Flex,
@@ -1944,7 +1941,7 @@ pub unsafe extern "C" fn YGBaseline(node: YGNodeRef) -> c_float {
                         break 'loop5;
                     };
                     if (*child).style.positionType as c_uint
-                        == YGPositionTypeAbsolute as i32 as c_uint
+                        == PositionType::Absolute as i32 as c_uint
                     {
                         break 'body3;
                     };
@@ -1984,7 +1981,7 @@ pub unsafe extern "C" fn YGIsBaselineLayout(node: YGNodeRef) -> bool {
         while i < childCount {
             {
                 let child: YGNodeRef = YGNodeGetChild(node, i);
-                if (*child).style.positionType as c_uint == YGPositionTypeRelative as i32 as c_uint
+                if (*child).style.positionType as c_uint == PositionType::Relative as i32 as c_uint
                     && (*child).style.alignSelf as c_uint == Align::Baseline as i32 as c_uint
                 {
                     return 0 != 1i32;
@@ -2065,7 +2062,7 @@ pub unsafe extern "C" fn YGNodeResolveFlexShrink(node: YGNodeRef) -> c_float {
 static mut kDefaultFlexShrink: c_float = 0.0f32;
 static mut kWebDefaultFlexShrink: c_float = 1.0f32;
 pub unsafe extern "C" fn YGNodeIsFlex(node: YGNodeRef) -> bool {
-    return (*node).style.positionType as c_uint == YGPositionTypeRelative as i32 as c_uint
+    return (*node).style.positionType as c_uint == PositionType::Relative as i32 as c_uint
         && (YGResolveFlexGrow(node) != 0i32 as c_float
             || YGNodeResolveFlexShrink(node) != 0i32 as c_float);
 }
@@ -2760,7 +2757,7 @@ pub unsafe extern "C" fn YGNodeStyleGetAlignSelf(node: YGNodeRef) -> Align {
 
 pub unsafe extern "C" fn YGNodeStyleSetPositionType(
     node: YGNodeRef,
-    positionType: YGPositionType,
+    positionType: PositionType,
 ) -> () {
     if (*node).style.positionType as c_uint != positionType as c_uint {
         (*node).style.positionType = positionType;
@@ -2768,7 +2765,7 @@ pub unsafe extern "C" fn YGNodeStyleSetPositionType(
     };
 }
 
-pub unsafe extern "C" fn YGNodeStyleGetPositionType(node: YGNodeRef) -> YGPositionType {
+pub unsafe extern "C" fn YGNodeStyleGetPositionType(node: YGNodeRef) -> PositionType {
     return (*node).style.positionType;
 }
 
@@ -3883,7 +3880,7 @@ unsafe fn YGNodelayoutImpl(
 
             // Absolute-positioned children don't participate in flex layout. Add them
             // to a list that we can process later.
-            if (*child).style.positionType == YGPositionTypeAbsolute {
+            if (*child).style.positionType == PositionType::Absolute {
                 // Store a private linked list of absolutely positioned children
                 // so that we can efficiently traverse them later.
                 if firstAbsoluteChild.is_null() {
@@ -3973,7 +3970,7 @@ unsafe fn YGNodelayoutImpl(
                 }
                 (*child).lineIndex = lineCount;
 
-                if (*child).style.positionType != YGPositionTypeAbsolute {
+                if (*child).style.positionType != PositionType::Absolute {
                     let childMarginMainAxis =
                         YGNodeMarginForAxis(child, mainAxis, availableInnerWidth);
                     let flexBasisWithMaxConstraints = YGResolveValue(
@@ -4404,7 +4401,7 @@ unsafe fn YGNodelayoutImpl(
             let mut numberOfAutoMarginsOnCurrentLine = 0;
             for i in startOfLineIndex..endOfLineIndex {
                 let child = YGNodeListGet((*node).children, i);
-                if (*child).style.positionType == YGPositionTypeRelative {
+                if (*child).style.positionType == PositionType::Relative {
                     if (*YGMarginLeadingValue(child, mainAxis)).unit == YGUnitAuto {
                         numberOfAutoMarginsOnCurrentLine += 1;
                     }
@@ -4442,7 +4439,7 @@ unsafe fn YGNodelayoutImpl(
                 if (*child).style.display == Display::None {
                     continue;
                 }
-                if (*child).style.positionType == YGPositionTypeAbsolute
+                if (*child).style.positionType == PositionType::Absolute
                     && YGNodeIsLeadingPosDefined(child, mainAxis)
                 {
                     if performLayout {
@@ -4458,7 +4455,7 @@ unsafe fn YGNodelayoutImpl(
                     // Now that we placed the element, we need to update the variables.
                     // We need to do that only for relative elements. Absolute elements
                     // do not take part in that phase.
-                    if (*child).style.positionType == YGPositionTypeRelative {
+                    if (*child).style.positionType == PositionType::Relative {
                         if (*YGMarginLeadingValue(child, mainAxis)).unit == YGUnitAuto {
                             mainDim += remainingFreeSpace / numberOfAutoMarginsOnCurrentLine as f32;
                         }
@@ -4537,7 +4534,7 @@ unsafe fn YGNodelayoutImpl(
                     if (*child).style.display == Display::None {
                         continue;
                     }
-                    if (*child).style.positionType == YGPositionTypeAbsolute {
+                    if (*child).style.positionType == PositionType::Absolute {
                         // If the child is absolutely positioned and has a
                         // top/left/bottom/right
                         // set, override all the previously computed positions to set it
@@ -4728,7 +4725,7 @@ unsafe fn YGNodelayoutImpl(
                     if (*child).style.display == Display::None {
                         continue;
                     }
-                    if (*child).style.positionType == YGPositionTypeRelative {
+                    if (*child).style.positionType == PositionType::Relative {
                         if (*child).lineIndex != i {
                             break;
                         }
@@ -4766,7 +4763,7 @@ unsafe fn YGNodelayoutImpl(
                         if (*child).style.display == Display::None {
                             continue;
                         }
-                        if (*child).style.positionType == YGPositionTypeRelative {
+                        if (*child).style.positionType == PositionType::Relative {
                             match YGNodeAlignItem(node, child) {
                                 Align::FlexStart => {
                                     (*child).layout.position[pos[crossAxis as usize] as usize] =
@@ -4951,7 +4948,7 @@ unsafe fn YGNodelayoutImpl(
         if performLayout && (*node).style.flexWrap == YGWrapWrapReverse {
             for i in 0..childCount {
                 let child = YGNodeGetChild(node, i);
-                if (*child).style.positionType == YGPositionTypeRelative {
+                if (*child).style.positionType == PositionType::Relative {
                     (*child).layout.position[pos[crossAxis as usize] as usize] =
                         (*node).layout.measuredDimensions[DIM[crossAxis as usize]]
                             - (*child).layout.position[pos[crossAxis as usize] as usize]

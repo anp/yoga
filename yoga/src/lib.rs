@@ -183,10 +183,7 @@ impl Node {
 
     pub fn set_position_type(&mut self, position_type: PositionType) {
         unsafe {
-            internal::YGNodeStyleSetPositionType(
-                self.inner_node,
-                internal::YGPositionType::from(position_type),
-            );
+            internal::YGNodeStyleSetPositionType(self.inner_node, position_type);
         }
     }
 
