@@ -10,7 +10,7 @@ use libc::*;
 use ffi_types::{
     align::Align, dimension::{Dimension, Dimensions, MeasuredDimensions, ResolvedDimensions},
     direction::Direction, display::Display, edge::Edge, flex_direction::FlexDirection,
-    justify::Justify, measure_mode::MeasureMode, node_type::NodeType,
+    justify::Justify, measure_mode::MeasureMode, node_type::NodeType, overflow::Overflow,
 };
 
 unsafe fn YGResolveValue(value: *const YGValue, parentSize: c_float) -> c_float {
@@ -30,9 +30,6 @@ const _POSIX_: _LIB_VERSION_TYPE = 2;
 const _SVID_: _LIB_VERSION_TYPE = 0;
 const _XOPEN_: _LIB_VERSION_TYPE = 1;
 const YGExperimentalFeatureWebFlexBasis: YGExperimentalFeature = 0;
-pub const YGOverflowHidden: YGOverflow = 1;
-pub const YGOverflowScroll: YGOverflow = 2;
-pub const YGOverflowVisible: YGOverflow = 0;
 pub const YGPositionTypeAbsolute: YGPositionType_0 = 1;
 pub const YGPositionTypeRelative: YGPositionType_0 = 0;
 pub const YGUnitAuto: YGUnit = 3;
@@ -63,8 +60,6 @@ type YGMalloc = Option<unsafe extern "C" fn(_: size_t) -> *mut c_void>;
 pub type YGNode = YGNode_0;
 pub type YGNodeListRef = *mut YGNodeList;
 pub type YGNodeRef = *mut YGNode_0;
-pub type YGOverflow = c_uint;
-type YGOverflow_0 = YGOverflow;
 pub type YGPositionType = YGPositionType_0;
 type YGPositionType_0 = c_uint;
 type YGSize_0 = YGSize;
@@ -176,7 +171,7 @@ struct YGStyle {
     alignSelf: Align,
     positionType: YGPositionType,
     flexWrap: YGWrap_0,
-    overflow: YGOverflow_0,
+    overflow: Overflow,
     display: Display,
     flex: c_float,
     flexGrow: c_float,
@@ -350,7 +345,7 @@ static mut gYGNodeDefaults: YGNode = unsafe {
             alignSelf: Align::Auto,
             positionType: YGPositionTypeRelative,
             flexWrap: YGWrapNoWrap,
-            overflow: YGOverflowVisible,
+            overflow: Overflow::Visible,
             display: Display::Flex,
             flex: ::std::f32::NAN,
             flexGrow: ::std::f32::NAN,
@@ -2151,8 +2146,8 @@ pub unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                     childHeightMeasureMode = MeasureMode::Exactly;
                 };
                 if !isMainAxisRow
-                    && (*node).style.overflow as c_uint == YGOverflowScroll as i32 as c_uint
-                    || (*node).style.overflow as c_uint != YGOverflowScroll as i32 as c_uint
+                    && (*node).style.overflow as c_uint == Overflow::Scroll as i32 as c_uint
+                    || (*node).style.overflow as c_uint != Overflow::Scroll as i32 as c_uint
                 {
                     if childWidth.is_nan() && !width.is_nan() {
                         childWidth = width;
@@ -2160,8 +2155,8 @@ pub unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
                     };
                 };
                 if 0 != isMainAxisRow as i32
-                    && (*node).style.overflow as c_uint == YGOverflowScroll as i32 as c_uint
-                    || (*node).style.overflow as c_uint != YGOverflowScroll as i32 as c_uint
+                    && (*node).style.overflow as c_uint == Overflow::Scroll as i32 as c_uint
+                    || (*node).style.overflow as c_uint != Overflow::Scroll as i32 as c_uint
                 {
                     if childHeight.is_nan() && !height.is_nan() {
                         childHeight = height;
@@ -2788,14 +2783,14 @@ pub unsafe extern "C" fn YGNodeStyleGetFlexWrap(node: YGNodeRef) -> YGWrap_0 {
     return (*node).style.flexWrap;
 }
 
-pub unsafe extern "C" fn YGNodeStyleSetOverflow(node: YGNodeRef, overflow: YGOverflow_0) -> () {
+pub unsafe extern "C" fn YGNodeStyleSetOverflow(node: YGNodeRef, overflow: Overflow) -> () {
     if (*node).style.overflow as c_uint != overflow as c_uint {
         (*node).style.overflow = overflow;
         YGNodeMarkDirtyInternal(node);
     };
 }
 
-pub unsafe extern "C" fn YGNodeStyleGetOverflow(node: YGNodeRef) -> YGOverflow_0 {
+pub unsafe extern "C" fn YGNodeStyleGetOverflow(node: YGNodeRef) -> Overflow {
     return (*node).style.overflow;
 }
 
@@ -4899,7 +4894,7 @@ unsafe fn YGNodelayoutImpl(
         // If the user didn't specify a width or height for the node, set the
         // dimensions based on the children.
         if measureModeMainDim == MeasureMode::Undefined
-            || ((*node).style.overflow != YGOverflowScroll
+            || ((*node).style.overflow != Overflow::Scroll
                 && measureModeMainDim == MeasureMode::AtMost)
         {
             // Clamp the size to the min/max size, if specified, and make sure it
@@ -4912,7 +4907,7 @@ unsafe fn YGNodelayoutImpl(
                 parentWidth,
             );
         } else if measureModeMainDim == MeasureMode::AtMost
-            && (*node).style.overflow == YGOverflowScroll
+            && (*node).style.overflow == Overflow::Scroll
         {
             (*node).layout.measuredDimensions[DIM[mainAxis as usize]] = (availableInnerMainDim
                 + paddingAndBorderAxisMain)
@@ -4926,7 +4921,7 @@ unsafe fn YGNodelayoutImpl(
         }
 
         if measureModeCrossDim == MeasureMode::Undefined
-            || ((*node).style.overflow != YGOverflowScroll
+            || ((*node).style.overflow != Overflow::Scroll
                 && measureModeCrossDim == MeasureMode::AtMost)
         {
             // Clamp the size to the min/max size, if specified, and make sure it
@@ -4939,7 +4934,7 @@ unsafe fn YGNodelayoutImpl(
                 parentWidth,
             );
         } else if measureModeCrossDim == MeasureMode::AtMost
-            && (*node).style.overflow == YGOverflowScroll
+            && (*node).style.overflow == Overflow::Scroll
         {
             (*node).layout.measuredDimensions[DIM[crossAxis as usize]] = (availableInnerCrossDim
                 + paddingAndBorderAxisCross)

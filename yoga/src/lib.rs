@@ -218,7 +218,7 @@ impl Node {
 
     pub fn set_overflow(&mut self, overflow: Overflow) {
         unsafe {
-            internal::YGNodeStyleSetOverflow(self.inner_node, internal::YGOverflow::from(overflow));
+            internal::YGNodeStyleSetOverflow(self.inner_node, overflow);
         }
     }
 
