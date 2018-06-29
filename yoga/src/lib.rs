@@ -733,13 +733,9 @@ impl Node {
     pub fn set_measure_func(&mut self, func: MeasureFunc) {
         match func {
             Some(f) => unsafe {
-                type Callback = unsafe extern "C" fn(
-                    internal::YGNodeRef,
-                    f32,
-                    internal::YGMeasureMode,
-                    f32,
-                    internal::YGMeasureMode,
-                ) -> internal::YGSize;
+                type Callback =
+                    unsafe extern "C" fn(internal::YGNodeRef, f32, MeasureMode, f32, MeasureMode)
+                        -> internal::YGSize;
                 let casted_func: Callback = std::mem::transmute(f as usize);
                 internal::YGNodeSetMeasureFunc(self.inner_node, Some(casted_func));
             },
