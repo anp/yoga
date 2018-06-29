@@ -28,23 +28,23 @@ const _POSIX_: _LIB_VERSION_TYPE = 2;
 const _SVID_: _LIB_VERSION_TYPE = 0;
 const _XOPEN_: _LIB_VERSION_TYPE = 1;
 const YGExperimentalFeatureWebFlexBasis: YGExperimentalFeature = 0;
-const YGMeasureModeAtMost: YGMeasureMode_0 = 2;
-const YGMeasureModeExactly: YGMeasureMode_0 = 1;
-const YGMeasureModeUndefined: YGMeasureMode_0 = 0;
-const YGNodeTypeDefault: YGNodeType = 0;
-const YGNodeTypeText: YGNodeType = 1;
-const YGOverflowHidden: YGOverflow = 1;
-const YGOverflowScroll: YGOverflow = 2;
-const YGOverflowVisible: YGOverflow = 0;
-const YGPositionTypeAbsolute: YGPositionType_0 = 1;
-const YGPositionTypeRelative: YGPositionType_0 = 0;
-const YGUnitAuto: YGUnit = 3;
-const YGUnitPercent: YGUnit = 2;
-const YGUnitPoint: YGUnit = 1;
-const YGUnitUndefined: YGUnit = 0;
-const YGWrapNoWrap: YGWrap = 0;
-const YGWrapWrap: YGWrap = 1;
-const YGWrapWrapReverse: YGWrap = 2;
+pub const YGMeasureModeAtMost: YGMeasureMode_0 = 2;
+pub const YGMeasureModeExactly: YGMeasureMode_0 = 1;
+pub const YGMeasureModeUndefined: YGMeasureMode_0 = 0;
+pub const YGNodeTypeDefault: YGNodeType = 0;
+pub const YGNodeTypeText: YGNodeType = 1;
+pub const YGOverflowHidden: YGOverflow = 1;
+pub const YGOverflowScroll: YGOverflow = 2;
+pub const YGOverflowVisible: YGOverflow = 0;
+pub const YGPositionTypeAbsolute: YGPositionType_0 = 1;
+pub const YGPositionTypeRelative: YGPositionType_0 = 0;
+pub const YGUnitAuto: YGUnit = 3;
+pub const YGUnitPercent: YGUnit = 2;
+pub const YGUnitPoint: YGUnit = 1;
+pub const YGUnitUndefined: YGUnit = 0;
+pub const YGWrapNoWrap: YGWrap = 0;
+pub const YGWrapWrap: YGWrap = 1;
+pub const YGWrapWrapReverse: YGWrap = 2;
 type __builtin_va_list = [__va_list_tag; 1];
 type __off_t = i64;
 type __off64_t = i64;
@@ -63,38 +63,39 @@ type YGExperimentalFeature_0 = YGExperimentalFeature;
 type YGFree = Option<unsafe extern "C" fn(_: *mut c_void) -> ()>;
 type YGLayout_0 = YGLayout;
 type YGMalloc = Option<unsafe extern "C" fn(_: size_t) -> *mut c_void>;
-type YGMeasureMode = YGMeasureMode_0;
+pub type YGMeasureMode = YGMeasureMode_0;
 type YGMeasureMode_0 = c_uint;
-type YGNode = YGNode_0;
-type YGNodeListRef = *mut YGNodeList;
-type YGNodeRef = *mut YGNode_0;
-type YGNodeType = c_uint;
+pub type YGNode = YGNode_0;
+pub type YGNodeListRef = *mut YGNodeList;
+pub type YGNodeRef = *mut YGNode_0;
+pub type YGNodeType = c_uint;
 type YGNodeType_0 = YGNodeType;
-type YGOverflow = c_uint;
+pub type YGOverflow = c_uint;
 type YGOverflow_0 = YGOverflow;
-type YGPositionType = YGPositionType_0;
+pub type YGPositionType = YGPositionType_0;
 type YGPositionType_0 = c_uint;
 type YGSize_0 = YGSize;
 type YGStringStream_0 = YGStringStream;
 type YGStyle_0 = YGStyle;
-type YGUnit = c_uint;
+pub type YGUnit = c_uint;
 type YGUnit_0 = YGUnit;
-type YGValue = YGValue_0;
-type YGWrap = c_uint;
+pub type YGValue = YGValue_0;
+pub type YGWrap = c_uint;
 type YGWrap_0 = YGWrap;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-struct YGNodeList {
+pub struct YGNodeList {
     capacity: usize,
     count: usize,
     items: *mut YGNodeRef,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
-struct YGValue_0 {
-    value: c_float,
-    unit: YGUnit_0,
+pub struct YGValue_0 {
+    pub value: c_float,
+    pub unit: YGUnit_0,
 }
 
 impl PartialEq for YGValue {
@@ -219,9 +220,9 @@ struct YGCachedMeasurement {
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
-struct YGSize {
-    width: c_float,
-    height: c_float,
+pub struct YGSize {
+    pub width: c_float,
+    pub height: c_float,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -232,7 +233,7 @@ struct _IO_marker {
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
-struct YGNode_0 {
+pub struct YGNode_0 {
     style: YGStyle_0,
     layout: YGLayout_0,
     lineIndex: usize,
@@ -255,7 +256,7 @@ type YGMeasureFunc = Option<
 >;
 #[derive(Copy, Clone)]
 #[repr(C)]
-struct YGConfig_0 {
+pub struct YGConfig_0 {
     experimentalFeatures: [bool; 2],
     useWebDefaults: bool,
     useLegacyStretchBehaviour: bool,
@@ -264,8 +265,7 @@ struct YGConfig_0 {
     context: *mut c_void,
 }
 
-#[no_mangle]
-unsafe extern "C" fn YGRoundValueToPixelGrid(
+pub unsafe extern "C" fn YGRoundValueToPixelGrid(
     value: c_float,
     pointScaleFactor: c_float,
     forceCeil: bool,
@@ -297,7 +297,7 @@ unsafe extern "C" fn YGRoundValueToPixelGrid(
     };
     return scaledValue / pointScaleFactor;
 }
-unsafe extern "C" fn YGFloatsEqual(a: c_float, b: c_float) -> bool {
+pub unsafe extern "C" fn YGFloatsEqual(a: c_float, b: c_float) -> bool {
     if a.is_nan() {
         return b.is_nan();
     };
@@ -312,8 +312,8 @@ static mut YGValueAuto: YGValue = YGValue_0 {
     value: ::std::f32::NAN,
     unit: YGUnitAuto,
 };
-#[no_mangle]
-unsafe extern "C" fn YGNodeNew() -> YGNodeRef {
+
+pub unsafe extern "C" fn YGNodeNew() -> YGNodeRef {
     return YGNodeNewWithConfig(&mut gYGConfigDefaults as *mut YGConfig);
 }
 static mut gYGConfigDefaults: YGConfig = YGConfig_0 {
@@ -324,8 +324,8 @@ static mut gYGConfigDefaults: YGConfig = YGConfig_0 {
     cloneNodeCallback: None,
     context: 0 as *const c_void as *mut c_void,
 };
-#[no_mangle]
-unsafe extern "C" fn YGNodeNewWithConfig(config: YGConfigRef) -> YGNodeRef {
+
+pub unsafe extern "C" fn YGNodeNewWithConfig(config: YGConfigRef) -> YGNodeRef {
     let node: YGNodeRef = malloc(size_of::<YGNode>()) as YGNodeRef;
     YGAssertWithConfig(
         config,
@@ -602,10 +602,10 @@ static mut gYGNodeDefaults: YGNode = unsafe {
         },
     }
 };
-#[no_mangle]
+
 static mut gNodeInstanceCount: int32_t = 0i32;
-#[no_mangle]
-unsafe extern "C" fn YGAssertWithConfig(
+
+pub unsafe extern "C" fn YGAssertWithConfig(
     config: YGConfigRef,
     condition: bool,
     mut message: *const c_char,
@@ -615,8 +615,7 @@ unsafe extern "C" fn YGAssertWithConfig(
     };
 }
 
-#[no_mangle]
-unsafe extern "C" fn YGNodeClone(oldNode: YGNodeRef) -> YGNodeRef {
+pub unsafe extern "C" fn YGNodeClone(oldNode: YGNodeRef) -> YGNodeRef {
     let node: YGNodeRef = malloc(size_of::<YGNode>()) as YGNodeRef;
     YGAssertWithConfig(
         (*oldNode).config,
@@ -633,8 +632,8 @@ unsafe extern "C" fn YGNodeClone(oldNode: YGNodeRef) -> YGNodeRef {
     (*node).parent = 0 as YGNodeRef;
     return node;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeListClone(oldList: YGNodeListRef) -> YGNodeListRef {
+
+pub unsafe extern "C" fn YGNodeListClone(oldList: YGNodeListRef) -> YGNodeListRef {
     if oldList.is_null() {
         return 0 as YGNodeListRef;
     };
@@ -652,8 +651,7 @@ unsafe extern "C" fn YGNodeListClone(oldList: YGNodeListRef) -> YGNodeListRef {
     return newList;
 }
 
-#[no_mangle]
-unsafe extern "C" fn YGNodeListNew(initialCapacity: usize) -> YGNodeListRef {
+pub unsafe extern "C" fn YGNodeListNew(initialCapacity: usize) -> YGNodeListRef {
     let list: YGNodeListRef = malloc(size_of::<YGNodeList>()) as YGNodeListRef;
     assert!(!list.is_null(), "Could not allocate memory for list");
 
@@ -668,14 +666,14 @@ unsafe extern "C" fn YGNodeListNew(initialCapacity: usize) -> YGNodeListRef {
 
     return list;
 }
-#[no_mangle]
-unsafe extern "C" fn YGAssert(condition: bool, mut message: *const c_char) -> () {
+
+pub unsafe extern "C" fn YGAssert(condition: bool, mut message: *const c_char) -> () {
     if !condition {
         error!("{:?}", CStr::from_ptr(message));
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeFree(node: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeFree(node: YGNodeRef) -> () {
     if !(*node).parent.is_null() {
         YGNodeListDelete((*(*node).parent).children, node);
         (*node).parent = 0 as YGNodeRef;
@@ -695,42 +693,39 @@ unsafe extern "C" fn YGNodeFree(node: YGNodeRef) -> () {
     gYGFree.expect("non-null function pointer")(node as *mut c_void);
     gNodeInstanceCount -= 1;
 }
-#[no_mangle]
+
 static mut gYGFree: YGFree = Some(free);
-#[no_mangle]
-unsafe extern "C" fn YGNodeListFree(list: YGNodeListRef) -> () {
+
+pub unsafe extern "C" fn YGNodeListFree(list: YGNodeListRef) -> () {
     if !list.is_null() {
         gYGFree.expect("non-null function pointer")((*list).items as *mut c_void);
         gYGFree.expect("non-null function pointer")(list as *mut c_void);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetChild(node: YGNodeRef, index: usize) -> YGNodeRef {
+
+pub unsafe extern "C" fn YGNodeGetChild(node: YGNodeRef, index: usize) -> YGNodeRef {
     return YGNodeListGet((*node).children, index);
 }
 
-#[no_mangle]
-unsafe extern "C" fn YGNodeListGet(list: YGNodeListRef, index: usize) -> YGNodeRef {
+pub unsafe extern "C" fn YGNodeListGet(list: YGNodeListRef, index: usize) -> YGNodeRef {
     if YGNodeListCount(list) > 0 {
         return *(*list).items.offset(index as isize);
     };
     return 0 as YGNodeRef;
 }
 
-#[no_mangle]
-unsafe extern "C" fn YGNodeListCount(list: YGNodeListRef) -> usize {
+pub unsafe extern "C" fn YGNodeListCount(list: YGNodeListRef) -> usize {
     if !list.is_null() {
         return (*list).count;
     };
     return 0;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetChildCount(node: YGNodeRef) -> usize {
+
+pub unsafe extern "C" fn YGNodeGetChildCount(node: YGNodeRef) -> usize {
     return YGNodeListCount((*node).children);
 }
 
-#[no_mangle]
-unsafe extern "C" fn YGNodeListDelete(list: YGNodeListRef, node: YGNodeRef) -> YGNodeRef {
+pub unsafe extern "C" fn YGNodeListDelete(list: YGNodeListRef, node: YGNodeRef) -> YGNodeRef {
     {
         let mut i = 0;
         while i < (*list).count {
@@ -744,8 +739,8 @@ unsafe extern "C" fn YGNodeListDelete(list: YGNodeListRef, node: YGNodeRef) -> Y
     }
     return 0 as YGNodeRef;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeListRemove(list: YGNodeListRef, index: usize) -> YGNodeRef {
+
+pub unsafe extern "C" fn YGNodeListRemove(list: YGNodeListRef, index: usize) -> YGNodeRef {
     let removed: YGNodeRef = *(*list).items.offset(index as isize);
     let ref mut fresh0 = *(*list).items.offset(index as isize);
     *fresh0 = 0 as YGNodeRef;
@@ -764,8 +759,8 @@ unsafe extern "C" fn YGNodeListRemove(list: YGNodeListRef, index: usize) -> YGNo
     (*list).count = (*list).count.wrapping_sub(1);
     return removed;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeFreeRecursive(root: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeFreeRecursive(root: YGNodeRef) -> () {
     while YGNodeGetChildCount(root) > 0 {
         let child: YGNodeRef = YGNodeGetChild(root, 0);
         if (*child).parent != root {
@@ -777,8 +772,7 @@ unsafe extern "C" fn YGNodeFreeRecursive(root: YGNodeRef) -> () {
     YGNodeFree(root);
 }
 
-#[no_mangle]
-unsafe extern "C" fn YGNodeRemoveChild(parent: YGNodeRef, excludedChild: YGNodeRef) -> () {
+pub unsafe extern "C" fn YGNodeRemoveChild(parent: YGNodeRef, excludedChild: YGNodeRef) -> () {
     let childCount = YGNodeGetChildCount(parent);
     if childCount == 0 {
         return;
@@ -829,8 +823,8 @@ unsafe extern "C" fn YGNodeRemoveChild(parent: YGNodeRef, excludedChild: YGNodeR
         nextInsertIndex = nextInsertIndex.wrapping_add(1);
     }
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeListReplace(
+
+pub unsafe extern "C" fn YGNodeListReplace(
     mut list: YGNodeListRef,
     index: usize,
     newNode: YGNodeRef,
@@ -838,7 +832,7 @@ unsafe extern "C" fn YGNodeListReplace(
     let ref mut fresh3 = *(*list).items.offset(index as isize);
     *fresh3 = newNode;
 }
-unsafe extern "C" fn YGNodeMarkDirtyInternal(node: YGNodeRef) -> () {
+pub unsafe extern "C" fn YGNodeMarkDirtyInternal(node: YGNodeRef) -> () {
     if !(*node).isDirty {
         (*node).isDirty = 0 != 1i32;
         (*node).layout.computedFlexBasis = ::std::f32::NAN;
@@ -847,8 +841,8 @@ unsafe extern "C" fn YGNodeMarkDirtyInternal(node: YGNodeRef) -> () {
         };
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeReset(node: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeReset(node: YGNodeRef) -> () {
     YGAssertWithNode(
         node,
         YGNodeGetChildCount(node) == 0,
@@ -872,8 +866,8 @@ unsafe extern "C" fn YGNodeReset(node: YGNodeRef) -> () {
     };
     (*node).config = config;
 }
-#[no_mangle]
-unsafe extern "C" fn YGAssertWithNode(
+
+pub unsafe extern "C" fn YGAssertWithNode(
     node: YGNodeRef,
     condition: bool,
     mut message: *const c_char,
@@ -882,12 +876,12 @@ unsafe extern "C" fn YGAssertWithNode(
         error!("{:?} (node: {:?})", &CStr::from_ptr(message), node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetInstanceCount() -> int32_t {
+
+pub unsafe extern "C" fn YGNodeGetInstanceCount() -> int32_t {
     return gNodeInstanceCount;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeInsertChild(node: YGNodeRef, child: YGNodeRef, index: usize) -> () {
+
+pub unsafe extern "C" fn YGNodeInsertChild(node: YGNodeRef, child: YGNodeRef, index: usize) -> () {
     YGAssertWithNode(
         node,
         (*child).parent.is_null(),
@@ -904,8 +898,8 @@ unsafe extern "C" fn YGNodeInsertChild(node: YGNodeRef, child: YGNodeRef, index:
     (*child).parent = node;
     YGNodeMarkDirtyInternal(node);
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeListInsert(
+
+pub unsafe extern "C" fn YGNodeListInsert(
     mut listp: *mut YGNodeListRef,
     node: YGNodeRef,
     index: usize,
@@ -940,7 +934,7 @@ unsafe extern "C" fn YGNodeListInsert(
     *fresh5 = node;
 }
 
-unsafe extern "C" fn YGCloneChildrenIfNeeded(parent: YGNodeRef) -> () {
+pub unsafe extern "C" fn YGCloneChildrenIfNeeded(parent: YGNodeRef) -> () {
     let childCount = YGNodeGetChildCount(parent);
     if childCount == 0 {
         return;
@@ -969,8 +963,8 @@ unsafe extern "C" fn YGCloneChildrenIfNeeded(parent: YGNodeRef) -> () {
         }
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeRemoveAllChildren(parent: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeRemoveAllChildren(parent: YGNodeRef) -> () {
     let childCount = YGNodeGetChildCount(parent);
     if childCount == 0 {
         return;
@@ -995,8 +989,8 @@ unsafe extern "C" fn YGNodeRemoveAllChildren(parent: YGNodeRef) -> () {
     (*parent).children = 0 as YGNodeListRef;
     YGNodeMarkDirtyInternal(parent);
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeListRemoveAll(list: YGNodeListRef) -> () {
+
+pub unsafe extern "C" fn YGNodeListRemoveAll(list: YGNodeListRef) -> () {
     {
         let mut i = 0usize;
         while i < (*list).count {
@@ -1009,12 +1003,12 @@ unsafe extern "C" fn YGNodeListRemoveAll(list: YGNodeListRef) -> () {
     }
     (*list).count = 0;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetParent(node: YGNodeRef) -> YGNodeRef {
+
+pub unsafe extern "C" fn YGNodeGetParent(node: YGNodeRef) -> YGNodeRef {
     return (*node).parent;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeCalculateLayout(
+
+pub unsafe extern "C" fn YGNodeCalculateLayout(
     node: YGNodeRef,
     parentWidth: c_float,
     parentHeight: c_float,
@@ -1102,7 +1096,7 @@ unsafe extern "C" fn YGNodeCalculateLayout(
     };
 }
 
-unsafe extern "C" fn YGComputedEdgeValue(
+pub unsafe extern "C" fn YGComputedEdgeValue(
     mut edges: *const YGValue,
     edge: Edge,
     defaultValue: *const YGValue,
@@ -1137,7 +1131,7 @@ unsafe extern "C" fn YGComputedEdgeValue(
     };
     return defaultValue;
 }
-unsafe extern "C" fn YGNodeSetPosition(
+pub unsafe extern "C" fn YGNodeSetPosition(
     node: YGNodeRef,
     direction: Direction,
     mainSize: c_float,
@@ -1163,7 +1157,7 @@ unsafe extern "C" fn YGNodeSetPosition(
     (*node).layout.position[trailing[crossAxis as usize] as usize] =
         YGNodeTrailingMargin(node, crossAxis, parentWidth) + relativePositionCross;
 }
-unsafe extern "C" fn YGResolveFlexDirection(
+pub unsafe extern "C" fn YGResolveFlexDirection(
     flexDirection: FlexDirection,
     direction: Direction,
 ) -> FlexDirection {
@@ -1192,7 +1186,7 @@ unsafe extern "C" fn FlexDirectionIsColumn(flexDirection: FlexDirection) -> bool
     return flexDirection as c_uint == FlexDirection::Column as i32 as c_uint
         || flexDirection as c_uint == FlexDirection::ColumnReverse as i32 as c_uint;
 }
-unsafe extern "C" fn YGNodeRelativePosition(
+pub unsafe extern "C" fn YGNodeRelativePosition(
     node: YGNodeRef,
     axis: FlexDirection,
     axisSize: c_float,
@@ -1203,7 +1197,7 @@ unsafe extern "C" fn YGNodeRelativePosition(
         -YGNodeTrailingPosition(node, axis, axisSize)
     };
 }
-unsafe extern "C" fn YGNodeTrailingPosition(
+pub unsafe extern "C" fn YGNodeTrailingPosition(
     node: YGNodeRef,
     axis: FlexDirection,
     axisSize: c_float,
@@ -1234,7 +1228,7 @@ unsafe extern "C" fn FlexDirectionIsRow(flexDirection: FlexDirection) -> bool {
     return flexDirection as c_uint == FlexDirection::Row as i32 as c_uint
         || flexDirection as c_uint == FlexDirection::RowReverse as i32 as c_uint;
 }
-unsafe extern "C" fn YGNodeLeadingPosition(
+pub unsafe extern "C" fn YGNodeLeadingPosition(
     node: YGNodeRef,
     axis: FlexDirection,
     axisSize: c_float,
@@ -1261,7 +1255,7 @@ unsafe extern "C" fn YGNodeLeadingPosition(
     };
 }
 static mut leading: [Edge; 4] = [Edge::Top, Edge::Bottom, Edge::Left, Edge::Right];
-unsafe extern "C" fn YGNodeIsLeadingPosDefined(node: YGNodeRef, axis: FlexDirection) -> bool {
+pub unsafe extern "C" fn YGNodeIsLeadingPosDefined(node: YGNodeRef, axis: FlexDirection) -> bool {
     return 0 != FlexDirectionIsRow(axis) as i32
         && (*YGComputedEdgeValue(
             (*node).style.position.as_mut_ptr() as *const YGValue,
@@ -1274,7 +1268,7 @@ unsafe extern "C" fn YGNodeIsLeadingPosDefined(node: YGNodeRef, axis: FlexDirect
             &YGValueUndefined as *const YGValue,
         )).unit as c_uint != YGUnitUndefined as i32 as c_uint;
 }
-unsafe extern "C" fn YGNodeTrailingMargin(
+pub unsafe extern "C" fn YGNodeTrailingMargin(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
@@ -1301,14 +1295,17 @@ static mut YGValueZero: YGValue = YGValue_0 {
     value: 0i32 as c_float,
     unit: YGUnitPoint,
 };
-unsafe extern "C" fn YGResolveValueMargin(value: *const YGValue, parentSize: c_float) -> c_float {
+pub unsafe extern "C" fn YGResolveValueMargin(
+    value: *const YGValue,
+    parentSize: c_float,
+) -> c_float {
     return if (*value).unit as c_uint == YGUnitAuto as i32 as c_uint {
         0i32 as c_float
     } else {
         YGResolveValue(value, parentSize)
     };
 }
-unsafe extern "C" fn YGNodeLeadingMargin(
+pub unsafe extern "C" fn YGNodeLeadingMargin(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
@@ -1331,8 +1328,8 @@ unsafe extern "C" fn YGNodeLeadingMargin(
         widthSize,
     );
 }
-#[no_mangle]
-unsafe extern "C" fn YGLayoutNodeInternal(
+
+pub unsafe extern "C" fn YGLayoutNodeInternal(
     node: YGNodeRef,
     availableWidth: c_float,
     availableHeight: c_float,
@@ -1493,11 +1490,14 @@ unsafe extern "C" fn YGLayoutNodeInternal(
     (*layout).generationCount = gCurrentGenerationCount;
     return 0 != needToVisitNode as i32 || cachedResults.is_null();
 }
-#[no_mangle]
+
 static mut gCurrentGenerationCount: uint32_t = 0i32 as uint32_t;
-#[no_mangle]
+
 static mut gDepth: uint32_t = 0i32 as uint32_t;
-unsafe extern "C" fn YGMeasureModeName(mode: YGMeasureMode, performLayout: bool) -> *const c_char {
+pub unsafe extern "C" fn YGMeasureModeName(
+    mode: YGMeasureMode,
+    performLayout: bool,
+) -> *const c_char {
     let mut kMeasureModeNames: [*const c_char; 3] = [
         b"UNDEFINED\x00" as *const u8 as *const c_char,
         b"EXACTLY\x00" as *const u8 as *const c_char,
@@ -1517,7 +1517,7 @@ unsafe extern "C" fn YGMeasureModeName(mode: YGMeasureMode, performLayout: bool)
         kMeasureModeNames[mode as usize]
     };
 }
-unsafe extern "C" fn YGNodeResolveDirection(
+pub unsafe extern "C" fn YGNodeResolveDirection(
     node: YGNodeRef,
     parentDirection: Direction,
 ) -> Direction {
@@ -1531,7 +1531,7 @@ unsafe extern "C" fn YGNodeResolveDirection(
         return (*node).style.direction;
     };
 }
-unsafe extern "C" fn YGNodeSetChildTrailingPosition(
+pub unsafe extern "C" fn YGNodeSetChildTrailingPosition(
     node: YGNodeRef,
     child: YGNodeRef,
     axis: FlexDirection,
@@ -1548,7 +1548,7 @@ const DIM: [Dimension; 4] = [
     Dimension::Width,
     Dimension::Width,
 ];
-unsafe extern "C" fn YGNodePaddingAndBorderForAxis(
+pub unsafe extern "C" fn YGNodePaddingAndBorderForAxis(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
@@ -1556,14 +1556,14 @@ unsafe extern "C" fn YGNodePaddingAndBorderForAxis(
     return YGNodeLeadingPaddingAndBorder(node, axis, widthSize)
         + YGNodeTrailingPaddingAndBorder(node, axis, widthSize);
 }
-unsafe extern "C" fn YGNodeTrailingPaddingAndBorder(
+pub unsafe extern "C" fn YGNodeTrailingPaddingAndBorder(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
 ) -> c_float {
     return YGNodeTrailingPadding(node, axis, widthSize) + YGNodeTrailingBorder(node, axis);
 }
-unsafe extern "C" fn YGNodeTrailingBorder(node: YGNodeRef, axis: FlexDirection) -> c_float {
+pub unsafe extern "C" fn YGNodeTrailingBorder(node: YGNodeRef, axis: FlexDirection) -> c_float {
     if 0 != FlexDirectionIsRow(axis) as i32
         && (*node).style.border[Edge::End as i32 as usize].unit as c_uint
             != YGUnitUndefined as i32 as c_uint
@@ -1578,7 +1578,7 @@ unsafe extern "C" fn YGNodeTrailingBorder(node: YGNodeRef, axis: FlexDirection) 
     )).value
         .max(0.0f32);
 }
-unsafe extern "C" fn YGNodeTrailingPadding(
+pub unsafe extern "C" fn YGNodeTrailingPadding(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
@@ -1605,14 +1605,14 @@ unsafe extern "C" fn YGNodeTrailingPadding(
         widthSize,
     ).max(0.0f32);
 }
-unsafe extern "C" fn YGNodeLeadingPaddingAndBorder(
+pub unsafe extern "C" fn YGNodeLeadingPaddingAndBorder(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
 ) -> c_float {
     return YGNodeLeadingPadding(node, axis, widthSize) + YGNodeLeadingBorder(node, axis);
 }
-unsafe extern "C" fn YGNodeLeadingBorder(node: YGNodeRef, axis: FlexDirection) -> c_float {
+pub unsafe extern "C" fn YGNodeLeadingBorder(node: YGNodeRef, axis: FlexDirection) -> c_float {
     if 0 != FlexDirectionIsRow(axis) as i32
         && (*node).style.border[Edge::Start as i32 as usize].unit as c_uint
             != YGUnitUndefined as i32 as c_uint
@@ -1627,7 +1627,7 @@ unsafe extern "C" fn YGNodeLeadingBorder(node: YGNodeRef, axis: FlexDirection) -
     )).value
         .max(0.0f32);
 }
-unsafe extern "C" fn YGNodeLeadingPadding(
+pub unsafe extern "C" fn YGNodeLeadingPadding(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
@@ -1654,14 +1654,14 @@ unsafe extern "C" fn YGNodeLeadingPadding(
         widthSize,
     ).max(0.0f32);
 }
-unsafe extern "C" fn YGNodeMarginForAxis(
+pub unsafe extern "C" fn YGNodeMarginForAxis(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
 ) -> c_float {
     return YGNodeLeadingMargin(node, axis, widthSize) + YGNodeTrailingMargin(node, axis, widthSize);
 }
-unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
+pub unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
     node: YGNodeRef,
     child: YGNodeRef,
     width: c_float,
@@ -1843,7 +1843,7 @@ unsafe extern "C" fn YGNodeAbsoluteLayoutChild(
         };
     };
 }
-unsafe extern "C" fn YGNodeAlignItem(node: YGNodeRef, child: YGNodeRef) -> Align {
+pub unsafe extern "C" fn YGNodeAlignItem(node: YGNodeRef, child: YGNodeRef) -> Align {
     let align: Align = if (*child).style.alignSelf == Align::Auto {
         (*node).style.alignItems
     } else {
@@ -1855,7 +1855,7 @@ unsafe extern "C" fn YGNodeAlignItem(node: YGNodeRef, child: YGNodeRef) -> Align
     };
     return align;
 }
-unsafe extern "C" fn YGNodeIsTrailingPosDefined(node: YGNodeRef, axis: FlexDirection) -> bool {
+pub unsafe extern "C" fn YGNodeIsTrailingPosDefined(node: YGNodeRef, axis: FlexDirection) -> bool {
     return 0 != FlexDirectionIsRow(axis) as i32
         && (*YGComputedEdgeValue(
             (*node).style.position.as_mut_ptr() as *const YGValue,
@@ -1868,7 +1868,7 @@ unsafe extern "C" fn YGNodeIsTrailingPosDefined(node: YGNodeRef, axis: FlexDirec
             &YGValueUndefined as *const YGValue,
         )).unit as c_uint != YGUnitUndefined as i32 as c_uint;
 }
-unsafe extern "C" fn YGNodeBoundAxis(
+pub unsafe extern "C" fn YGNodeBoundAxis(
     node: YGNodeRef,
     axis: FlexDirection,
     value: c_float,
@@ -1878,7 +1878,7 @@ unsafe extern "C" fn YGNodeBoundAxis(
     return YGNodeBoundAxisWithinMinAndMax(node, axis, value, axisSize)
         .max(YGNodePaddingAndBorderForAxis(node, axis, widthSize));
 }
-unsafe extern "C" fn YGNodeBoundAxisWithinMinAndMax(
+pub unsafe extern "C" fn YGNodeBoundAxisWithinMinAndMax(
     node: YGNodeRef,
     axis: FlexDirection,
     value: c_float,
@@ -1916,7 +1916,7 @@ unsafe extern "C" fn YGNodeBoundAxisWithinMinAndMax(
     };
     return boundValue;
 }
-unsafe extern "C" fn YGNodeIsStyleDimDefined(
+pub unsafe extern "C" fn YGNodeIsStyleDimDefined(
     node: YGNodeRef,
     axis: FlexDirection,
     parentSize: c_float,
@@ -1933,7 +1933,7 @@ unsafe extern "C" fn YGNodeIsStyleDimDefined(
             && ((*(*node).resolvedDimensions[DIM[axis as usize]]).value < 0.0f32
                 || 0 != parentSize.is_nan() as i32));
 }
-unsafe extern "C" fn YGBaseline(node: YGNodeRef) -> c_float {
+pub unsafe extern "C" fn YGBaseline(node: YGNodeRef) -> c_float {
     if (*node).baseline.is_some() {
         let baseline: c_float = (*node).baseline.expect("non-null function pointer")(
             node,
@@ -1982,11 +1982,11 @@ unsafe extern "C" fn YGBaseline(node: YGNodeRef) -> c_float {
     let baseline: c_float = YGBaseline(baselineChild);
     return baseline + (*baselineChild).layout.position[Edge::Top as i32 as usize];
 }
-unsafe extern "C" fn YGNodeIsLayoutDimDefined(node: YGNodeRef, axis: FlexDirection) -> bool {
+pub unsafe extern "C" fn YGNodeIsLayoutDimDefined(node: YGNodeRef, axis: FlexDirection) -> bool {
     let value: c_float = (*node).layout.measuredDimensions[DIM[axis as usize]];
     return !value.is_nan() && value >= 0.0f32;
 }
-unsafe extern "C" fn YGIsBaselineLayout(node: YGNodeRef) -> bool {
+pub unsafe extern "C" fn YGIsBaselineLayout(node: YGNodeRef) -> bool {
     if FlexDirectionIsColumn((*node).style.flexDirection) {
         return 0 != 0i32;
     };
@@ -2010,7 +2010,7 @@ unsafe extern "C" fn YGIsBaselineLayout(node: YGNodeRef) -> bool {
     }
     return 0 != 0i32;
 }
-unsafe extern "C" fn YGNodeDimWithMargin(
+pub unsafe extern "C" fn YGNodeDimWithMargin(
     node: YGNodeRef,
     axis: FlexDirection,
     widthSize: c_float,
@@ -2019,7 +2019,10 @@ unsafe extern "C" fn YGNodeDimWithMargin(
         + YGNodeLeadingMargin(node, axis, widthSize)
         + YGNodeTrailingMargin(node, axis, widthSize);
 }
-unsafe extern "C" fn YGMarginLeadingValue(node: YGNodeRef, axis: FlexDirection) -> *mut YGValue {
+pub unsafe extern "C" fn YGMarginLeadingValue(
+    node: YGNodeRef,
+    axis: FlexDirection,
+) -> *mut YGValue {
     if 0 != FlexDirectionIsRow(axis) as i32
         && (*node).style.margin[Edge::Start as i32 as usize].unit as c_uint
             != YGUnitUndefined as i32 as c_uint
@@ -2029,7 +2032,10 @@ unsafe extern "C" fn YGMarginLeadingValue(node: YGNodeRef, axis: FlexDirection) 
         return &mut (*node).style.margin[leading[axis as usize] as usize] as *mut YGValue;
     };
 }
-unsafe extern "C" fn YGMarginTrailingValue(node: YGNodeRef, axis: FlexDirection) -> *mut YGValue {
+pub unsafe extern "C" fn YGMarginTrailingValue(
+    node: YGNodeRef,
+    axis: FlexDirection,
+) -> *mut YGValue {
     if 0 != FlexDirectionIsRow(axis) as i32
         && (*node).style.margin[Edge::End as i32 as usize].unit as c_uint
             != YGUnitUndefined as i32 as c_uint
@@ -2039,7 +2045,7 @@ unsafe extern "C" fn YGMarginTrailingValue(node: YGNodeRef, axis: FlexDirection)
         return &mut (*node).style.margin[trailing[axis as usize] as usize] as *mut YGValue;
     };
 }
-unsafe extern "C" fn YGResolveFlexGrow(node: YGNodeRef) -> c_float {
+pub unsafe extern "C" fn YGResolveFlexGrow(node: YGNodeRef) -> c_float {
     if (*node).parent.is_null() {
         return 0.0f64 as c_float;
     };
@@ -2052,7 +2058,7 @@ unsafe extern "C" fn YGResolveFlexGrow(node: YGNodeRef) -> c_float {
     return kDefaultFlexGrow;
 }
 static mut kDefaultFlexGrow: c_float = 0.0f32;
-unsafe extern "C" fn YGNodeResolveFlexShrink(node: YGNodeRef) -> c_float {
+pub unsafe extern "C" fn YGNodeResolveFlexShrink(node: YGNodeRef) -> c_float {
     if (*node).parent.is_null() {
         return 0.0f64 as c_float;
     };
@@ -2073,12 +2079,12 @@ unsafe extern "C" fn YGNodeResolveFlexShrink(node: YGNodeRef) -> c_float {
 }
 static mut kDefaultFlexShrink: c_float = 0.0f32;
 static mut kWebDefaultFlexShrink: c_float = 1.0f32;
-unsafe extern "C" fn YGNodeIsFlex(node: YGNodeRef) -> bool {
+pub unsafe extern "C" fn YGNodeIsFlex(node: YGNodeRef) -> bool {
     return (*node).style.positionType as c_uint == YGPositionTypeRelative as i32 as c_uint
         && (YGResolveFlexGrow(node) != 0i32 as c_float
             || YGNodeResolveFlexShrink(node) != 0i32 as c_float);
 }
-unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
+pub unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
     node: YGNodeRef,
     child: YGNodeRef,
     width: c_float,
@@ -2259,7 +2265,7 @@ unsafe extern "C" fn YGNodeComputeFlexBasisForChild(
     };
     (*child).layout.computedFlexBasisGeneration = gCurrentGenerationCount;
 }
-unsafe extern "C" fn YGNodeResolveFlexBasisPtr(node: YGNodeRef) -> *const YGValue {
+pub unsafe extern "C" fn YGNodeResolveFlexBasisPtr(node: YGNodeRef) -> *const YGValue {
     if (*node).style.flexBasis.unit as c_uint != YGUnitAuto as i32 as c_uint
         && (*node).style.flexBasis.unit as c_uint != YGUnitUndefined as i32 as c_uint
     {
@@ -2274,15 +2280,15 @@ unsafe extern "C" fn YGNodeResolveFlexBasisPtr(node: YGNodeRef) -> *const YGValu
     };
     return &YGValueAuto as *const YGValue;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigIsExperimentalFeatureEnabled(
+
+pub unsafe extern "C" fn YGConfigIsExperimentalFeatureEnabled(
     config: YGConfigRef,
     feature: YGExperimentalFeature_0,
 ) -> bool {
     return (*config).experimentalFeatures[feature as usize];
 }
 
-unsafe extern "C" fn YGResolveDimensions(mut node: YGNodeRef) -> () {
+pub unsafe extern "C" fn YGResolveDimensions(mut node: YGNodeRef) -> () {
     for &dim in [Dimension::Width, Dimension::Height].into_iter() {
         if (*node).style.maxDimensions[dim].unit != YGUnitUndefined
             && (*node).style.maxDimensions[dim] != (*node).style.minDimensions[dim]
@@ -2294,7 +2300,7 @@ unsafe extern "C" fn YGResolveDimensions(mut node: YGNodeRef) -> () {
     }
 }
 
-unsafe extern "C" fn YGZeroOutLayoutRecursivly(node: YGNodeRef) -> () {
+pub unsafe extern "C" fn YGZeroOutLayoutRecursivly(node: YGNodeRef) -> () {
     memset(
         &mut (*node).layout as *mut YGLayout_0 as *mut c_void,
         0i32,
@@ -2314,7 +2320,7 @@ unsafe extern "C" fn YGZeroOutLayoutRecursivly(node: YGNodeRef) -> () {
         }
     };
 }
-unsafe extern "C" fn YGNodeFixedSizeSetMeasuredDimensions(
+pub unsafe extern "C" fn YGNodeFixedSizeSetMeasuredDimensions(
     node: YGNodeRef,
     availableWidth: c_float,
     availableHeight: c_float,
@@ -2365,7 +2371,7 @@ unsafe extern "C" fn YGNodeFixedSizeSetMeasuredDimensions(
     };
     return 0 != 0i32;
 }
-unsafe extern "C" fn YGNodeEmptyContainerSetMeasuredDimensions(
+pub unsafe extern "C" fn YGNodeEmptyContainerSetMeasuredDimensions(
     node: YGNodeRef,
     availableWidth: c_float,
     availableHeight: c_float,
@@ -2407,7 +2413,7 @@ unsafe extern "C" fn YGNodeEmptyContainerSetMeasuredDimensions(
         parentWidth,
     );
 }
-unsafe extern "C" fn YGNodeWithMeasureFuncSetMeasuredDimensions(
+pub unsafe extern "C" fn YGNodeWithMeasureFuncSetMeasuredDimensions(
     node: YGNodeRef,
     availableWidth: c_float,
     availableHeight: c_float,
@@ -2491,8 +2497,8 @@ unsafe extern "C" fn YGNodeWithMeasureFuncSetMeasuredDimensions(
         );
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeCanUseCachedMeasurement(
+
+pub unsafe extern "C" fn YGNodeCanUseCachedMeasurement(
     widthMode: YGMeasureMode,
     width: c_float,
     heightMode: YGMeasureMode,
@@ -2576,7 +2582,7 @@ unsafe extern "C" fn YGNodeCanUseCachedMeasurement(
         ) as i32;
     return 0 != widthIsCompatible as i32 && 0 != heightIsCompatible as i32;
 }
-unsafe extern "C" fn YGMeasureModeNewMeasureSizeIsStricterAndStillValid(
+pub unsafe extern "C" fn YGMeasureModeNewMeasureSizeIsStricterAndStillValid(
     mut sizeMode: YGMeasureMode,
     mut size: c_float,
     mut lastSizeMode: YGMeasureMode,
@@ -2588,7 +2594,7 @@ unsafe extern "C" fn YGMeasureModeNewMeasureSizeIsStricterAndStillValid(
         && lastSize > size
         && (lastComputedSize <= size || 0 != YGFloatsEqual(size, lastComputedSize) as i32);
 }
-unsafe extern "C" fn YGMeasureModeOldSizeIsUnspecifiedAndStillFits(
+pub unsafe extern "C" fn YGMeasureModeOldSizeIsUnspecifiedAndStillFits(
     mut sizeMode: YGMeasureMode,
     mut size: c_float,
     mut lastSizeMode: YGMeasureMode,
@@ -2598,7 +2604,7 @@ unsafe extern "C" fn YGMeasureModeOldSizeIsUnspecifiedAndStillFits(
         && lastSizeMode as c_uint == YGMeasureModeUndefined as i32 as c_uint
         && (size >= lastComputedSize || 0 != YGFloatsEqual(size, lastComputedSize) as i32);
 }
-unsafe extern "C" fn YGMeasureModeSizeIsExactAndMatchesOldMeasuredSize(
+pub unsafe extern "C" fn YGMeasureModeSizeIsExactAndMatchesOldMeasuredSize(
     mut sizeMode: YGMeasureMode,
     mut size: c_float,
     mut lastComputedSize: c_float,
@@ -2606,8 +2612,8 @@ unsafe extern "C" fn YGMeasureModeSizeIsExactAndMatchesOldMeasuredSize(
     return sizeMode as c_uint == YGMeasureModeExactly as i32 as c_uint
         && 0 != YGFloatsEqual(size, lastComputedSize) as i32;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeMarkDirty(node: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeMarkDirty(node: YGNodeRef) -> () {
     YGAssertWithNode(
         node,
         (*node).measure.is_some(),
@@ -2616,12 +2622,12 @@ unsafe extern "C" fn YGNodeMarkDirty(node: YGNodeRef) -> () {
     );
     YGNodeMarkDirtyInternal(node);
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeIsDirty(node: YGNodeRef) -> bool {
+
+pub unsafe extern "C" fn YGNodeIsDirty(node: YGNodeRef) -> bool {
     return (*node).isDirty;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeCopyStyle(dstNode: YGNodeRef, srcNode: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeCopyStyle(dstNode: YGNodeRef, srcNode: YGNodeRef) -> () {
     if memcmp(
         &mut (*dstNode).style as *mut YGStyle_0 as *const c_void,
         &mut (*srcNode).style as *mut YGStyle_0 as *const c_void,
@@ -2636,16 +2642,19 @@ unsafe extern "C" fn YGNodeCopyStyle(dstNode: YGNodeRef, srcNode: YGNodeRef) -> 
         YGNodeMarkDirtyInternal(dstNode);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeSetContext(node: YGNodeRef, mut context: *mut c_void) -> () {
+
+pub unsafe extern "C" fn YGNodeSetContext(node: YGNodeRef, mut context: *mut c_void) -> () {
     (*node).context = context;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetContext(node: YGNodeRef) -> *mut c_void {
+
+pub unsafe extern "C" fn YGNodeGetContext(node: YGNodeRef) -> *mut c_void {
     return (*node).context;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeSetMeasureFunc(node: YGNodeRef, mut measureFunc: YGMeasureFunc) -> () {
+
+pub unsafe extern "C" fn YGNodeSetMeasureFunc(
+    node: YGNodeRef,
+    mut measureFunc: YGMeasureFunc,
+) -> () {
     if measureFunc.is_none() {
         (*node).measure = None;
         (*node).nodeType = YGNodeTypeDefault;
@@ -2660,50 +2669,50 @@ unsafe extern "C" fn YGNodeSetMeasureFunc(node: YGNodeRef, mut measureFunc: YGMe
         (*node).nodeType = YGNodeTypeText;
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetMeasureFunc(node: YGNodeRef) -> YGMeasureFunc {
+
+pub unsafe extern "C" fn YGNodeGetMeasureFunc(node: YGNodeRef) -> YGMeasureFunc {
     return (*node).measure;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeSetBaselineFunc(
+
+pub unsafe extern "C" fn YGNodeSetBaselineFunc(
     node: YGNodeRef,
     mut baselineFunc: YGBaselineFunc,
 ) -> () {
     (*node).baseline = baselineFunc;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetBaselineFunc(node: YGNodeRef) -> YGBaselineFunc {
+
+pub unsafe extern "C" fn YGNodeGetBaselineFunc(node: YGNodeRef) -> YGBaselineFunc {
     return (*node).baseline;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeSetHasNewLayout(node: YGNodeRef, mut hasNewLayout: bool) -> () {
+
+pub unsafe extern "C" fn YGNodeSetHasNewLayout(node: YGNodeRef, mut hasNewLayout: bool) -> () {
     (*node).hasNewLayout = hasNewLayout;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetHasNewLayout(node: YGNodeRef) -> bool {
+
+pub unsafe extern "C" fn YGNodeGetHasNewLayout(node: YGNodeRef) -> bool {
     return (*node).hasNewLayout;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeSetNodeType(node: YGNodeRef, mut nodeType: YGNodeType_0) -> () {
+
+pub unsafe extern "C" fn YGNodeSetNodeType(node: YGNodeRef, mut nodeType: YGNodeType_0) -> () {
     (*node).nodeType = nodeType;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeGetNodeType(node: YGNodeRef) -> YGNodeType_0 {
+
+pub unsafe extern "C" fn YGNodeGetNodeType(node: YGNodeRef) -> YGNodeType_0 {
     return (*node).nodeType;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetDirection(node: YGNodeRef, direction: Direction) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetDirection(node: YGNodeRef, direction: Direction) -> () {
     if (*node).style.direction as c_uint != direction as c_uint {
         (*node).style.direction = direction;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetDirection(node: YGNodeRef) -> Direction {
+
+pub unsafe extern "C" fn YGNodeStyleGetDirection(node: YGNodeRef) -> Direction {
     return (*node).style.direction;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetFlexDirection(
+
+pub unsafe extern "C" fn YGNodeStyleSetFlexDirection(
     node: YGNodeRef,
     flexDirection: FlexDirection,
 ) -> () {
@@ -2712,56 +2721,59 @@ unsafe extern "C" fn YGNodeStyleSetFlexDirection(
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetFlexDirection(node: YGNodeRef) -> FlexDirection {
+
+pub unsafe extern "C" fn YGNodeStyleGetFlexDirection(node: YGNodeRef) -> FlexDirection {
     return (*node).style.flexDirection;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetJustifyContent(node: YGNodeRef, justifyContent: Justify) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetJustifyContent(
+    node: YGNodeRef,
+    justifyContent: Justify,
+) -> () {
     if (*node).style.justifyContent as c_uint != justifyContent as c_uint {
         (*node).style.justifyContent = justifyContent;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetJustifyContent(node: YGNodeRef) -> Justify {
+
+pub unsafe extern "C" fn YGNodeStyleGetJustifyContent(node: YGNodeRef) -> Justify {
     return (*node).style.justifyContent;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetAlignContent(node: YGNodeRef, alignContent: Align) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetAlignContent(node: YGNodeRef, alignContent: Align) -> () {
     if (*node).style.alignContent as c_uint != alignContent as c_uint {
         (*node).style.alignContent = alignContent;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetAlignContent(node: YGNodeRef) -> Align {
+
+pub unsafe extern "C" fn YGNodeStyleGetAlignContent(node: YGNodeRef) -> Align {
     return (*node).style.alignContent;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetAlignItems(node: YGNodeRef, alignItems: Align) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetAlignItems(node: YGNodeRef, alignItems: Align) -> () {
     if (*node).style.alignItems as c_uint != alignItems as c_uint {
         (*node).style.alignItems = alignItems;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetAlignItems(node: YGNodeRef) -> Align {
+
+pub unsafe extern "C" fn YGNodeStyleGetAlignItems(node: YGNodeRef) -> Align {
     return (*node).style.alignItems;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetAlignSelf(node: YGNodeRef, alignSelf: Align) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetAlignSelf(node: YGNodeRef, alignSelf: Align) -> () {
     if (*node).style.alignSelf as c_uint != alignSelf as c_uint {
         (*node).style.alignSelf = alignSelf;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetAlignSelf(node: YGNodeRef) -> Align {
+
+pub unsafe extern "C" fn YGNodeStyleGetAlignSelf(node: YGNodeRef) -> Align {
     return (*node).style.alignSelf;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetPositionType(
+
+pub unsafe extern "C" fn YGNodeStyleSetPositionType(
     node: YGNodeRef,
     positionType: YGPositionType,
 ) -> () {
@@ -2770,78 +2782,78 @@ unsafe extern "C" fn YGNodeStyleSetPositionType(
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetPositionType(node: YGNodeRef) -> YGPositionType {
+
+pub unsafe extern "C" fn YGNodeStyleGetPositionType(node: YGNodeRef) -> YGPositionType {
     return (*node).style.positionType;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetFlexWrap(node: YGNodeRef, flexWrap: YGWrap_0) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetFlexWrap(node: YGNodeRef, flexWrap: YGWrap_0) -> () {
     if (*node).style.flexWrap as c_uint != flexWrap as c_uint {
         (*node).style.flexWrap = flexWrap;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetFlexWrap(node: YGNodeRef) -> YGWrap_0 {
+
+pub unsafe extern "C" fn YGNodeStyleGetFlexWrap(node: YGNodeRef) -> YGWrap_0 {
     return (*node).style.flexWrap;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetOverflow(node: YGNodeRef, overflow: YGOverflow_0) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetOverflow(node: YGNodeRef, overflow: YGOverflow_0) -> () {
     if (*node).style.overflow as c_uint != overflow as c_uint {
         (*node).style.overflow = overflow;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetOverflow(node: YGNodeRef) -> YGOverflow_0 {
+
+pub unsafe extern "C" fn YGNodeStyleGetOverflow(node: YGNodeRef) -> YGOverflow_0 {
     return (*node).style.overflow;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetDisplay(node: YGNodeRef, display: Display) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetDisplay(node: YGNodeRef, display: Display) -> () {
     if (*node).style.display as c_uint != display as c_uint {
         (*node).style.display = display;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetDisplay(node: YGNodeRef) -> Display {
+
+pub unsafe extern "C" fn YGNodeStyleGetDisplay(node: YGNodeRef) -> Display {
     return (*node).style.display;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetFlex(node: YGNodeRef, flex: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetFlex(node: YGNodeRef, flex: c_float) -> () {
     if (*node).style.flex != flex {
         (*node).style.flex = flex;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetFlex(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeStyleGetFlex(node: YGNodeRef) -> c_float {
     return (*node).style.flex;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetFlexGrow(node: YGNodeRef, flexGrow: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetFlexGrow(node: YGNodeRef, flexGrow: c_float) -> () {
     if (*node).style.flexGrow != flexGrow {
         (*node).style.flexGrow = flexGrow;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetFlexGrow(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeStyleGetFlexGrow(node: YGNodeRef) -> c_float {
     return if 0 != (*node).style.flexGrow.is_nan() as i32 {
         kDefaultFlexGrow
     } else {
         (*node).style.flexGrow
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetFlexShrink(node: YGNodeRef, flexShrink: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetFlexShrink(node: YGNodeRef, flexShrink: c_float) -> () {
     if (*node).style.flexShrink != flexShrink {
         (*node).style.flexShrink = flexShrink;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetFlexShrink(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeStyleGetFlexShrink(node: YGNodeRef) -> c_float {
     return if (*node).style.flexShrink.is_nan() {
         if 0 != (*(*node).config).useWebDefaults as i32 {
             kWebDefaultFlexShrink
@@ -2852,8 +2864,8 @@ unsafe extern "C" fn YGNodeStyleGetFlexShrink(node: YGNodeRef) -> c_float {
         (*node).style.flexShrink
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetFlexBasis(node: YGNodeRef, flexBasis: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetFlexBasis(node: YGNodeRef, flexBasis: c_float) -> () {
     if (*node).style.flexBasis.value != flexBasis
         || (*node).style.flexBasis.unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -2866,8 +2878,8 @@ unsafe extern "C" fn YGNodeStyleSetFlexBasis(node: YGNodeRef, flexBasis: c_float
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetFlexBasisPercent(node: YGNodeRef, flexBasis: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetFlexBasisPercent(node: YGNodeRef, flexBasis: c_float) -> () {
     if (*node).style.flexBasis.value != flexBasis
         || (*node).style.flexBasis.unit as c_uint != YGUnitPercent as i32 as c_uint
     {
@@ -2880,20 +2892,24 @@ unsafe extern "C" fn YGNodeStyleSetFlexBasisPercent(node: YGNodeRef, flexBasis: 
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetFlexBasis(node: YGNodeRef) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetFlexBasis(node: YGNodeRef) -> YGValue {
     return (*node).style.flexBasis;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetFlexBasisAuto(node: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetFlexBasisAuto(node: YGNodeRef) -> () {
     if (*node).style.flexBasis.unit as c_uint != YGUnitAuto as i32 as c_uint {
         (*node).style.flexBasis.value = ::std::f32::NAN;
         (*node).style.flexBasis.unit = YGUnitAuto;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetPosition(node: YGNodeRef, edge: Edge, position: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetPosition(
+    node: YGNodeRef,
+    edge: Edge,
+    position: c_float,
+) -> () {
     if (*node).style.position[edge as usize].value != position
         || (*node).style.position[edge as usize].unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -2906,8 +2922,8 @@ unsafe extern "C" fn YGNodeStyleSetPosition(node: YGNodeRef, edge: Edge, positio
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetPositionPercent(
+
+pub unsafe extern "C" fn YGNodeStyleSetPositionPercent(
     node: YGNodeRef,
     edge: Edge,
     position: c_float,
@@ -2924,12 +2940,12 @@ unsafe extern "C" fn YGNodeStyleSetPositionPercent(
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetPosition(node: YGNodeRef, edge: Edge) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetPosition(node: YGNodeRef, edge: Edge) -> YGValue {
     return (*node).style.position[edge as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMargin(node: YGNodeRef, edge: Edge, margin: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMargin(node: YGNodeRef, edge: Edge, margin: c_float) -> () {
     if (*node).style.margin[edge as usize].value != margin
         || (*node).style.margin[edge as usize].unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -2942,8 +2958,8 @@ unsafe extern "C" fn YGNodeStyleSetMargin(node: YGNodeRef, edge: Edge, margin: c
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMarginPercent(
+
+pub unsafe extern "C" fn YGNodeStyleSetMarginPercent(
     node: YGNodeRef,
     edge: Edge,
     margin: c_float,
@@ -2960,20 +2976,24 @@ unsafe extern "C" fn YGNodeStyleSetMarginPercent(
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetMargin(node: YGNodeRef, edge: Edge) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetMargin(node: YGNodeRef, edge: Edge) -> YGValue {
     return (*node).style.margin[edge as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMarginAuto(node: YGNodeRef, edge: Edge) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMarginAuto(node: YGNodeRef, edge: Edge) -> () {
     if (*node).style.margin[edge as usize].unit as c_uint != YGUnitAuto as i32 as c_uint {
         (*node).style.margin[edge as usize].value = ::std::f32::NAN;
         (*node).style.margin[edge as usize].unit = YGUnitAuto;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetPadding(node: YGNodeRef, edge: Edge, padding: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetPadding(
+    node: YGNodeRef,
+    edge: Edge,
+    padding: c_float,
+) -> () {
     if (*node).style.padding[edge as usize].value != padding
         || (*node).style.padding[edge as usize].unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -2986,8 +3006,8 @@ unsafe extern "C" fn YGNodeStyleSetPadding(node: YGNodeRef, edge: Edge, padding:
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetPaddingPercent(
+
+pub unsafe extern "C" fn YGNodeStyleSetPaddingPercent(
     node: YGNodeRef,
     edge: Edge,
     padding: c_float,
@@ -3004,12 +3024,12 @@ unsafe extern "C" fn YGNodeStyleSetPaddingPercent(
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetPadding(node: YGNodeRef, edge: Edge) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetPadding(node: YGNodeRef, edge: Edge) -> YGValue {
     return (*node).style.padding[edge as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetBorder(node: YGNodeRef, edge: Edge, border: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetBorder(node: YGNodeRef, edge: Edge, border: c_float) -> () {
     if (*node).style.border[edge as usize].value != border
         || (*node).style.border[edge as usize].unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -3022,12 +3042,12 @@ unsafe extern "C" fn YGNodeStyleSetBorder(node: YGNodeRef, edge: Edge, border: c
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetBorder(node: YGNodeRef, edge: Edge) -> c_float {
+
+pub unsafe extern "C" fn YGNodeStyleGetBorder(node: YGNodeRef, edge: Edge) -> c_float {
     return (*node).style.border[edge as usize].value;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetWidth(node: YGNodeRef, width: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetWidth(node: YGNodeRef, width: c_float) -> () {
     if (*node).style.dimensions.width.value != width
         || (*node).style.dimensions.width.unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -3040,8 +3060,8 @@ unsafe extern "C" fn YGNodeStyleSetWidth(node: YGNodeRef, width: c_float) -> () 
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetWidthPercent(node: YGNodeRef, width: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetWidthPercent(node: YGNodeRef, width: c_float) -> () {
     if (*node).style.dimensions.width.value != width
         || (*node).style.dimensions.width.unit as c_uint != YGUnitPercent as i32 as c_uint
     {
@@ -3054,20 +3074,20 @@ unsafe extern "C" fn YGNodeStyleSetWidthPercent(node: YGNodeRef, width: c_float)
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetWidth(node: YGNodeRef) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetWidth(node: YGNodeRef) -> YGValue {
     return (*node).style.dimensions.width;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetWidthAuto(node: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetWidthAuto(node: YGNodeRef) -> () {
     if (*node).style.dimensions.width.unit as c_uint != YGUnitAuto as i32 as c_uint {
         (*node).style.dimensions.width.value = ::std::f32::NAN;
         (*node).style.dimensions.width.unit = YGUnitAuto;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetHeight(node: YGNodeRef, height: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetHeight(node: YGNodeRef, height: c_float) -> () {
     if (*node).style.dimensions.height.value != height
         || (*node).style.dimensions.height.unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -3080,8 +3100,8 @@ unsafe extern "C" fn YGNodeStyleSetHeight(node: YGNodeRef, height: c_float) -> (
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetHeightPercent(node: YGNodeRef, height: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetHeightPercent(node: YGNodeRef, height: c_float) -> () {
     if (*node).style.dimensions.height.value != height
         || (*node).style.dimensions.height.unit as c_uint != YGUnitPercent as i32 as c_uint
     {
@@ -3094,20 +3114,20 @@ unsafe extern "C" fn YGNodeStyleSetHeightPercent(node: YGNodeRef, height: c_floa
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetHeight(node: YGNodeRef) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetHeight(node: YGNodeRef) -> YGValue {
     return (*node).style.dimensions.height;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetHeightAuto(node: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetHeightAuto(node: YGNodeRef) -> () {
     if (*node).style.dimensions.height.unit as c_uint != YGUnitAuto as i32 as c_uint {
         (*node).style.dimensions.height.value = ::std::f32::NAN;
         (*node).style.dimensions.height.unit = YGUnitAuto;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMinWidth(node: YGNodeRef, minWidth: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMinWidth(node: YGNodeRef, minWidth: c_float) -> () {
     if (*node).style.minDimensions.width.value != minWidth
         || (*node).style.minDimensions.width.unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -3120,8 +3140,8 @@ unsafe extern "C" fn YGNodeStyleSetMinWidth(node: YGNodeRef, minWidth: c_float) 
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMinWidthPercent(node: YGNodeRef, minWidth: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMinWidthPercent(node: YGNodeRef, minWidth: c_float) -> () {
     if (*node).style.minDimensions.width.value != minWidth
         || (*node).style.minDimensions.width.unit as c_uint != YGUnitPercent as i32 as c_uint
     {
@@ -3134,12 +3154,12 @@ unsafe extern "C" fn YGNodeStyleSetMinWidthPercent(node: YGNodeRef, minWidth: c_
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetMinWidth(node: YGNodeRef) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetMinWidth(node: YGNodeRef) -> YGValue {
     return (*node).style.minDimensions.width;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMinHeight(node: YGNodeRef, minHeight: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMinHeight(node: YGNodeRef, minHeight: c_float) -> () {
     if (*node).style.minDimensions.height.value != minHeight
         || (*node).style.minDimensions.height.unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -3152,8 +3172,8 @@ unsafe extern "C" fn YGNodeStyleSetMinHeight(node: YGNodeRef, minHeight: c_float
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMinHeightPercent(node: YGNodeRef, minHeight: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMinHeightPercent(node: YGNodeRef, minHeight: c_float) -> () {
     if (*node).style.minDimensions.height.value != minHeight
         || (*node).style.minDimensions.height.unit as c_uint != YGUnitPercent as i32 as c_uint
     {
@@ -3166,12 +3186,12 @@ unsafe extern "C" fn YGNodeStyleSetMinHeightPercent(node: YGNodeRef, minHeight: 
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetMinHeight(node: YGNodeRef) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetMinHeight(node: YGNodeRef) -> YGValue {
     return (*node).style.minDimensions.height;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMaxWidth(node: YGNodeRef, maxWidth: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMaxWidth(node: YGNodeRef, maxWidth: c_float) -> () {
     if (*node).style.maxDimensions.width.value != maxWidth
         || (*node).style.maxDimensions.width.unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -3184,8 +3204,8 @@ unsafe extern "C" fn YGNodeStyleSetMaxWidth(node: YGNodeRef, maxWidth: c_float) 
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMaxWidthPercent(node: YGNodeRef, maxWidth: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMaxWidthPercent(node: YGNodeRef, maxWidth: c_float) -> () {
     if (*node).style.maxDimensions.width.value != maxWidth
         || (*node).style.maxDimensions.width.unit as c_uint != YGUnitPercent as i32 as c_uint
     {
@@ -3198,12 +3218,12 @@ unsafe extern "C" fn YGNodeStyleSetMaxWidthPercent(node: YGNodeRef, maxWidth: c_
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetMaxWidth(node: YGNodeRef) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetMaxWidth(node: YGNodeRef) -> YGValue {
     return (*node).style.maxDimensions.width;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMaxHeight(node: YGNodeRef, maxHeight: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMaxHeight(node: YGNodeRef, maxHeight: c_float) -> () {
     if (*node).style.maxDimensions.height.value != maxHeight
         || (*node).style.maxDimensions.height.unit as c_uint != YGUnitPoint as i32 as c_uint
     {
@@ -3216,8 +3236,8 @@ unsafe extern "C" fn YGNodeStyleSetMaxHeight(node: YGNodeRef, maxHeight: c_float
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetMaxHeightPercent(node: YGNodeRef, maxHeight: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetMaxHeightPercent(node: YGNodeRef, maxHeight: c_float) -> () {
     if (*node).style.maxDimensions.height.value != maxHeight
         || (*node).style.maxDimensions.height.unit as c_uint != YGUnitPercent as i32 as c_uint
     {
@@ -3230,55 +3250,55 @@ unsafe extern "C" fn YGNodeStyleSetMaxHeightPercent(node: YGNodeRef, maxHeight: 
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetMaxHeight(node: YGNodeRef) -> YGValue {
+
+pub unsafe extern "C" fn YGNodeStyleGetMaxHeight(node: YGNodeRef) -> YGValue {
     return (*node).style.maxDimensions.height;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleSetAspectRatio(node: YGNodeRef, aspectRatio: c_float) -> () {
+
+pub unsafe extern "C" fn YGNodeStyleSetAspectRatio(node: YGNodeRef, aspectRatio: c_float) -> () {
     if (*node).style.aspectRatio != aspectRatio {
         (*node).style.aspectRatio = aspectRatio;
         YGNodeMarkDirtyInternal(node);
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeStyleGetAspectRatio(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeStyleGetAspectRatio(node: YGNodeRef) -> c_float {
     return (*node).style.aspectRatio;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetLeft(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetLeft(node: YGNodeRef) -> c_float {
     return (*node).layout.position[Edge::Left as i32 as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetTop(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetTop(node: YGNodeRef) -> c_float {
     return (*node).layout.position[Edge::Top as i32 as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetRight(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetRight(node: YGNodeRef) -> c_float {
     return (*node).layout.position[Edge::Right as i32 as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetBottom(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetBottom(node: YGNodeRef) -> c_float {
     return (*node).layout.position[Edge::Bottom as i32 as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetWidth(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetWidth(node: YGNodeRef) -> c_float {
     return (*node).layout.dimensions[Dimension::Width as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetHeight(node: YGNodeRef) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetHeight(node: YGNodeRef) -> c_float {
     return (*node).layout.dimensions[Dimension::Height as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetDirection(node: YGNodeRef) -> Direction {
+
+pub unsafe extern "C" fn YGNodeLayoutGetDirection(node: YGNodeRef) -> Direction {
     return (*node).layout.direction;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetHadOverflow(node: YGNodeRef) -> bool {
+
+pub unsafe extern "C" fn YGNodeLayoutGetHadOverflow(node: YGNodeRef) -> bool {
     return (*node).layout.hadOverflow;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetMargin(node: YGNodeRef, edge: Edge) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetMargin(node: YGNodeRef, edge: Edge) -> c_float {
     YGAssertWithNode(
         node,
         (edge as c_uint) < Edge::End as i32 as c_uint,
@@ -3300,8 +3320,8 @@ unsafe extern "C" fn YGNodeLayoutGetMargin(node: YGNodeRef, edge: Edge) -> c_flo
     };
     return (*node).layout.margin[edge as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetBorder(node: YGNodeRef, edge: Edge) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetBorder(node: YGNodeRef, edge: Edge) -> c_float {
     YGAssertWithNode(
         node,
         (edge as c_uint) < Edge::End as i32 as c_uint,
@@ -3323,8 +3343,8 @@ unsafe extern "C" fn YGNodeLayoutGetBorder(node: YGNodeRef, edge: Edge) -> c_flo
     };
     return (*node).layout.border[edge as usize];
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeLayoutGetPadding(node: YGNodeRef, edge: Edge) -> c_float {
+
+pub unsafe extern "C" fn YGNodeLayoutGetPadding(node: YGNodeRef, edge: Edge) -> c_float {
     YGAssertWithNode(
         node,
         (edge as c_uint) < Edge::End as i32 as c_uint,
@@ -3347,8 +3367,7 @@ unsafe extern "C" fn YGNodeLayoutGetPadding(node: YGNodeRef, edge: Edge) -> c_fl
     return (*node).layout.padding[edge as usize];
 }
 
-#[no_mangle]
-unsafe extern "C" fn YGConfigSetPointScaleFactor(
+pub unsafe extern "C" fn YGConfigSetPointScaleFactor(
     config: YGConfigRef,
     pixelsInPoint: c_float,
 ) -> () {
@@ -3363,15 +3382,15 @@ unsafe extern "C" fn YGConfigSetPointScaleFactor(
         (*config).pointScaleFactor = pixelsInPoint;
     };
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigSetUseLegacyStretchBehaviour(
+
+pub unsafe extern "C" fn YGConfigSetUseLegacyStretchBehaviour(
     config: YGConfigRef,
     useLegacyStretchBehaviour: bool,
 ) -> () {
     (*config).useLegacyStretchBehaviour = useLegacyStretchBehaviour;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigNew() -> YGConfigRef {
+
+pub unsafe extern "C" fn YGConfigNew() -> YGConfigRef {
     let config: YGConfigRef = malloc(size_of::<YGConfig>()) as YGConfigRef;
     YGAssert(
         !config.is_null(),
@@ -3385,62 +3404,62 @@ unsafe extern "C" fn YGConfigNew() -> YGConfigRef {
     );
     return config;
 }
-#[no_mangle]
+
 static mut gConfigInstanceCount: int32_t = 0i32;
-#[no_mangle]
-unsafe extern "C" fn YGConfigFree(config: YGConfigRef) -> () {
+
+pub unsafe extern "C" fn YGConfigFree(config: YGConfigRef) -> () {
     gYGFree.expect("non-null function pointer")(config as *mut c_void);
     gConfigInstanceCount -= 1;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigCopy(dest: YGConfigRef, src: YGConfigRef) -> () {
+
+pub unsafe extern "C" fn YGConfigCopy(dest: YGConfigRef, src: YGConfigRef) -> () {
     memcpy(
         dest as *mut c_void,
         src as *const c_void,
         size_of::<YGConfig>(),
     );
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigGetInstanceCount() -> int32_t {
+
+pub unsafe extern "C" fn YGConfigGetInstanceCount() -> int32_t {
     return gConfigInstanceCount;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigSetExperimentalFeatureEnabled(
+
+pub unsafe extern "C" fn YGConfigSetExperimentalFeatureEnabled(
     config: YGConfigRef,
     feature: YGExperimentalFeature_0,
     enabled: bool,
 ) -> () {
     (*config).experimentalFeatures[feature as usize] = enabled;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigSetUseWebDefaults(config: YGConfigRef, enabled: bool) -> () {
+
+pub unsafe extern "C" fn YGConfigSetUseWebDefaults(config: YGConfigRef, enabled: bool) -> () {
     (*config).useWebDefaults = enabled;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigGetUseWebDefaults(config: YGConfigRef) -> bool {
+
+pub unsafe extern "C" fn YGConfigGetUseWebDefaults(config: YGConfigRef) -> bool {
     return (*config).useWebDefaults;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigSetNodeClonedFunc(
+
+pub unsafe extern "C" fn YGConfigSetNodeClonedFunc(
     config: YGConfigRef,
     callback: YGNodeClonedFunc,
 ) -> () {
     (*config).cloneNodeCallback = callback;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigGetDefault() -> YGConfigRef {
+
+pub unsafe extern "C" fn YGConfigGetDefault() -> YGConfigRef {
     return &mut gYGConfigDefaults as *mut YGConfig;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigSetContext(config: YGConfigRef, mut context: *mut c_void) -> () {
+
+pub unsafe extern "C" fn YGConfigSetContext(config: YGConfigRef, mut context: *mut c_void) -> () {
     (*config).context = context;
 }
-#[no_mangle]
-unsafe extern "C" fn YGConfigGetContext(config: YGConfigRef) -> *mut c_void {
+
+pub unsafe extern "C" fn YGConfigGetContext(config: YGConfigRef) -> *mut c_void {
     return (*config).context;
 }
-#[no_mangle]
-unsafe extern "C" fn YGNodeListAdd(mut listp: *mut YGNodeListRef, node: YGNodeRef) -> () {
+
+pub unsafe extern "C" fn YGNodeListAdd(mut listp: *mut YGNodeListRef, node: YGNodeRef) -> () {
     if (*listp).is_null() {
         *listp = YGNodeListNew(4);
     };
@@ -3511,7 +3530,7 @@ unsafe fn YGRoundToPixelGrid(
     }
 }
 
-unsafe extern "C" fn YGConstrainMaxSizeForMode(
+pub unsafe extern "C" fn YGConstrainMaxSizeForMode(
     node: YGNodeRef,
     axis: FlexDirection,
     parentAxisSize: c_float,
