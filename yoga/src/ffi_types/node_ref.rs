@@ -1,3 +1,3 @@
 use internal;
 
-pub type NodeRef = internal::YGNodeRef;
+pub type NodeRef = *mut internal::YGNode_0;

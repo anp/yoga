@@ -731,8 +731,7 @@ impl Node {
         match func {
             Some(f) => unsafe {
                 type Callback =
-                    unsafe extern "C" fn(internal::YGNodeRef, f32, MeasureMode, f32, MeasureMode)
-                        -> Size;
+                    unsafe extern "C" fn(NodeRef, f32, MeasureMode, f32, MeasureMode) -> Size;
                 let casted_func: Callback = std::mem::transmute(f as usize);
                 internal::YGNodeSetMeasureFunc(self.inner_node, Some(casted_func));
             },
@@ -745,7 +744,7 @@ impl Node {
     pub fn set_baseline_func(&mut self, func: BaselineFunc) {
         match func {
             Some(f) => unsafe {
-                type Callback = unsafe extern "C" fn(internal::YGNodeRef, f32, f32) -> f32;
+                type Callback = unsafe extern "C" fn(NodeRef, f32, f32) -> f32;
                 let casted_func: Callback = std::mem::transmute(f as usize);
                 internal::YGNodeSetBaselineFunc(self.inner_node, Some(casted_func));
             },
