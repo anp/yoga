@@ -10,7 +10,7 @@ use libc::*;
 use ffi_types::{
     align::Align, dimension::{Dimension, Dimensions, MeasuredDimensions, ResolvedDimensions},
     direction::Direction, display::Display, edge::Edge, flex_direction::FlexDirection,
-    justify::Justify, measure_mode::MeasureMode,
+    justify::Justify, measure_mode::MeasureMode, node_type::NodeType,
 };
 
 unsafe fn YGResolveValue(value: *const YGValue, parentSize: c_float) -> c_float {
@@ -30,8 +30,6 @@ const _POSIX_: _LIB_VERSION_TYPE = 2;
 const _SVID_: _LIB_VERSION_TYPE = 0;
 const _XOPEN_: _LIB_VERSION_TYPE = 1;
 const YGExperimentalFeatureWebFlexBasis: YGExperimentalFeature = 0;
-pub const YGNodeTypeDefault: YGNodeType = 0;
-pub const YGNodeTypeText: YGNodeType = 1;
 pub const YGOverflowHidden: YGOverflow = 1;
 pub const YGOverflowScroll: YGOverflow = 2;
 pub const YGOverflowVisible: YGOverflow = 0;
@@ -65,8 +63,6 @@ type YGMalloc = Option<unsafe extern "C" fn(_: size_t) -> *mut c_void>;
 pub type YGNode = YGNode_0;
 pub type YGNodeListRef = *mut YGNodeList;
 pub type YGNodeRef = *mut YGNode_0;
-pub type YGNodeType = c_uint;
-type YGNodeType_0 = YGNodeType;
 pub type YGOverflow = c_uint;
 type YGOverflow_0 = YGOverflow;
 pub type YGPositionType = YGPositionType_0;
@@ -243,7 +239,7 @@ pub struct YGNode_0 {
     context: *mut c_void,
     isDirty: bool,
     hasNewLayout: bool,
-    nodeType: YGNodeType_0,
+    nodeType: NodeType,
     resolvedDimensions: ResolvedDimensions,
 }
 type YGBaselineFunc = Option<unsafe extern "C" fn(_: YGNodeRef, _: c_float, _: c_float) -> c_float>;
@@ -592,7 +588,7 @@ static mut gYGNodeDefaults: YGNode = unsafe {
         context: 0 as *const c_void as *mut c_void,
         isDirty: 0 != 0i32,
         hasNewLayout: 0 != 1i32,
-        nodeType: YGNodeTypeDefault,
+        nodeType: NodeType::Default,
         resolvedDimensions: ResolvedDimensions {
             width: &YGValueUndefined as *const YGValue,
             height: &YGValueUndefined as *const YGValue,
@@ -2651,7 +2647,7 @@ pub unsafe extern "C" fn YGNodeSetMeasureFunc(
 ) -> () {
     if measureFunc.is_none() {
         (*node).measure = None;
-        (*node).nodeType = YGNodeTypeDefault;
+        (*node).nodeType = NodeType::Default;
     } else {
         YGAssertWithNode(
             node,
@@ -2660,7 +2656,7 @@ pub unsafe extern "C" fn YGNodeSetMeasureFunc(
                 as *const u8 as *const c_char,
         );
         (*node).measure = measureFunc;
-        (*node).nodeType = YGNodeTypeText;
+        (*node).nodeType = NodeType::Text;
     };
 }
 
@@ -2687,11 +2683,11 @@ pub unsafe extern "C" fn YGNodeGetHasNewLayout(node: YGNodeRef) -> bool {
     return (*node).hasNewLayout;
 }
 
-pub unsafe extern "C" fn YGNodeSetNodeType(node: YGNodeRef, mut nodeType: YGNodeType_0) -> () {
+pub unsafe extern "C" fn YGNodeSetNodeType(node: YGNodeRef, mut nodeType: NodeType) -> () {
     (*node).nodeType = nodeType;
 }
 
-pub unsafe extern "C" fn YGNodeGetNodeType(node: YGNodeRef) -> YGNodeType_0 {
+pub unsafe extern "C" fn YGNodeGetNodeType(node: YGNodeRef) -> NodeType {
     return (*node).nodeType;
 }
 
@@ -3484,7 +3480,7 @@ unsafe fn YGRoundToPixelGrid(
 
     // If a node has a custom measure function we never want to round down its size as this could
     // lead to unwanted text truncation.
-    let textRounding = (*node).nodeType == YGNodeTypeText;
+    let textRounding = (*node).nodeType == NodeType::Text;
 
     (*node).layout.position[Edge::Left as usize] =
         YGRoundValueToPixelGrid(nodeLeft, pointScaleFactor, false, textRounding);
