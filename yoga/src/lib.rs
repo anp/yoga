@@ -129,7 +129,7 @@ impl Node {
         }
     }
 
-    pub fn insert_child(&mut self, child: &mut Node, index: u32) {
+    pub fn insert_child(&mut self, child: &mut Node, index: usize) {
         unsafe {
             internal::YGNodeInsertChild(self.inner_node, child.inner_node, index);
         }
@@ -141,7 +141,7 @@ impl Node {
         }
     }
 
-    pub fn child_count(&self) -> u32 {
+    pub fn child_count(&self) -> usize {
         unsafe { internal::YGNodeGetChildCount(self.inner_node) }
     }
 
@@ -159,10 +159,7 @@ impl Node {
 
     pub fn set_justify_content(&mut self, justify: Justify) {
         unsafe {
-            internal::YGNodeStyleSetJustifyContent(
-                self.inner_node,
-                internal::YGJustify::from(justify),
-            );
+            internal::YGNodeStyleSetJustifyContent(self.inner_node, justify);
         }
     }
 
@@ -450,11 +447,11 @@ impl Node {
         }
     }
 
-    pub fn get_child_count(&self) -> u32 {
+    pub fn get_child_count(&self) -> usize {
         unsafe { internal::YGNodeGetChildCount(self.inner_node) }
     }
 
-    pub fn get_child(&self, index: u32) -> NodeRef {
+    pub fn get_child(&self, index: usize) -> NodeRef {
         unsafe { internal::YGNodeGetChild(self.inner_node, index) }
     }
 
