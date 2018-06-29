@@ -11,7 +11,7 @@ use ffi_types::{
     align::Align, dimension::{Dimension, Dimensions, MeasuredDimensions, ResolvedDimensions},
     direction::Direction, display::Display, edge::Edge, flex_direction::FlexDirection,
     justify::Justify, measure_mode::MeasureMode, node_type::NodeType, overflow::Overflow,
-    position_type::PositionType,
+    position_type::PositionType, size::Size,
 };
 
 unsafe fn YGResolveValue(value: *const YGValue, parentSize: c_float) -> c_float {
@@ -59,7 +59,6 @@ type YGMalloc = Option<unsafe extern "C" fn(_: size_t) -> *mut c_void>;
 pub type YGNode = YGNode_0;
 pub type YGNodeListRef = *mut YGNodeList;
 pub type YGNodeRef = *mut YGNode_0;
-type YGSize_0 = YGSize;
 type YGStringStream_0 = YGStringStream;
 type YGStyle_0 = YGStyle;
 pub type YGUnit = c_uint;
@@ -203,12 +202,7 @@ struct YGCachedMeasurement {
     computedWidth: c_float,
     computedHeight: c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct YGSize {
-    pub width: c_float,
-    pub height: c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 struct _IO_marker {
@@ -237,7 +231,7 @@ pub struct YGNode_0 {
 type YGBaselineFunc = Option<unsafe extern "C" fn(_: YGNodeRef, _: c_float, _: c_float) -> c_float>;
 type YGMeasureFunc = Option<
     unsafe extern "C" fn(_: YGNodeRef, _: c_float, _: MeasureMode, _: c_float, _: MeasureMode)
-        -> YGSize_0,
+        -> Size,
 >;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -2444,7 +2438,7 @@ pub unsafe extern "C" fn YGNodeWithMeasureFuncSetMeasuredDimensions(
             parentWidth,
         );
     } else {
-        let measuredSize: YGSize_0 = (*node).measure.expect("non-null function pointer")(
+        let measuredSize: Size = (*node).measure.expect("non-null function pointer")(
             node,
             innerWidth,
             widthMeasureMode,

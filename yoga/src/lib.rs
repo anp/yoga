@@ -732,7 +732,7 @@ impl Node {
             Some(f) => unsafe {
                 type Callback =
                     unsafe extern "C" fn(internal::YGNodeRef, f32, MeasureMode, f32, MeasureMode)
-                        -> internal::YGSize;
+                        -> Size;
                 let casted_func: Callback = std::mem::transmute(f as usize);
                 internal::YGNodeSetMeasureFunc(self.inner_node, Some(casted_func));
             },
