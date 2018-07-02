@@ -48,14 +48,6 @@ prelude!();
 
 const POINT_SCALE_FACTOR: f32 = 1.0;
 
-// FIXME(anp): add fuzzy float equality
-// fn YGFloatsEqual(a: R32, b: R32) -> bool {
-//     if a.is_nan() {
-//         return b.is_nan();
-//     };
-//     return ((a - b).abs() as f64) < 0.00009999999747378752f64;
-// }
-
 pub trait Node
 where
     Self: 'static + std::fmt::Debug + Sized,
@@ -85,13 +77,13 @@ where
 
     fn resolve_dimensions(&mut self) {
         for &dim in [Dimension::Width, Dimension::Height].into_iter() {
-            let mut style = self.style();
-            // FIXME(anp): need to uncomment
-            // if style.max_dimensions[dim] != style.min_dimensions[dim] {
-            //     *self.resolved() = style.max_dimensions[dim];
-            // } else {
-            //     *self.resolved() = style.dimensions[dim];
-            // };
+            let style = *self.style();
+
+            if style.max_dimensions[dim] != style.min_dimensions[dim] {
+                self.resolved()[dim] = Some(style.max_dimensions[dim]);
+            } else {
+                self.resolved()[dim] = Some(style.dimensions[dim]);
+            };
         }
     }
 
@@ -117,7 +109,7 @@ where
 
     fn leading_margin(&mut self, axis: FlexDirection, width_size: R32) -> R32 {
         let leading_edge = match (self.style().margin[Edge::Start], axis.is_row()) {
-            (Some(margin), true) => Edge::Start,
+            (Some(_), true) => Edge::Start,
             _ => axis.leading_edge(),
         };
 
