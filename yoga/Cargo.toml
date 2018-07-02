@@ -7,7 +7,7 @@ authors = ["Adam Perry <adam.n.perry@gmail.com>"]
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
-ordered-float = { version = "0.5", features = ["serde"] }
+noisy_float = { version = "0.1", features = ["serde-1"] }
 serde = "1"
 serde_derive = "1"
 
