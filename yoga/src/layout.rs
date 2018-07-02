@@ -2,17 +2,17 @@ prelude!();
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Layout {
-    pub left: R32,
-    pub right: R32,
-    pub top: R32,
-    pub bottom: R32,
+    left: R32,
+    right: R32,
+    top: R32,
+    bottom: R32,
     pub dimensions: Option<Dimensions>,
     pub direction: Direction,
     margin: Edges<R32>,
     border: Edges<R32>,
     padding: Edges<R32>,
     computedFlexBasisGeneration: u32,
-    computedFlexBasis: Option<R32>,
+    pub computedFlexBasis: Option<R32>,
     pub hadOverflow: bool,
     generationCount: u32,
     lastParentDirection: Direction,
@@ -32,13 +32,38 @@ struct CachedMeasurement {
     computedHeight: R32,
 }
 
+impl ::std::ops::Index<Edge> for Layout {
+    type Output = R32;
+    fn index(&self, edge: Edge) -> &Self::Output {
+        match edge {
+            Edge::Left => &self.left,
+            Edge::Right => &self.right,
+            Edge::Top => &self.top,
+            Edge::Bottom => &self.bottom,
+            _ => panic!("passed an invalid edge to index into the layout struct"),
+        }
+    }
+}
+
+impl ::std::ops::IndexMut<Edge> for Layout {
+    fn index_mut(&mut self, edge: Edge) -> &mut Self::Output {
+        match edge {
+            Edge::Left => &mut self.left,
+            Edge::Right => &mut self.right,
+            Edge::Top => &mut self.top,
+            Edge::Bottom => &mut self.bottom,
+            _ => panic!("passed an invalid edge to index into the layout struct"),
+        }
+    }
+}
+
 impl ::std::default::Default for Layout {
     fn default() -> Self {
         Layout {
-            left: *ZERO,
-            right: *ZERO,
-            top: *ZERO,
-            bottom: *ZERO,
+            left: r32(0.0),
+            right: r32(0.0),
+            top: r32(0.0),
+            bottom: r32(0.0),
             dimensions: None,
             margin: Edges::empty(),
             border: Edges::empty(),

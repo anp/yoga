@@ -11,8 +11,6 @@
 // TODO(anp): double check c code for interesting comments
 // TODO(anp): revist raph's continuation-based layout stuff, in case you forget, june 2018 meetup at mozilla
 
-#[macro_use]
-extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
@@ -25,8 +23,9 @@ pub(crate) mod prelude {
     pub use super::enums::*;
     pub use super::layout::Layout;
     pub use super::style::{Property, Style};
-    pub use super::ZERO;
+    pub use super::Node;
     pub use noisy_float::prelude::*;
+    pub use std::ops::{Index, IndexMut};
 }
 
 #[macro_use]
@@ -53,15 +52,11 @@ const POINT_SCALE_FACTOR: f32 = 1.0;
 //     return ((a - b).abs() as f64) < 0.00009999999747378752f64;
 // }
 
-lazy_static! {
-    pub static ref ZERO: R32 = r32(0.0);
-}
-
 pub trait Node
 where
     Self: 'static + std::fmt::Debug + Sized,
 {
-    fn parent(&mut self) -> &mut Self;
+    fn parent(&mut self) -> Option<&mut Self>;
     fn children(&mut self) -> &mut Vec<Self>;
     fn style(&mut self) -> &mut Style;
     fn layout(&mut self) -> &mut Layout;
@@ -76,7 +71,7 @@ where
 
     fn increment_generation();
 
-    fn is_style_dim_defined(&self, axis: FlexDirection, parent_size: f32) -> bool {
+    fn is_style_dim_defined(&self, axis: FlexDirection, parent_size: R32) -> bool {
         parent_size.is_nan() || match self.resolved()[axis.dimension()] {
             Some(Value::Percent(r)) | Some(Value::Point(r)) => r < 0.0,
             Some(Value::Auto) => false,
@@ -124,9 +119,10 @@ where
         self.style()
             .margin
             .computed(leading_edge)
+            .into_iter()
             .flat_map(|m| m.resolve(width_size))
-            .unwrap_or(0.0)
-            .into()
+            .next()
+            .unwrap_or(r32(0.0))
     }
 
     fn calculate_layout(
@@ -139,66 +135,71 @@ where
 
         self.resolve_dimensions();
 
-        let (width, width_measure_mode) =
+        let (width, width_measure_mode): (Option<R32>, Option<MeasureMode>) =
             if self.is_style_dim_defined(FlexDirection::Row, parent_width) {
                 (
-                    self.resolved()[FlexDirection::Row.dimension()].resolve(parent_width)
-                        + self.margin_for_axis(FlexDirection::Row, parent_width),
+                    self.resolved()[FlexDirection::Row.dimension()]
+                        .into_iter()
+                        .flat_map(|v| v.resolve(parent_width))
+                        .map(|v| v + self.margin_for_axis(FlexDirection::Row, parent_width))
+                        .next(),
                     Some(MeasureMode::Exactly),
                 )
             } else {
-                if *self.style().max_dimensions.width.resolve(parent_width) >= 0.0f32 {
+                if self.style().max_dimensions.width.resolve(parent_width) >= Some(r32(0.0)) {
                     (
                         self.style().max_dimensions.width.resolve(parent_width),
                         Some(MeasureMode::AtMost),
                     )
                 } else {
-                    (parent_width, None)
+                    (Some(parent_width), None)
                 }
             };
 
-        let (height, height_measure_mode) =
+        let (height, height_measure_mode): (Option<R32>, Option<MeasureMode>) =
             if self.is_style_dim_defined(FlexDirection::Column, parent_height) {
                 (
-                    *self.resolved()[FlexDirection::Column.dimension()].resolve(parent_height)
-                        + *self
-                            .margin_for_axis(FlexDirection::Column, parent_width)
-                            .unwrap_or(0.0),
+                    self.resolved()[FlexDirection::Column.dimension()]
+                        .into_iter()
+                        .flat_map(|v| v.resolve(parent_height))
+                        .map(|v| v + self.margin_for_axis(FlexDirection::Column, parent_height))
+                        .next(),
                     Some(MeasureMode::Exactly),
                 )
             } else {
-                if self.style().max_dimensions.height.resolve(parent_height) >= 0.0f32 {
+                if self.style().max_dimensions.height.resolve(parent_height) >= Some(r32(0.0)) {
                     (
                         self.style().max_dimensions.height.resolve(parent_height),
                         Some(MeasureMode::AtMost),
                     )
                 } else {
-                    (parent_height, None)
+                    (Some(parent_height), None)
                 }
             };
 
-        let did_something_wat = self.layout_node_internal(
-            width,
-            height,
-            parent_direction,
-            width_measure_mode,
-            height_measure_mode,
-            parent_width,
-            parent_height,
-            true,
-            "initial",
-        );
+        // TODO(anp): get this compiling
+        // let did_something_wat = self.layout_node_internal(
+        //     width,
+        //     height,
+        //     parent_direction,
+        //     width_measure_mode,
+        //     height_measure_mode,
+        //     parent_width,
+        //     parent_height,
+        //     true,
+        //     "initial",
+        // );
 
-        if did_something_wat {
-            self.set_position(
-                self.layout().direction,
-                parent_width,
-                parent_height,
-                parent_width,
-            );
+        // if did_something_wat {
+        //     self.set_position(
+        //         self.layout().direction,
+        //         parent_width,
+        //         parent_height,
+        //         parent_width,
+        //     );
 
-            YGRoundToPixelGrid(node, (*(*node).config).pointScaleFactor, 0.0f32, 0.0f32);
-        };
+        //     YGRoundToPixelGrid(node, (*(*node).config).pointScaleFactor, 0.0f32, 0.0f32);
+        // };
     }
 
     // fn layout_node_internal(
@@ -368,9 +369,9 @@ where
             *dirty = true;
             self.layout().computedFlexBasis = None;
 
-            if !parent.is_null() {
-                parent.mark_dirty();
-            };
+            if let Some(p) = parent {
+                p.mark_dirty();
+            }
         };
     }
 
@@ -418,17 +419,27 @@ where
         let relative_position_main = self.relative_position(main_axis, main_size);
         let relative_position_cross = self.relative_position(cross_axis, cross_size);
 
-        *self.layout().position[main_axis.leading_edge()] =
+        *self.layout().index_mut(main_axis.leading_edge()) =
             self.leading_margin(main_axis, parent_width) + relative_position_main;
 
-        *self.layout().position[main_axis.trailing_edge()] =
+        *self.layout().index_mut(main_axis.trailing_edge()) =
             self.trailing_margin(main_axis, parent_width) + relative_position_main;
 
-        *self.layout().position[cross_axis.leading_edge()] =
+        *self.layout().index_mut(cross_axis.leading_edge()) =
             self.leading_margin(cross_axis, parent_width) + relative_position_cross;
 
-        *self.layout().position[cross_axis.trailing_edge()] =
+        *self.layout().index_mut(cross_axis.trailing_edge()) =
             self.trailing_margin(cross_axis, parent_width);
+    }
+
+    fn trailing_margin(&mut self, axis: FlexDirection, width_size: R32) -> R32 {
+        match (self.style().margin[Edge::End], axis.is_row()) {
+            (Some(v), true) => Some(v),
+            _ => self.style().margin.computed(axis.trailing_edge()),
+        }.into_iter()
+            .flat_map(|v| v.resolve(width_size))
+            .next()
+            .unwrap_or(r32(0.0))
     }
 
     // fn YGNodeRelativePosition(&mut self, axis: FlexDirection, axisSize: R32) -> R32 {
@@ -446,17 +457,6 @@ where
     //             .position
     //             .computed(leading[axis as usize])
     //             .is_some()
-    // }
-
-    // fn YGNodeTrailingMargin(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-    //     if let Some(v) = (*node).style.margin[Edge::End] && FlexDirectionIsRow(axis) {
-    //         YGResolveValueMargin(&mut v as *mut _, widthSize)
-    //     } else {
-    //         YGResolveValueMargin(
-    //             (*node).style.margin.computed(trailing[axis as usize]),
-    //             widthSize,
-    //         )
-    //     }
     // }
 
     // static ValueZero: Value = Value::Point(OrderedFloat::from(0.0));
@@ -919,7 +919,6 @@ where
     //     };
     //     return kDefaultFlexGrow;
     // }
-
 
     // fn YGNodeResolveFlexShrink(&mut self) -> R32 {
     //     if (*node).parent.is_null() {
