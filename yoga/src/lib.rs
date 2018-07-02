@@ -11,6 +11,7 @@
 // TODO(anp): double check c code for interesting comments
 // TODO(anp): revist raph's continuation-based layout stuff, in case you forget, june 2018 meetup at mozilla
 
+extern crate float_cmp;
 extern crate libc;
 #[macro_use]
 extern crate log;
@@ -19,13 +20,15 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+#[allow(unused_imports)]
 pub(crate) mod prelude {
-    pub use super::enums::*;
-    pub use super::layout::Layout;
-    pub use super::style::{Property, Style};
-    pub use super::Node;
-    pub use noisy_float::prelude::*;
-    pub use std::ops::{Index, IndexMut};
+    pub(crate) use super::enums::*;
+    pub(crate) use super::hacks::ApproxEqHackForReals;
+    pub(crate) use super::layout::Layout;
+    pub(crate) use super::style::{Property, Style};
+    pub(crate) use super::Node;
+    pub(crate) use noisy_float::prelude::*;
+    pub(crate) use std::ops::{Index, IndexMut};
 }
 
 #[macro_use]
@@ -37,6 +40,7 @@ macro_rules! prelude {
 }
 
 pub mod enums;
+pub(crate) mod hacks;
 pub mod layout;
 pub mod style;
 

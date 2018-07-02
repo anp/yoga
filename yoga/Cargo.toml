@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Adam Perry <adam.n.perry@gmail.com>"]
 
 [dependencies]
+float-cmp = "0.4"
 libc = "0.2"
 log = "0.4"
 noisy_float = { version = "0.1", features = ["serde-1"] }

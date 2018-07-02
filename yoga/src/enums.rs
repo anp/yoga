@@ -256,7 +256,7 @@ impl MeasureMode {
         self == &MeasureMode::AtMost
             && new_mode == MeasureMode::AtMost
             && old_size > new_size
-            && (old_computed <= new_size || YGFloatsEqual(size, lastComputedSize))
+            && (old_computed <= new_size || new_size.approx_eq(old_computed))
     }
 }
 
@@ -268,7 +268,7 @@ pub unsafe fn MeasureModeOldSizeIsUnspecifiedAndStillFits(
 ) -> bool {
     return sizeMode == MeasureMode::AtMost
         && lastSizeMode == None
-        && (size >= lastComputedSize || YGFloatsEqual(size, lastComputedSize));
+        && (size >= lastComputedSize || size.approx_eq(lastComputedSize));
 }
 
 pub unsafe fn MeasureModeSizeIsExactAndMatchesOldMeasuredSize(
@@ -276,7 +276,7 @@ pub unsafe fn MeasureModeSizeIsExactAndMatchesOldMeasuredSize(
     mut size: R32,
     mut lastComputedSize: R32,
 ) -> bool {
-    return sizeMode == MeasureMode::Exactly && YGFloatsEqual(size, lastComputedSize);
+    return sizeMode == MeasureMode::Exactly && size.approx_eq(lastComputedSize);
 }
 
 #[repr(u32)]
@@ -342,10 +342,10 @@ pub unsafe fn YGRoundValueToPixelGrid(
 ) -> R32 {
     let mut scaledValue = value * pointScaleFactor;
     let mut fractial = scaledValue % 1.0;
-    if YGFloatsEqual(fractial, 0.0) {
+    if fractial.approx_eq(r32(0.0)) {
         scaledValue = scaledValue - fractial;
     } else {
-        if YGFloatsEqual(fractial, 1.0f32) {
+        if fractial.approx_eq(r32(1.0)) {
             scaledValue = (scaledValue - fractial) + 1.0f32;
         } else {
             if forceCeil {
@@ -355,7 +355,7 @@ pub unsafe fn YGRoundValueToPixelGrid(
                     scaledValue = scaledValue - fractial;
                 } else {
                     scaledValue = scaledValue - fractial
-                        + if fractial > 0.5f32 || YGFloatsEqual(fractial, 0.5f32) {
+                        + if fractial > 0.5f32 || fractial.approx_eq(r32(0.5)) {
                             1.0f32
                         } else {
                             0.0f32
