@@ -96,9 +96,10 @@ where
     }
 
     fn trailing_position(&self, axis: FlexDirection, axis_size: R32) -> R32 {
-        let trailing_edge = match axis {
-            FlexDirection::Row => Edge::End,
-            FlexDirection::Column => axis.trailing_edge(),
+        let trailing_edge = if axis.is_row() {
+            Edge::End
+        } else {
+            axis.trailing_edge()
         };
 
         self.style()

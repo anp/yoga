@@ -7,7 +7,7 @@ use std::ops::{Index, IndexMut};
 
 #[must_use]
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) enum Updated {
+pub enum Updated {
     Dirty,
     Clean,
 }
@@ -134,6 +134,8 @@ where
                     return Some(v);
                 }
             }
+
+            _ => (),
         };
 
         if let Some(v) = self[Edge::All] {
@@ -330,6 +332,7 @@ impl PartialEq for Value {
             (Value::Point(a), Value::Point(b)) | (Value::Percent(a), Value::Percent(b)) => {
                 (*a - *b).abs() < EPSILON
             }
+            _ => false,
         }
     }
 }
