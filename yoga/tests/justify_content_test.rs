@@ -1,24 +1,24 @@
 extern crate yoga;
 
-use yoga::{Direction, FlexDirection, Justify, Node, StyleUnit, Undefined};
+use yoga::{Direction, FlexDirection, Justify, Node, Undefined, Value};
 
 #[test]
 fn test_justify_content_row_flex_start() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(10.0.into()));
+    root_child0.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(10.0.into()));
+    root_child1.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_width(StyleUnit::Point(10.0.into()));
+    root_child2.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -70,19 +70,19 @@ fn test_justify_content_row_flex_end() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_justify_content(Justify::FlexEnd);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(10.0.into()));
+    root_child0.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(10.0.into()));
+    root_child1.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_width(StyleUnit::Point(10.0.into()));
+    root_child2.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -134,19 +134,19 @@ fn test_justify_content_row_center() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_justify_content(Justify::Center);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(10.0.into()));
+    root_child0.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(10.0.into()));
+    root_child1.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_width(StyleUnit::Point(10.0.into()));
+    root_child2.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -198,19 +198,19 @@ fn test_justify_content_row_space_between() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_justify_content(Justify::SpaceBetween);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(10.0.into()));
+    root_child0.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(10.0.into()));
+    root_child1.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_width(StyleUnit::Point(10.0.into()));
+    root_child2.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -262,19 +262,19 @@ fn test_justify_content_row_space_around() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_justify_content(Justify::SpaceAround);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(10.0.into()));
+    root_child0.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(10.0.into()));
+    root_child1.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_width(StyleUnit::Point(10.0.into()));
+    root_child2.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -324,18 +324,18 @@ fn test_justify_content_row_space_around() {
 #[test]
 fn test_justify_content_column_flex_start() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_height(StyleUnit::Point(10.0.into()));
+    root_child0.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_height(StyleUnit::Point(10.0.into()));
+    root_child2.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -386,19 +386,19 @@ fn test_justify_content_column_flex_start() {
 fn test_justify_content_column_flex_end() {
     let mut root = Node::new();
     root.set_justify_content(Justify::FlexEnd);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_height(StyleUnit::Point(10.0.into()));
+    root_child0.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(10.0.into()));
+    root_child1.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_height(StyleUnit::Point(10.0.into()));
+    root_child2.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -449,19 +449,19 @@ fn test_justify_content_column_flex_end() {
 fn test_justify_content_column_center() {
     let mut root = Node::new();
     root.set_justify_content(Justify::Center);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_height(StyleUnit::Point(10.0.into()));
+    root_child0.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(10.0.into()));
+    root_child1.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_height(StyleUnit::Point(10.0.into()));
+    root_child2.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -512,19 +512,19 @@ fn test_justify_content_column_center() {
 fn test_justify_content_column_space_between() {
     let mut root = Node::new();
     root.set_justify_content(Justify::SpaceBetween);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_height(StyleUnit::Point(10.0.into()));
+    root_child0.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(10.0.into()));
+    root_child1.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_height(StyleUnit::Point(10.0.into()));
+    root_child2.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -575,19 +575,19 @@ fn test_justify_content_column_space_between() {
 fn test_justify_content_column_space_around() {
     let mut root = Node::new();
     root.set_justify_content(Justify::SpaceAround);
-    root.set_width(StyleUnit::Point(102.0.into()));
-    root.set_height(StyleUnit::Point(102.0.into()));
+    root.set_width(Value::Point(102.0.into()));
+    root.set_height(Value::Point(102.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_height(StyleUnit::Point(10.0.into()));
+    root_child0.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(10.0.into()));
+    root_child1.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_height(StyleUnit::Point(10.0.into()));
+    root_child2.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 

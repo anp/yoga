@@ -1,34 +1,34 @@
+use ffi_types::value::Value;
 use ordered_float::OrderedFloat;
-use types::StyleUnit;
 
 pub trait Percent {
-    fn percent(self) -> StyleUnit;
+    fn percent(self) -> Value;
 }
 
 impl Percent for f32 {
-    fn percent(self) -> StyleUnit {
-        StyleUnit::Percent(OrderedFloat(self))
+    fn percent(self) -> Value {
+        Value::Percent(OrderedFloat(self))
     }
 }
 
 impl Percent for i32 {
-    fn percent(self) -> StyleUnit {
-        StyleUnit::Percent(OrderedFloat(self as f32))
+    fn percent(self) -> Value {
+        Value::Percent(OrderedFloat(self as f32))
     }
 }
 
 pub trait Point {
-    fn point(self) -> StyleUnit;
+    fn point(self) -> Value;
 }
 
 impl Point for f32 {
-    fn point(self) -> StyleUnit {
-        StyleUnit::Point(OrderedFloat(self))
+    fn point(self) -> Value {
+        Value::Point(OrderedFloat(self))
     }
 }
 
 impl Point for i32 {
-    fn point(self) -> StyleUnit {
-        StyleUnit::Point(OrderedFloat(self as f32))
+    fn point(self) -> Value {
+        Value::Point(OrderedFloat(self as f32))
     }
 }

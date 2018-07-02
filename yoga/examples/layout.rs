@@ -3,7 +3,7 @@ extern crate yoga;
 
 use yoga::prelude::*;
 use yoga::Node;
-use yoga::StyleUnit::{Auto, UndefinedValue};
+use yoga::Value::{Auto, UndefinedValue};
 
 fn main() {
     let mut node = Node::new();

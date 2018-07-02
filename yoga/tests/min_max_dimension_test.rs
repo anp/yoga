@@ -1,16 +1,16 @@
 extern crate yoga;
 
-use yoga::{Align, Direction, FlexDirection, Justify, Node, StyleUnit, Undefined};
+use yoga::{Align, Direction, FlexDirection, Justify, Node, Undefined, Value};
 
 #[test]
 fn test_max_width() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_max_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(10.0.into()));
+    root_child0.set_max_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -41,12 +41,12 @@ fn test_max_width() {
 fn test_max_height() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(10.0.into()));
-    root_child0.set_max_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_width(Value::Point(10.0.into()));
+    root_child0.set_max_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -76,12 +76,12 @@ fn test_max_height() {
 #[test]
 fn test_min_height() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_min_height(StyleUnit::Point(60.0.into()));
+    root_child0.set_min_height(Value::Point(60.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
@@ -126,12 +126,12 @@ fn test_min_height() {
 fn test_min_width() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_min_width(StyleUnit::Point(60.0.into()));
+    root_child0.set_min_width(Value::Point(60.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
@@ -176,13 +176,13 @@ fn test_min_width() {
 fn test_justify_content_min_max() {
     let mut root = Node::new();
     root.set_justify_content(Justify::Center);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_min_height(StyleUnit::Point(100.0.into()));
-    root.set_max_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_min_height(Value::Point(100.0.into()));
+    root.set_max_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(60.0.into()));
-    root_child0.set_height(StyleUnit::Point(60.0.into()));
+    root_child0.set_width(Value::Point(60.0.into()));
+    root_child0.set_height(Value::Point(60.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -213,13 +213,13 @@ fn test_justify_content_min_max() {
 fn test_align_items_min_max() {
     let mut root = Node::new();
     root.set_align_items(Align::Center);
-    root.set_min_width(StyleUnit::Point(100.0.into()));
-    root.set_max_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_min_width(Value::Point(100.0.into()));
+    root.set_max_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(60.0.into()));
-    root_child0.set_height(StyleUnit::Point(60.0.into()));
+    root_child0.set_width(Value::Point(60.0.into()));
+    root_child0.set_height(Value::Point(60.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -250,22 +250,22 @@ fn test_align_items_min_max() {
 fn test_justify_content_overflow_min_max() {
     let mut root = Node::new();
     root.set_justify_content(Justify::Center);
-    root.set_min_height(StyleUnit::Point(100.0.into()));
-    root.set_max_height(StyleUnit::Point(110.0.into()));
+    root.set_min_height(Value::Point(100.0.into()));
+    root.set_max_height(Value::Point(110.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_width(StyleUnit::Point(50.0.into()));
-    root_child2.set_height(StyleUnit::Point(50.0.into()));
+    root_child2.set_width(Value::Point(50.0.into()));
+    root_child2.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -315,9 +315,9 @@ fn test_justify_content_overflow_min_max() {
 #[test]
 fn test_flex_grow_to_min() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_min_height(StyleUnit::Point(100.0.into()));
-    root.set_max_height(StyleUnit::Point(500.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_min_height(Value::Point(100.0.into()));
+    root.set_max_height(Value::Point(500.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
@@ -325,7 +325,7 @@ fn test_flex_grow_to_min() {
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -367,8 +367,8 @@ fn test_flex_grow_in_at_most_container() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_align_items(Align::FlexStart);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_direction(FlexDirection::Row);
@@ -376,7 +376,7 @@ fn test_flex_grow_in_at_most_container() {
 
     let mut root_child0_child0 = Node::new();
     root_child0_child0.set_flex_grow(1.0);
-    root_child0_child0.set_flex_basis(StyleUnit::Point(0.0.into()));
+    root_child0_child0.set_flex_basis(Value::Point(0.0.into()));
     root_child0.insert_child(&mut root_child0_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -420,8 +420,8 @@ fn test_flex_grow_child() {
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_flex_basis(StyleUnit::Point(0.0.into()));
-    root_child0.set_height(StyleUnit::Point(100.0.into()));
+    root_child0.set_flex_basis(Value::Point(0.0.into()));
+    root_child0.set_height(Value::Point(100.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -451,15 +451,15 @@ fn test_flex_grow_child() {
 #[test]
 fn test_flex_grow_within_constrained_min_max_column() {
     let mut root = Node::new();
-    root.set_min_height(StyleUnit::Point(100.0.into()));
-    root.set_max_height(StyleUnit::Point(200.0.into()));
+    root.set_min_height(Value::Point(100.0.into()));
+    root.set_max_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -499,17 +499,17 @@ fn test_flex_grow_within_constrained_min_max_column() {
 #[test]
 fn test_flex_grow_within_max_width() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_direction(FlexDirection::Row);
-    root_child0.set_max_width(StyleUnit::Point(100.0.into()));
+    root_child0.set_max_width(Value::Point(100.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child0_child0 = Node::new();
     root_child0_child0.set_flex_grow(1.0);
-    root_child0_child0.set_height(StyleUnit::Point(20.0.into()));
+    root_child0_child0.set_height(Value::Point(20.0.into()));
     root_child0.insert_child(&mut root_child0_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -549,17 +549,17 @@ fn test_flex_grow_within_max_width() {
 #[test]
 fn test_flex_grow_within_constrained_max_width() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_direction(FlexDirection::Row);
-    root_child0.set_max_width(StyleUnit::Point(300.0.into()));
+    root_child0.set_max_width(Value::Point(300.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child0_child0 = Node::new();
     root_child0_child0.set_flex_grow(1.0);
-    root_child0_child0.set_height(StyleUnit::Point(20.0.into()));
+    root_child0_child0.set_height(Value::Point(20.0.into()));
     root_child0.insert_child(&mut root_child0_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -600,17 +600,17 @@ fn test_flex_grow_within_constrained_max_width() {
 fn test_flex_root_ignored() {
     let mut root = Node::new();
     root.set_flex_grow(1.0);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_min_height(StyleUnit::Point(100.0.into()));
-    root.set_max_height(StyleUnit::Point(500.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_min_height(Value::Point(100.0.into()));
+    root.set_max_height(Value::Point(500.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_flex_basis(StyleUnit::Point(200.0.into()));
+    root_child0.set_flex_basis(Value::Point(200.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(100.0.into()));
+    root_child1.set_height(Value::Point(100.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -650,23 +650,23 @@ fn test_flex_root_ignored() {
 #[test]
 fn test_flex_grow_root_minimized() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_min_height(StyleUnit::Point(100.0.into()));
-    root.set_max_height(StyleUnit::Point(500.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_min_height(Value::Point(100.0.into()));
+    root.set_max_height(Value::Point(500.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_min_height(StyleUnit::Point(100.0.into()));
-    root_child0.set_max_height(StyleUnit::Point(500.0.into()));
+    root_child0.set_min_height(Value::Point(100.0.into()));
+    root_child0.set_max_height(Value::Point(500.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child0_child0 = Node::new();
     root_child0_child0.set_flex_grow(1.0);
-    root_child0_child0.set_flex_basis(StyleUnit::Point(200.0.into()));
+    root_child0_child0.set_flex_basis(Value::Point(200.0.into()));
     root_child0.insert_child(&mut root_child0_child0, 0);
 
     let mut root_child0_child1 = Node::new();
-    root_child0_child1.set_height(StyleUnit::Point(100.0.into()));
+    root_child0_child1.set_height(Value::Point(100.0.into()));
     root_child0.insert_child(&mut root_child0_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -716,22 +716,22 @@ fn test_flex_grow_root_minimized() {
 #[test]
 fn test_flex_grow_height_maximized() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(500.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(500.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_min_height(StyleUnit::Point(100.0.into()));
-    root_child0.set_max_height(StyleUnit::Point(500.0.into()));
+    root_child0.set_min_height(Value::Point(100.0.into()));
+    root_child0.set_max_height(Value::Point(500.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child0_child0 = Node::new();
     root_child0_child0.set_flex_grow(1.0);
-    root_child0_child0.set_flex_basis(StyleUnit::Point(200.0.into()));
+    root_child0_child0.set_flex_basis(Value::Point(200.0.into()));
     root_child0.insert_child(&mut root_child0_child0, 0);
 
     let mut root_child0_child1 = Node::new();
-    root_child0_child1.set_height(StyleUnit::Point(100.0.into()));
+    root_child0_child1.set_height(Value::Point(100.0.into()));
     root_child0.insert_child(&mut root_child0_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -782,15 +782,15 @@ fn test_flex_grow_height_maximized() {
 fn test_flex_grow_within_constrained_min_row() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_min_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_min_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -830,14 +830,14 @@ fn test_flex_grow_within_constrained_min_row() {
 #[test]
 fn test_flex_grow_within_constrained_min_column() {
     let mut root = Node::new();
-    root.set_min_height(StyleUnit::Point(100.0.into()));
+    root.set_min_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -877,21 +877,21 @@ fn test_flex_grow_within_constrained_min_column() {
 #[test]
 fn test_flex_grow_within_constrained_max_row() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_direction(FlexDirection::Row);
-    root_child0.set_max_width(StyleUnit::Point(100.0.into()));
-    root_child0.set_height(StyleUnit::Point(100.0.into()));
+    root_child0.set_max_width(Value::Point(100.0.into()));
+    root_child0.set_height(Value::Point(100.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child0_child0 = Node::new();
     root_child0_child0.set_flex_shrink(1.0);
-    root_child0_child0.set_flex_basis(StyleUnit::Point(100.0.into()));
+    root_child0_child0.set_flex_basis(Value::Point(100.0.into()));
     root_child0.insert_child(&mut root_child0_child0, 0);
 
     let mut root_child0_child1 = Node::new();
-    root_child0_child1.set_width(StyleUnit::Point(50.0.into()));
+    root_child0_child1.set_width(Value::Point(50.0.into()));
     root_child0.insert_child(&mut root_child0_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -941,16 +941,16 @@ fn test_flex_grow_within_constrained_max_row() {
 #[test]
 fn test_flex_grow_within_constrained_max_column() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_max_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_max_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_shrink(1.0);
-    root_child0.set_flex_basis(StyleUnit::Point(100.0.into()));
+    root_child0.set_flex_basis(Value::Point(100.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -991,19 +991,19 @@ fn test_flex_grow_within_constrained_max_column() {
 fn test_child_min_max_width_flexing() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(120.0.into()));
-    root.set_height(StyleUnit::Point(50.0.into()));
+    root.set_width(Value::Point(120.0.into()));
+    root.set_height(Value::Point(50.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_flex_basis(StyleUnit::Point(0.0.into()));
-    root_child0.set_min_width(StyleUnit::Point(60.0.into()));
+    root_child0.set_flex_basis(Value::Point(0.0.into()));
+    root_child0.set_min_width(Value::Point(60.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
     root_child1.set_flex_grow(1.0);
-    root_child1.set_flex_basis(StyleUnit::Percent(50.0.into()));
-    root_child1.set_max_width(StyleUnit::Point(20.0.into()));
+    root_child1.set_flex_basis(Value::Percent(50.0.into()));
+    root_child1.set_max_width(Value::Point(20.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1043,8 +1043,8 @@ fn test_child_min_max_width_flexing() {
 #[test]
 fn test_min_width_overrides_width() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(50.0.into()));
-    root.set_min_width(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(50.0.into()));
+    root.set_min_width(Value::Point(100.0.into()));
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
     assert_eq!(0, root.get_layout_left() as i32);
@@ -1063,8 +1063,8 @@ fn test_min_width_overrides_width() {
 #[test]
 fn test_max_width_overrides_width() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_max_width(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_max_width(Value::Point(100.0.into()));
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
     assert_eq!(0, root.get_layout_left() as i32);
@@ -1083,8 +1083,8 @@ fn test_max_width_overrides_width() {
 #[test]
 fn test_min_height_overrides_height() {
     let mut root = Node::new();
-    root.set_height(StyleUnit::Point(50.0.into()));
-    root.set_min_height(StyleUnit::Point(100.0.into()));
+    root.set_height(Value::Point(50.0.into()));
+    root.set_min_height(Value::Point(100.0.into()));
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
     assert_eq!(0, root.get_layout_left() as i32);
@@ -1103,8 +1103,8 @@ fn test_min_height_overrides_height() {
 #[test]
 fn test_max_height_overrides_height() {
     let mut root = Node::new();
-    root.set_height(StyleUnit::Point(200.0.into()));
-    root.set_max_height(StyleUnit::Point(100.0.into()));
+    root.set_height(Value::Point(200.0.into()));
+    root.set_max_height(Value::Point(100.0.into()));
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
     assert_eq!(0, root.get_layout_left() as i32);
@@ -1124,14 +1124,14 @@ fn test_max_height_overrides_height() {
 fn test_min_max_percent_no_width_height() {
     let mut root = Node::new();
     root.set_align_items(Align::FlexStart);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_min_width(StyleUnit::Percent(10.0.into()));
-    root_child0.set_max_width(StyleUnit::Percent(10.0.into()));
-    root_child0.set_min_height(StyleUnit::Percent(10.0.into()));
-    root_child0.set_max_height(StyleUnit::Percent(10.0.into()));
+    root_child0.set_min_width(Value::Percent(10.0.into()));
+    root_child0.set_max_width(Value::Percent(10.0.into()));
+    root_child0.set_min_height(Value::Percent(10.0.into()));
+    root_child0.set_max_height(Value::Percent(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 

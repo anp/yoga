@@ -1,14 +1,14 @@
 extern crate yoga;
 
-use yoga::{Direction, Node, StyleUnit, Undefined};
+use yoga::{Direction, Node, Undefined, Value};
 
 #[test]
 fn test_reset_layout_when_child_removed() {
     let mut root = Node::new();
 
     let mut root_child0 = Node::new();
-    root_child0.set_width(StyleUnit::Point(100.0.into()));
-    root_child0.set_height(StyleUnit::Point(100.0.into()));
+    root_child0.set_width(Value::Point(100.0.into()));
+    root_child0.set_height(Value::Point(100.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     root.calculate_layout(Undefined, Undefined, Direction::LTR);

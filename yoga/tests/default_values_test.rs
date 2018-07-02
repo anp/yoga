@@ -1,7 +1,7 @@
 extern crate yoga;
 
 use yoga::{
-    Align, Direction, FlexDirection, Justify, Node, Overflow, PositionType, StyleUnit, Wrap,
+    Align, Direction, FlexDirection, Justify, Node, Overflow, PositionType, Value, Wrap,
 };
 
 #[test]
@@ -22,28 +22,28 @@ fn test_assert_default_values() {
     assert_eq!(Overflow::Visible, root.get_overflow());
     assert_eq!(0.0, root.get_flex_grow());
     assert_eq!(0.0, root.get_flex_shrink());
-    assert_eq!(StyleUnit::Auto, root.get_flex_basis());
+    assert_eq!(Value::Auto, root.get_flex_basis());
 
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_position_left());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_position_top());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_position_right());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_position_bottom());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_position_start());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_position_end());
+    assert_eq!(Value::UndefinedValue, root.get_style_position_left());
+    assert_eq!(Value::UndefinedValue, root.get_style_position_top());
+    assert_eq!(Value::UndefinedValue, root.get_style_position_right());
+    assert_eq!(Value::UndefinedValue, root.get_style_position_bottom());
+    assert_eq!(Value::UndefinedValue, root.get_style_position_start());
+    assert_eq!(Value::UndefinedValue, root.get_style_position_end());
 
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_margin_left());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_margin_top());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_margin_right());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_margin_bottom());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_margin_start());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_margin_end());
+    assert_eq!(Value::UndefinedValue, root.get_style_margin_left());
+    assert_eq!(Value::UndefinedValue, root.get_style_margin_top());
+    assert_eq!(Value::UndefinedValue, root.get_style_margin_right());
+    assert_eq!(Value::UndefinedValue, root.get_style_margin_bottom());
+    assert_eq!(Value::UndefinedValue, root.get_style_margin_start());
+    assert_eq!(Value::UndefinedValue, root.get_style_margin_end());
 
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_padding_left());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_padding_top());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_padding_right());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_padding_bottom());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_padding_start());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_padding_end());
+    assert_eq!(Value::UndefinedValue, root.get_style_padding_left());
+    assert_eq!(Value::UndefinedValue, root.get_style_padding_top());
+    assert_eq!(Value::UndefinedValue, root.get_style_padding_right());
+    assert_eq!(Value::UndefinedValue, root.get_style_padding_bottom());
+    assert_eq!(Value::UndefinedValue, root.get_style_padding_start());
+    assert_eq!(Value::UndefinedValue, root.get_style_padding_end());
 
     assert!(root.get_style_border_left().is_nan());
     assert!(root.get_style_border_top().is_nan());
@@ -52,12 +52,12 @@ fn test_assert_default_values() {
     assert!(root.get_style_border_start().is_nan());
     assert!(root.get_style_border_end().is_nan());
 
-    assert_eq!(StyleUnit::Auto, root.get_style_width());
-    assert_eq!(StyleUnit::Auto, root.get_style_height());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_min_width());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_min_height());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_max_width());
-    assert_eq!(StyleUnit::UndefinedValue, root.get_style_max_height());
+    assert_eq!(Value::Auto, root.get_style_width());
+    assert_eq!(Value::Auto, root.get_style_height());
+    assert_eq!(Value::UndefinedValue, root.get_style_min_width());
+    assert_eq!(Value::UndefinedValue, root.get_style_min_height());
+    assert_eq!(Value::UndefinedValue, root.get_style_max_width());
+    assert_eq!(Value::UndefinedValue, root.get_style_max_height());
 
     assert_eq!(0.0, root.get_layout_left());
     assert_eq!(0.0, root.get_layout_right());

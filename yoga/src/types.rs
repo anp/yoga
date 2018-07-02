@@ -11,8 +11,8 @@ pub use ffi_types::node_type::*;
 pub use ffi_types::overflow::*;
 pub use ffi_types::position_type::*;
 pub use ffi_types::size::*;
-pub use ffi_types::style_unit::*;
 pub use ffi_types::undefined::*;
+pub use ffi_types::value::*;
 pub use ffi_types::wrap::*;
 use libc::c_void;
 use ordered_float::OrderedFloat;
@@ -35,93 +35,46 @@ pub enum FlexStyle {
     BorderStart(OrderedFloat<f32>),
     BorderTop(OrderedFloat<f32>),
     Border(OrderedFloat<f32>),
-    Bottom(StyleUnit),
+    Bottom(Value),
     Display(Display),
-    End(StyleUnit),
+    End(Value),
     Flex(OrderedFloat<f32>),
-    FlexBasis(StyleUnit),
+    FlexBasis(Value),
     FlexDirection(FlexDirection),
     FlexGrow(OrderedFloat<f32>),
     FlexShrink(OrderedFloat<f32>),
     FlexWrap(Wrap),
-    Height(StyleUnit),
+    Height(Value),
     JustifyContent(Justify),
-    Left(StyleUnit),
-    Margin(StyleUnit),
-    MarginBottom(StyleUnit),
-    MarginEnd(StyleUnit),
-    MarginHorizontal(StyleUnit),
-    MarginLeft(StyleUnit),
-    MarginRight(StyleUnit),
-    MarginStart(StyleUnit),
-    MarginTop(StyleUnit),
-    MarginVertical(StyleUnit),
-    MaxHeight(StyleUnit),
-    MaxWidth(StyleUnit),
-    MinHeight(StyleUnit),
-    MinWidth(StyleUnit),
+    Left(Value),
+    Margin(Value),
+    MarginBottom(Value),
+    MarginEnd(Value),
+    MarginHorizontal(Value),
+    MarginLeft(Value),
+    MarginRight(Value),
+    MarginStart(Value),
+    MarginTop(Value),
+    MarginVertical(Value),
+    MaxHeight(Value),
+    MaxWidth(Value),
+    MinHeight(Value),
+    MinWidth(Value),
     Overflow(Overflow),
-    Padding(StyleUnit),
-    PaddingBottom(StyleUnit),
-    PaddingEnd(StyleUnit),
-    PaddingHorizontal(StyleUnit),
-    PaddingLeft(StyleUnit),
-    PaddingRight(StyleUnit),
-    PaddingStart(StyleUnit),
-    PaddingTop(StyleUnit),
-    PaddingVertical(StyleUnit),
+    Padding(Value),
+    PaddingBottom(Value),
+    PaddingEnd(Value),
+    PaddingHorizontal(Value),
+    PaddingLeft(Value),
+    PaddingRight(Value),
+    PaddingStart(Value),
+    PaddingTop(Value),
+    PaddingVertical(Value),
     Position(PositionType),
-    Right(StyleUnit),
-    Start(StyleUnit),
-    Top(StyleUnit),
-    Width(StyleUnit),
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct Layout {
-    left: OrderedFloat<f32>,
-    right: OrderedFloat<f32>,
-    top: OrderedFloat<f32>,
-    bottom: OrderedFloat<f32>,
-    width: OrderedFloat<f32>,
-    height: OrderedFloat<f32>,
-}
-
-impl Layout {
-    pub fn new(left: f32, right: f32, top: f32, bottom: f32, width: f32, height: f32) -> Layout {
-        Layout {
-            left: left.into(),
-            right: right.into(),
-            top: top.into(),
-            bottom: bottom.into(),
-            width: width.into(),
-            height: height.into(),
-        }
-    }
-
-    pub fn left(&self) -> f32 {
-        self.left.into_inner()
-    }
-
-    pub fn right(&self) -> f32 {
-        self.right.into_inner()
-    }
-
-    pub fn top(&self) -> f32 {
-        self.top.into_inner()
-    }
-
-    pub fn bottom(&self) -> f32 {
-        self.bottom.into_inner()
-    }
-
-    pub fn width(&self) -> f32 {
-        self.width.into_inner()
-    }
-
-    pub fn height(&self) -> f32 {
-        self.height.into_inner()
-    }
+    Right(Value),
+    Start(Value),
+    Top(Value),
+    Width(Value),
 }
 
 #[derive(Debug)]

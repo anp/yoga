@@ -1,17 +1,17 @@
 extern crate yoga;
 
-use yoga::{Align, Direction, Edge, FlexDirection, Justify, Node, StyleUnit, Undefined};
+use yoga::{Align, Direction, Edge, FlexDirection, Justify, Node, Undefined, Value};
 
 #[test]
 fn test_margin_start() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Start, StyleUnit::Point(10.0.into()));
-    root_child0.set_width(StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::Start, Value::Point(10.0.into()));
+    root_child0.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -41,12 +41,12 @@ fn test_margin_start() {
 #[test]
 fn test_margin_top() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Top, StyleUnit::Point(10.0.into()));
-    root_child0.set_height(StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Point(10.0.into()));
+    root_child0.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -78,12 +78,12 @@ fn test_margin_end() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_justify_content(Justify::FlexEnd);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::End, StyleUnit::Point(10.0.into()));
-    root_child0.set_width(StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::End, Value::Point(10.0.into()));
+    root_child0.set_width(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -114,12 +114,12 @@ fn test_margin_end() {
 fn test_margin_bottom() {
     let mut root = Node::new();
     root.set_justify_content(Justify::FlexEnd);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Bottom, StyleUnit::Point(10.0.into()));
-    root_child0.set_height(StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::Bottom, Value::Point(10.0.into()));
+    root_child0.set_height(Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -150,13 +150,13 @@ fn test_margin_bottom() {
 fn test_margin_and_flex_row() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_margin(Edge::Start, StyleUnit::Point(10.0.into()));
-    root_child0.set_margin(Edge::End, StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::Start, Value::Point(10.0.into()));
+    root_child0.set_margin(Edge::End, Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -186,13 +186,13 @@ fn test_margin_and_flex_row() {
 #[test]
 fn test_margin_and_flex_column() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_margin(Edge::Top, StyleUnit::Point(10.0.into()));
-    root_child0.set_margin(Edge::Bottom, StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Point(10.0.into()));
+    root_child0.set_margin(Edge::Bottom, Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -223,13 +223,13 @@ fn test_margin_and_flex_column() {
 fn test_margin_and_stretch_row() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_margin(Edge::Top, StyleUnit::Point(10.0.into()));
-    root_child0.set_margin(Edge::Bottom, StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Point(10.0.into()));
+    root_child0.set_margin(Edge::Bottom, Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -259,13 +259,13 @@ fn test_margin_and_stretch_row() {
 #[test]
 fn test_margin_and_stretch_column() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_margin(Edge::Start, StyleUnit::Point(10.0.into()));
-    root_child0.set_margin(Edge::End, StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::Start, Value::Point(10.0.into()));
+    root_child0.set_margin(Edge::End, Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -296,12 +296,12 @@ fn test_margin_and_stretch_column() {
 fn test_margin_with_sibling_row() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_margin(Edge::End, StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::End, Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
@@ -345,12 +345,12 @@ fn test_margin_with_sibling_row() {
 #[test]
 fn test_margin_with_sibling_column() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(100.0.into()));
-    root.set_height(StyleUnit::Point(100.0.into()));
+    root.set_width(Value::Point(100.0.into()));
+    root.set_height(Value::Point(100.0.into()));
 
     let mut root_child0 = Node::new();
     root_child0.set_flex_grow(1.0);
-    root_child0.set_margin(Edge::Bottom, StyleUnit::Point(10.0.into()));
+    root_child0.set_margin(Edge::Bottom, Value::Point(10.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
@@ -395,18 +395,18 @@ fn test_margin_with_sibling_column() {
 fn test_margin_auto_bottom() {
     let mut root = Node::new();
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Bottom, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Bottom, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -447,18 +447,18 @@ fn test_margin_auto_bottom() {
 fn test_margin_auto_top() {
     let mut root = Node::new();
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Top, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -499,19 +499,19 @@ fn test_margin_auto_top() {
 fn test_margin_auto_bottom_and_top() {
     let mut root = Node::new();
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Top, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Bottom, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Auto);
+    root_child0.set_margin(Edge::Bottom, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -552,19 +552,19 @@ fn test_margin_auto_bottom_and_top() {
 fn test_margin_auto_bottom_and_top_justify_center() {
     let mut root = Node::new();
     root.set_justify_content(Justify::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Top, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Bottom, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Auto);
+    root_child0.set_margin(Edge::Bottom, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -605,24 +605,24 @@ fn test_margin_auto_bottom_and_top_justify_center() {
 fn test_margin_auto_mutiple_children_column() {
     let mut root = Node::new();
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Top, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_margin(Edge::Top, StyleUnit::Auto);
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_margin(Edge::Top, Value::Auto);
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_width(StyleUnit::Point(50.0.into()));
-    root_child2.set_height(StyleUnit::Point(50.0.into()));
+    root_child2.set_width(Value::Point(50.0.into()));
+    root_child2.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -674,24 +674,24 @@ fn test_margin_auto_mutiple_children_row() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Right, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_margin(Edge::Right, Value::Auto);
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
 
     let mut root_child2 = Node::new();
-    root_child2.set_width(StyleUnit::Point(50.0.into()));
-    root_child2.set_height(StyleUnit::Point(50.0.into()));
+    root_child2.set_width(Value::Point(50.0.into()));
+    root_child2.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child2, 2);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -743,19 +743,19 @@ fn test_margin_auto_left_and_right_column() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Auto);
+    root_child0.set_margin(Edge::Right, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -795,19 +795,19 @@ fn test_margin_auto_left_and_right_column() {
 #[test]
 fn test_margin_auto_left_and_right() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Auto);
+    root_child0.set_margin(Edge::Right, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -849,19 +849,19 @@ fn test_margin_auto_start_and_end_column() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Start, StyleUnit::Auto);
-    root_child0.set_margin(Edge::End, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Start, Value::Auto);
+    root_child0.set_margin(Edge::End, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -901,19 +901,19 @@ fn test_margin_auto_start_and_end_column() {
 #[test]
 fn test_margin_auto_start_and_end() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Start, StyleUnit::Auto);
-    root_child0.set_margin(Edge::End, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Start, Value::Auto);
+    root_child0.set_margin(Edge::End, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -954,19 +954,19 @@ fn test_margin_auto_start_and_end() {
 fn test_margin_auto_left_and_right_column_and_center() {
     let mut root = Node::new();
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Auto);
+    root_child0.set_margin(Edge::Right, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1007,18 +1007,18 @@ fn test_margin_auto_left_and_right_column_and_center() {
 fn test_margin_auto_left() {
     let mut root = Node::new();
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1059,18 +1059,18 @@ fn test_margin_auto_left() {
 fn test_margin_auto_right() {
     let mut root = Node::new();
     root.set_align_items(Align::Center);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Right, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1111,19 +1111,19 @@ fn test_margin_auto_right() {
 fn test_margin_auto_left_and_right_strech() {
     let mut root = Node::new();
     root.set_flex_direction(FlexDirection::Row);
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Auto);
+    root_child0.set_margin(Edge::Right, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1163,19 +1163,19 @@ fn test_margin_auto_left_and_right_strech() {
 #[test]
 fn test_margin_auto_top_and_bottom_strech() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(200.0.into()));
-    root.set_height(StyleUnit::Point(200.0.into()));
+    root.set_width(Value::Point(200.0.into()));
+    root.set_height(Value::Point(200.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Top, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Bottom, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(50.0.into()));
-    root_child0.set_height(StyleUnit::Point(50.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Auto);
+    root_child0.set_margin(Edge::Bottom, Value::Auto);
+    root_child0.set_width(Value::Point(50.0.into()));
+    root_child0.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child0, 0);
 
     let mut root_child1 = Node::new();
-    root_child1.set_width(StyleUnit::Point(50.0.into()));
-    root_child1.set_height(StyleUnit::Point(50.0.into()));
+    root_child1.set_width(Value::Point(50.0.into()));
+    root_child1.set_height(Value::Point(50.0.into()));
     root.insert_child(&mut root_child1, 1);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1215,14 +1215,14 @@ fn test_margin_auto_top_and_bottom_strech() {
 #[test]
 fn test_margin_should_not_be_part_of_max_height() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(250.0.into()));
-    root.set_height(StyleUnit::Point(250.0.into()));
+    root.set_width(Value::Point(250.0.into()));
+    root.set_height(Value::Point(250.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Top, StyleUnit::Point(20.0.into()));
-    root_child0.set_width(StyleUnit::Point(100.0.into()));
-    root_child0.set_height(StyleUnit::Point(100.0.into()));
-    root_child0.set_max_height(StyleUnit::Point(100.0.into()));
+    root_child0.set_margin(Edge::Top, Value::Point(20.0.into()));
+    root_child0.set_width(Value::Point(100.0.into()));
+    root_child0.set_height(Value::Point(100.0.into()));
+    root_child0.set_max_height(Value::Point(100.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1252,14 +1252,14 @@ fn test_margin_should_not_be_part_of_max_height() {
 #[test]
 fn test_margin_should_not_be_part_of_max_width() {
     let mut root = Node::new();
-    root.set_width(StyleUnit::Point(250.0.into()));
-    root.set_height(StyleUnit::Point(250.0.into()));
+    root.set_width(Value::Point(250.0.into()));
+    root.set_height(Value::Point(250.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Point(20.0.into()));
-    root_child0.set_width(StyleUnit::Point(100.0.into()));
-    root_child0.set_max_width(StyleUnit::Point(100.0.into()));
-    root_child0.set_height(StyleUnit::Point(100.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Point(20.0.into()));
+    root_child0.set_width(Value::Point(100.0.into()));
+    root_child0.set_max_width(Value::Point(100.0.into()));
+    root_child0.set_height(Value::Point(100.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1290,14 +1290,14 @@ fn test_margin_should_not_be_part_of_max_width() {
 fn test_margin_auto_left_right_child_bigger_than_parent() {
     let mut root = Node::new();
     root.set_justify_content(Justify::Center);
-    root.set_width(StyleUnit::Point(52.0.into()));
-    root.set_height(StyleUnit::Point(52.0.into()));
+    root.set_width(Value::Point(52.0.into()));
+    root.set_height(Value::Point(52.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(72.0.into()));
-    root_child0.set_height(StyleUnit::Point(72.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Auto);
+    root_child0.set_margin(Edge::Right, Value::Auto);
+    root_child0.set_width(Value::Point(72.0.into()));
+    root_child0.set_height(Value::Point(72.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1328,13 +1328,13 @@ fn test_margin_auto_left_right_child_bigger_than_parent() {
 fn test_margin_auto_left_child_bigger_than_parent() {
     let mut root = Node::new();
     root.set_justify_content(Justify::Center);
-    root.set_width(StyleUnit::Point(52.0.into()));
-    root.set_height(StyleUnit::Point(52.0.into()));
+    root.set_width(Value::Point(52.0.into()));
+    root.set_height(Value::Point(52.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(72.0.into()));
-    root_child0.set_height(StyleUnit::Point(72.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Auto);
+    root_child0.set_width(Value::Point(72.0.into()));
+    root_child0.set_height(Value::Point(72.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1365,14 +1365,14 @@ fn test_margin_auto_left_child_bigger_than_parent() {
 fn test_margin_fix_left_auto_right_child_bigger_than_parent() {
     let mut root = Node::new();
     root.set_justify_content(Justify::Center);
-    root.set_width(StyleUnit::Point(52.0.into()));
-    root.set_height(StyleUnit::Point(52.0.into()));
+    root.set_width(Value::Point(52.0.into()));
+    root.set_height(Value::Point(52.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Point(10.0.into()));
-    root_child0.set_margin(Edge::Right, StyleUnit::Auto);
-    root_child0.set_width(StyleUnit::Point(72.0.into()));
-    root_child0.set_height(StyleUnit::Point(72.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Point(10.0.into()));
+    root_child0.set_margin(Edge::Right, Value::Auto);
+    root_child0.set_width(Value::Point(72.0.into()));
+    root_child0.set_height(Value::Point(72.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 
@@ -1403,14 +1403,14 @@ fn test_margin_fix_left_auto_right_child_bigger_than_parent() {
 fn test_margin_auto_left_fix_right_child_bigger_than_parent() {
     let mut root = Node::new();
     root.set_justify_content(Justify::Center);
-    root.set_width(StyleUnit::Point(52.0.into()));
-    root.set_height(StyleUnit::Point(52.0.into()));
+    root.set_width(Value::Point(52.0.into()));
+    root.set_height(Value::Point(52.0.into()));
 
     let mut root_child0 = Node::new();
-    root_child0.set_margin(Edge::Left, StyleUnit::Auto);
-    root_child0.set_margin(Edge::Right, StyleUnit::Point(10.0.into()));
-    root_child0.set_width(StyleUnit::Point(72.0.into()));
-    root_child0.set_height(StyleUnit::Point(72.0.into()));
+    root_child0.set_margin(Edge::Left, Value::Auto);
+    root_child0.set_margin(Edge::Right, Value::Point(10.0.into()));
+    root_child0.set_width(Value::Point(72.0.into()));
+    root_child0.set_height(Value::Point(72.0.into()));
     root.insert_child(&mut root_child0, 0);
     root.calculate_layout(Undefined, Undefined, Direction::LTR);
 

@@ -1,23 +1,26 @@
-use internal::YGValue;
+prelude!();
+
 use std::ops::{Index, IndexMut};
 
-#[derive(Copy, Clone)]
+use ffi_types::value::Value;
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct ResolvedDimensions {
-    pub width: *const YGValue,
-    pub height: *const YGValue,
+    pub width: Option<Value>,
+    pub height: Option<Value>,
 }
 
 // TODO(anp): unify this with the "in progress" dimensions, probably via non-repr-C types
-#[derive(Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct MeasuredDimensions {
-    pub height: f32,
-    pub width: f32,
+    pub height: F32,
+    pub width: F32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Dimensions {
-    pub height: YGValue,
-    pub width: YGValue,
+    pub height: Value,
+    pub width: Value,
 }
 
 macro_rules! index_with_dimension {
@@ -44,9 +47,9 @@ macro_rules! index_with_dimension {
     };
 }
 
-index_with_dimension!(Dimensions, YGValue);
+index_with_dimension!(Dimensions, Value);
 index_with_dimension!(MeasuredDimensions, f32);
-index_with_dimension!(ResolvedDimensions, *const YGValue);
+index_with_dimension!(ResolvedDimensions, Option<Value>);
 
 #[repr(usize)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
