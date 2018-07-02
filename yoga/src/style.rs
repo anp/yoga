@@ -1,7 +1,5 @@
 prelude!();
 
-// TODO(anp): figure out how to rule out Value::Auto for height/width
-
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Style {
     pub direction: Direction,
@@ -21,7 +19,7 @@ pub struct Style {
     pub margin: Edges<Value>,
     pub position: Edges<Value>,
     pub padding: Edges<Value>,
-    pub border: Edges<R32>,
+    pub border: Edges<Value>,
     pub dimensions: Dimensions,
     pub min_dimensions: Dimensions,
     pub max_dimensions: Dimensions,
@@ -95,16 +93,13 @@ where
 }
 
 macro_rules! property_impl {
-    (
-        |
-        $style:ident |
-        $field:expr,
-        $struct:ident($contained:ty), |
-        $inner:ident | ->
-        $target:ty { $prep:expr }
-    ) => {
-        pub struct $struct($contained);
-
+    {
+        @trait
+        struct: $struct:ty,
+        target: $target:ty,
+        prep: |$inner:ident| $prep:expr,
+        field: |$style:ident| $field:expr
+    } => {
         impl Property for $struct {
             type Target = $target;
 
@@ -129,6 +124,33 @@ macro_rules! property_impl {
             }
         }
     };
+    (@trait |$style:ident| $field:expr, $struct:ident) => {
+        property_impl! {
+            @trait
+            struct: $struct,
+            target: $struct,
+            prep: |v| v,
+            field: |$style| $field
+        }
+    };
+    (
+        |
+        $style:ident |
+        $field:expr,
+        $struct:ident($contained:ty), |
+        $inner:ident | ->
+        $target:ty { $prep:expr }
+    ) => {
+        pub struct $struct($contained);
+
+        property_impl! {
+            @trait
+            struct: $struct,
+            target: $target,
+            prep: |$inner| $prep,
+            field: |$style| $field
+        }
+    };
     (| $style:ident | $field:expr, $struct:ident(optional $target:ty)) => {
         property_impl!(
             |$style| $field,
@@ -141,37 +163,33 @@ macro_rules! property_impl {
     };
 }
 
-// TODO(anp): impl Property without a newtype?
-// pub struct Display(Display);
-// pub struct FlexDirection(FlexDirection);
-// pub struct Overflow(Overflow);
-// property_impl!(|s| s.justify_content, JustifyContent(Justify));
+property_impl!(@trait |s| s.display, Display);
+property_impl!(@trait |s| s.flex_direction, FlexDirection);
+property_impl!(@trait |s| s.flex_wrap, Wrap);
+property_impl!(@trait |s| s.justify_content, Justify);
+property_impl!(@trait |s| s.overflow, Overflow);
+property_impl!(@trait |s| s.position_type, PositionType);
 
-// TODO(anp): splat trait? custom impl?
-// property_impl!(|s| s.TODO, Border(R32));
-// property_impl!(|s| s.TODO, Margin(Value));
-// property_impl!(|s| s.TODO, Padding(Value));
-// property_impl!(|s| s.TODO, Position(PositionType));
+property_impl!(|s| s.border, Border(Edges<Value>));
+property_impl!(|s| s.margin, Margin(Edges<Value>));
+property_impl!(|s| s.padding, Padding(Edges<Value>));
 
-// TODO(anp): consider storing the newtypes in the layout struct directly
 property_impl!(|s| s.align_content, AlignContent(Align));
 property_impl!(|s| s.align_items, AlignItems(Align));
 property_impl!(|s| s.align_self, AlignSelf(Align));
 property_impl!(|s| s.aspect_ratio, AspectRatio(optional R32));
-property_impl!(|s| s.border[Edge::Bottom], BorderBottom(optional R32));
-property_impl!(|s| s.border[Edge::End], BorderEnd(optional R32));
-property_impl!(|s| s.border[Edge::Left], BorderLeft(optional R32));
-property_impl!(|s| s.border[Edge::Right], BorderRight(optional R32));
-property_impl!(|s| s.border[Edge::Start], BorderStart(optional R32));
-property_impl!(|s| s.border[Edge::Top], BorderTop(optional R32));
+property_impl!(|s| s.border[Edge::Bottom], BorderBottom(optional Value));
+property_impl!(|s| s.border[Edge::End], BorderEnd(optional Value));
+property_impl!(|s| s.border[Edge::Left], BorderLeft(optional Value));
+property_impl!(|s| s.border[Edge::Right], BorderRight(optional Value));
+property_impl!(|s| s.border[Edge::Start], BorderStart(optional Value));
+property_impl!(|s| s.border[Edge::Top], BorderTop(optional Value));
 property_impl!(|s| s.position[Edge::Bottom], Bottom(optional Value));
 property_impl!(|s| s.position[Edge::End], End(optional Value));
 property_impl!(|s| s.flex, Flex(optional R32));
 property_impl!(|s| s.flex_basis, FlexBasis(Value));
 property_impl!(|s| s.flex_grow, FlexGrow(R32));
 property_impl!(|s| s.flex_shrink, FlexShrink(R32));
-property_impl!(|s| s.flex_wrap, FlexWrap(Wrap));
-property_impl!(|s| s.dimensions.height, Height(Value));
 property_impl!(|s| s.position[Edge::Left], Left(optional Value));
 property_impl!(|s| s.margin[Edge::Bottom], MarginBottom(optional Value));
 property_impl!(|s| s.margin[Edge::End], MarginEnd(optional Value));
@@ -196,5 +214,24 @@ property_impl!(|s| s.padding[Edge::Vertical], PaddingVertical(optional Value));
 property_impl!(|s| s.position[Edge::Right], Right(optional Value));
 property_impl!(|s| s.position[Edge::Start], Start(optional Value));
 property_impl!(|s| s.position[Edge::Top], Top(optional Value));
-// TODO(anp): mirror the height custom setter
-property_impl!(|s| s.dimensions.width, Width(Value));
+
+property_impl!(
+    |s| s.dimensions.height,
+    Height(Value),
+    |h| -> Value {
+        match h.0 {
+            Value::Auto => panic!("invalid to set an auto height!"),
+            rest @ _ => rest,
+        }
+    }
+);
+property_impl!(
+    |s| s.dimensions.width,
+    Width(Value),
+    |h| -> Value {
+        match h.0 {
+            Value::Auto => panic!("invalid to set an auto width!"),
+            rest @ _ => rest,
+        }
+    }
+);

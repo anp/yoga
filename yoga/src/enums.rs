@@ -31,7 +31,6 @@ pub struct ResolvedDimensions {
     pub height: Option<Value>,
 }
 
-// TODO(anp): unify this with the "in progress" dimensions, probably via non-repr-C types
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct MeasuredDimensions {
     pub height: R32,

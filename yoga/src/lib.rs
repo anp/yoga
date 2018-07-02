@@ -3287,27 +3287,6 @@ where
     // }
 }
 
-// impl Drop for Node {
-//     fn drop(&mut self) {
-//         self.set_context(None);
-
-//         unsafe {
-//             // In the current revision (a20bde8444474e7a34352a78073de23c26e08fc5),
-//             // YGNodeFree does not mark the parent as dirty, but YGNodeRemoveChild does.
-//             // TODO remove the following lines when upgrading to a more recent revision of yoga.
-//             let parent = internal::YGNodeGetParent(self.inner_node);
-//             if parent != 0 as NodeRef {
-//                 internal::YGNodeRemoveChild(
-//                     internal::YGNodeGetParent(self.inner_node),
-//                     self.inner_node,
-//                 );
-//             }
-
-//             internal::YGNodeFree(self.inner_node);
-//         }
-//     }
-// }
-
 pub trait Percent {
     fn percent(self) -> Value;
 }
