@@ -75,7 +75,7 @@ where
 
     fn increment_generation();
 
-    fn is_style_dim_defined(&self, axis: FlexDirection, parent_size: R32) -> bool {
+    fn is_style_dim_defined(&mut self, axis: FlexDirection, parent_size: R32) -> bool {
         parent_size.is_nan() || match self.resolved()[axis.dimension()] {
             Some(Value::Percent(r)) | Some(Value::Point(r)) => r < 0.0,
             Some(Value::Auto) => false,
@@ -95,7 +95,7 @@ where
         }
     }
 
-    fn trailing_position(&self, axis: FlexDirection, axis_size: R32) -> R32 {
+    fn trailing_position(&mut self, axis: FlexDirection, axis_size: R32) -> R32 {
         let trailing_edge = if axis.is_row() {
             Edge::End
         } else {
@@ -115,7 +115,7 @@ where
         self.leading_margin(axis, width_size) + self.trailing_margin(axis, width_size)
     }
 
-    fn leading_margin(&self, axis: FlexDirection, width_size: R32) -> R32 {
+    fn leading_margin(&mut self, axis: FlexDirection, width_size: R32) -> R32 {
         let leading_edge = match (self.style().margin[Edge::Start], axis.is_row()) {
             (Some(margin), true) => Edge::Start,
             _ => axis.leading_edge(),
@@ -368,13 +368,12 @@ where
     // }
 
     fn mark_dirty(&mut self) {
-        let mut dirty = self.dirty();
-        let mut parent = self.parent();
-        if !*dirty {
-            *dirty = true;
+        let dirty = *self.dirty();
+        if !dirty {
+            *self.dirty() = true;
             self.layout().computedFlexBasis = None;
 
-            if let Some(p) = parent {
+            if let Some(p) = self.parent() {
                 p.mark_dirty();
             }
         };
@@ -386,7 +385,7 @@ where
         }
     }
 
-    fn relative_position(&self, axis: FlexDirection, axis_size: R32) -> R32 {
+    fn relative_position(&mut self, axis: FlexDirection, axis_size: R32) -> R32 {
         let leading_position_edge = if axis.is_row() {
             Edge::Start
         } else {

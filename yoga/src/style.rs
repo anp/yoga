@@ -117,20 +117,24 @@ macro_rules! property_impl {
             // inline attribute necessary for cross-crate inlining
             #[inline]
             fn field<'a>(style: &'a Style) -> &'a Self::Target {
-                let field_fn = |$style: &'a Style| -> &'a Self::Target { &$field };
-                field_fn(&style)
+                let $style = style;
+                &$field
             }
 
             // inline attribute necessary for cross-crate inlining
             #[inline]
-            fn field_mut<'a>(style: &'a mut Style) -> &'a mut Self::Target {
-                let style_mut = |$style: &'a mut Style| -> &'a mut Self::Target { &mut $field };
-                style_mut(&mut style)
+            fn field_mut(style: &mut Style) -> &mut Self::Target {
+                let $style = style;
+                &mut $field
             }
         }
     };
     (| $style:ident | $field:expr, $struct:ident(optional $target:ty)) => {
-        property_impl!(|$style| $field, $struct($target), |v| -> Option<$target> { Some(v.0) });
+        property_impl!(
+            |$style| $field,
+            $struct($target),
+            |v| -> Option<$target> { Some(v.0) }
+        );
     };
     (| $style:ident | $field:expr, $struct:ident($target:ty)) => {
         property_impl!(|$style| $field, $struct($target), |v| -> $target { v.0 });

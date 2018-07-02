@@ -153,7 +153,7 @@ where
     type Output = Option<V>;
     fn index(&self, index: Edge) -> &Self::Output {
         // UNSAFE(anp): we know that Edge and Edges cannot index incorrectly
-        unsafe { &self.0.get_unchecked(index as usize) }
+        unsafe { self.0.get_unchecked(index as usize) }
     }
 }
 
@@ -163,7 +163,7 @@ where
 {
     fn index_mut(&mut self, index: Edge) -> &mut Self::Output {
         // UNSAFE(anp): we know that Edge and Edges cannot index incorrectly
-        unsafe { &mut self.0.get_unchecked_mut(index as usize) }
+        unsafe { self.0.get_unchecked_mut(index as usize) }
     }
 }
 
