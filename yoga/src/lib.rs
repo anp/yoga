@@ -8,11 +8,14 @@
 #![allow(unknown_lints)]
 #![warn(clippy)]
 
+// TODO(anp): look at `gPrintChanges` variable in Yoga.c and add logging statements here
 // TODO(anp): excise unwrap/expect/panic!
 // TODO(anp): check out the inline annotations from the c code
 // TODO(anp): revist raph's continuation-based layout stuff, in case you forget, june 2018 meetup at mozilla
 
+extern crate arrayvec;
 extern crate float_cmp;
+extern crate itertools;
 extern crate libc;
 #[macro_use]
 extern crate log;
@@ -25,9 +28,11 @@ extern crate serde_derive;
 pub(crate) mod prelude {
     pub(crate) use super::enums::*;
     pub(crate) use super::hacks::ApproxEqHackForReals;
-    pub(crate) use super::layout::Layout;
+    pub(crate) use super::layout::{CachedMeasurement, Layout};
     pub(crate) use super::style::{Property, Style};
     pub(crate) use super::Node;
+    pub(crate) use super::POINT_SCALE_FACTOR;
+    pub(crate) use itertools::Itertools;
     pub(crate) use noisy_float::prelude::*;
     pub(crate) use std::ops::{Index, IndexMut};
 }
@@ -47,7 +52,7 @@ pub mod style;
 
 prelude!();
 
-const POINT_SCALE_FACTOR: f32 = 1.0;
+pub(crate) const POINT_SCALE_FACTOR: f32 = 1.0;
 
 pub trait Node
 where
@@ -196,12 +201,8 @@ where
         );
 
         if did_something_wat {
-            self.set_position(
-                self.layout().direction,
-                parent_width,
-                parent_height,
-                parent_width,
-            );
+            let dir = self.layout().direction;
+            self.set_position(dir, parent_width, parent_height, parent_width);
 
             // FIXME(anp): uncomment
             // YGRoundToPixelGrid(node, (*(*node).config).pointScaleFactor, 0.0f32, 0.0f32);
@@ -213,34 +214,33 @@ where
     /// (see above). Return parameter is true if layout was performed, false if skipped.
     fn layout_node_internal(
         &mut self,
-        availableWidth: R32,
-        availableHeight: R32,
+        available_width: R32,
+        available_height: R32,
         parent_direction: Direction,
         width_measure_mode: Option<MeasureMode>,
         height_measure_mode: Option<MeasureMode>,
-        parentWidth: R32,
-        parentHeight: R32,
-        performLayout: bool,
+        parent_width: R32,
+        parent_height: R32,
+        perform_layout: bool,
         reason: &str,
         // TODO(anp): make the return type an enum!!!!
     ) -> bool {
         trace!("layout for reason {} on node {:?}", reason, self);
-        let mut layout = self.layout();
 
         // FIXME(anp): make this non-static wtf
         // gDepth = gDepth.wrapping_add(1);
 
+        let current_generation = self.current_generation();
         let need_to_visit_node = *self.dirty()
-            && layout.generation_count != self.current_generation()
-            || layout.last_parent_direction != parent_direction;
+            && self.layout().generation_count != current_generation
+            || self.layout().last_parent_direction != parent_direction;
 
         if need_to_visit_node {
             // Invalidate the cached results.
-            layout.cached_layout = None;
-            layout.next_cached_measurements_index = 0;
+            self.layout().cached_layout = None;
+            self.layout().next_cached_measurements_index = 0;
         };
 
-        let mut cached_results;
         // Determine whether the results are already cached. We maintain a separate
         // cache for layouts and measurements. A layout operation modifies the
         // positions
@@ -253,142 +253,121 @@ where
         // most
         // expensive to measure, so it's worth avoiding redundant measurements if at
         // all possible.
-        if Self::CUSTOM_MEASURE {
-            let marginAxisRow: R32 = YGNodeMarginForAxis(node, FlexDirection::Row, parentWidth);
-            let marginAxisColumn: R32 =
-                YGNodeMarginForAxis(node, FlexDirection::Column, parentWidth);
-            // First, try to use the layout cache.
-            if YGNodeCanUseCachedMeasurement(
-                width_measure_mode,
-                availableWidth,
-                height_measure_mode,
-                availableHeight,
-                (*layout).cached_layout.width_measure_mode,
-                (*layout).cached_layout.availableWidth,
-                (*layout).cached_layout.height_measure_mode,
-                (*layout).cached_layout.availableHeight,
-                (*layout).cached_layout.computedWidth,
-                (*layout).cached_layout.computedHeight,
-                marginAxisRow,
-                marginAxisColumn,
-                config,
-            ) {
-                cachedResults = &mut (*layout).cached_layout as *mut YGCachedMeasurement_0;
-            } else {
-                // Try to use the measurement cache.
-                let mut i = 0usize;
-                'loop1: while i < (*layout).next_cached_measurements_index {
-                    {
-                        if YGNodeCanUseCachedMeasurement(
-                            width_measure_mode,
-                            availableWidth,
-                            height_measure_mode,
-                            availableHeight,
-                            (*layout).cached_measurements[i as usize].width_measure_mode,
-                            (*layout).cached_measurements[i as usize].availableWidth,
-                            (*layout).cached_measurements[i as usize].height_measure_mode,
-                            (*layout).cached_measurements[i as usize].availableHeight,
-                            (*layout).cached_measurements[i as usize].computedWidth,
-                            (*layout).cached_measurements[i as usize].computedHeight,
-                            marginAxisRow,
-                            marginAxisColumn,
-                            config,
-                        ) {
-                            cachedResults = &mut (*layout).cached_measurements[i as usize]
-                                as *mut YGCachedMeasurement_0;
-                            break 'loop1;
-                        };
-                    }
-                    i = i.wrapping_add(1);
-                }
-            };
-        } else {
-            if performLayout {
-                if YGFloatsEqual((*layout).cached_layout.availableWidth, availableWidth)
-                    && YGFloatsEqual((*layout).cached_layout.availableHeight, availableHeight)
-                    && (*layout).cached_layout.width_measure_mode == Some(width_measure_mode)
-                    && (*layout).cached_layout.height_measure_mode == Some(height_measure_mode)
-                {
-                    cachedResults = &mut (*layout).cached_layout as *mut YGCachedMeasurement_0;
-                };
-            } else {
-                let mut i = 0usize;
-                'loop2: while i < (*layout).next_cached_measurements_index {
-                    {
-                        if YGFloatsEqual(
-                            (*layout).cached_measurements[i as usize].availableWidth,
-                            availableWidth,
-                        )
-                            && YGFloatsEqual(
-                                (*layout).cached_measurements[i as usize].availableHeight,
-                                availableHeight,
-                            )
-                            && (*layout).cached_measurements[i as usize].width_measure_mode
-                                == Some(width_measure_mode)
-                            && (*layout).cached_measurements[i as usize].height_measure_mode
-                                == Some(height_measure_mode)
-                        {
-                            cachedResults = &mut (*layout).cached_measurements[i as usize]
-                                as *mut YGCachedMeasurement_0;
-                            break 'loop2;
-                        };
-                    }
-                    i = i.wrapping_add(1);
-                }
-            };
-        };
-        if !need_to_visit_node && !cachedResults.is_null() {
-            (*layout).measured_dimensions.width = (*cachedResults).computedWidth;
-            (*layout).measured_dimensions.height = (*cachedResults).computedHeight;
-        } else {
-            YGNodelayoutImpl(
-                node,
-                availableWidth,
-                availableHeight,
-                parent_direction,
-                width_measure_mode,
-                height_measure_mode,
-                parentWidth,
-                parentHeight,
-                performLayout,
-                config,
-            );
-            (*layout).last_parent_direction = parent_direction;
-            if cachedResults.is_null() {
-                if (*layout).next_cached_measurements_index == 16 {
-                    (*layout).next_cached_measurements_index = 0;
-                };
-                let mut newCacheEntry: *mut YGCachedMeasurement_0;
-                if performLayout {
-                    // Use the single layout cache entry.
-                    newCacheEntry = &mut (*layout).cached_layout as *mut YGCachedMeasurement_0;
+        let cached_results = if let Some(cached) = self.layout().cached_layout {
+            if Self::CUSTOM_MEASURE {
+                let margin_axis_row = self.margin_for_axis(FlexDirection::Row, parent_width);
+                let margin_axis_column = self.margin_for_axis(FlexDirection::Column, parent_height);
+                // First, try to use the layout cache.
+                if CachedMeasurement::usable(
+                    Some(cached),
+                    width_measure_mode,
+                    available_width,
+                    height_measure_mode,
+                    available_height,
+                    margin_axis_row,
+                    margin_axis_column,
+                ) {
+                    Some(cached)
                 } else {
-                    // Allocate a new measurement cache entry.
-                    newCacheEntry = &mut (*layout).cached_measurements
-                        [(*layout).next_cached_measurements_index as usize]
-                        as *mut YGCachedMeasurement_0;
-                    (*layout).next_cached_measurements_index =
-                        (*layout).next_cached_measurements_index.wrapping_add(1);
+                    // Try to use the measurement cache.
+                    let idx = self.layout().next_cached_measurements_index;
+                    self.layout().cached_measurements[0..idx]
+                        .into_iter()
+                        .find(|c| {
+                            CachedMeasurement::usable(
+                                **c,
+                                width_measure_mode,
+                                available_width,
+                                height_measure_mode,
+                                available_height,
+                                margin_axis_row,
+                                margin_axis_column,
+                            )
+                        })
+                        .into_iter()
+                        .flatten()
+                        .map(|&v| v)
+                        .next()
+                }
+            } else if perform_layout
+                && cached.available_width.approx_eq(available_width)
+                && cached.available_height.approx_eq(available_height)
+                && cached.width_measure_mode == width_measure_mode
+                && cached.height_measure_mode == height_measure_mode
+            {
+                Some(cached)
+            } else {
+                let idx = self.layout().next_cached_measurements_index;
+                self.layout().cached_measurements[0..idx]
+                    .into_iter()
+                    .filter_map(|&s| s)
+                    .filter(|c| {
+                        c.available_width.approx_eq(available_width)
+                            && c.available_height.approx_eq(available_height)
+                            && c.width_measure_mode == width_measure_mode
+                            && c.height_measure_mode == height_measure_mode
+                    })
+                    .next()
+            }
+        } else {
+            None
+        };
+
+        if let (false, Some(cached)) = (need_to_visit_node, cached_results) {
+            self.layout().measured_dimensions = Some(cached.computed);
+        } else {
+            // FIXME(anp): uncomment and make build
+            // YGNodelayoutImpl(
+            //     node,
+            //     availableWidth,
+            //     availableHeight,
+            //     parent_direction,
+            //     width_measure_mode,
+            //     height_measure_mode,
+            //     parentWidth,
+            //     parentHeight,
+            //     performLayout,
+            // );
+
+            self.layout().last_parent_direction = parent_direction;
+            if cached_results.is_none() {
+                if self.layout().next_cached_measurements_index == 16 {
+                    self.layout().next_cached_measurements_index = 0;
                 };
-                (*newCacheEntry).availableWidth = availableWidth;
-                (*newCacheEntry).availableHeight = availableHeight;
-                (*newCacheEntry).width_measure_mode = Some(width_measure_mode);
-                (*newCacheEntry).height_measure_mode = Some(height_measure_mode);
-                (*newCacheEntry).computedWidth = (*layout).measured_dimensions.width;
-                (*newCacheEntry).computedHeight = (*layout).measured_dimensions.height;
-            };
+
+                let computed = self.layout().measured_dimensions.unwrap();
+
+                let mut new_cache_entry = if perform_layout {
+                    // Use the single layout cache entry.
+                    &mut self.layout().cached_layout
+                } else {
+                    self.layout().next_cached_measurements_index += 1;
+                    let idx = self.layout().next_cached_measurements_index;
+                    &mut self.layout().cached_measurements[idx]
+                };
+
+                *new_cache_entry = Some(CachedMeasurement {
+                    available_width: available_width,
+                    available_height: available_height,
+                    width_measure_mode: width_measure_mode,
+                    height_measure_mode: height_measure_mode,
+                    computed,
+                });
+            }
+        }
+
+        self.layout().generation_count = self.current_generation();
+
+        if perform_layout {
+            self.layout().dimensions = self.layout().measured_dimensions.map(|d| d.into());
+            self.new_layout();
+            *self.dirty() = false;
         };
-        if performLayout {
-            (*node).layout.dimensions[Dimension::Width as usize] =
-                (*node).layout.measured_dimensions.width;
-            (*node).layout.dimensions[Dimension::Height as usize] =
-                (*node).layout.measured_dimensions.height;
-            (*node).hasNewLayout = true;
-            (*node).isDirty = false;
-        };
-        gDepth = gDepth.wrapping_sub(1);
-        (*layout).generation_count = gCurrentGenerationCount;
-        return need_to_visit_node || cachedResults.is_null();
+
+        // FIXME(anp) make this not static wtf
+        // gDepth = gDepth.wrapping_sub(1);
+
+        return need_to_visit_node || cached_results.is_none();
     }
 
     fn mark_dirty(&mut self) {
@@ -601,7 +580,7 @@ where
     //     &mut self,
     //     child: Node,
     //     width: R32,
-    //     widthMode: MeasureMode,
+    //     width_mode: MeasureMode,
     //     height: R32,
     //     direction: Direction,
     // ) -> () {
@@ -613,10 +592,10 @@ where
     //     let mut childHeight: R32 = ::std::f32::NAN;
     //     let mut childWidthMeasureMode: MeasureMode;
     //     let mut childHeightMeasureMode: MeasureMode;
-    //     let marginRow: R32 = YGNodeMarginForAxis(child, FlexDirection::Row, width);
-    //     let marginColumn: R32 = YGNodeMarginForAxis(child, FlexDirection::Column, width);
+    //     let margin_row: R32 = YGNodeMarginForAxis(child, FlexDirection::Row, width);
+    //     let margin_column: R32 = YGNodeMarginForAxis(child, FlexDirection::Column, width);
     //     if YGNodeIsStyleDimDefined(child, FlexDirection::Row, width) {
-    //         childWidth = YGResolveValue((*child).resolvedDimensions.width, width) + marginRow;
+    //         childWidth = YGResolveValue((*child).resolvedDimensions.width, width) + margin_row;
     //     } else {
     //         // If the child doesn't have a specified width, compute the width based
     //         // on the left/right
@@ -633,7 +612,7 @@ where
     //         };
     //     };
     //     if YGNodeIsStyleDimDefined(child, FlexDirection::Column, height) {
-    //         childHeight = YGResolveValue((*child).resolvedDimensions.height, height) + marginColumn;
+    //         childHeight = YGResolveValue((*child).resolvedDimensions.height, height) + margin_column;
     //     } else {
     //         // If the child doesn't have a specified height, compute the height
     //         // based on the top/bottom
@@ -656,11 +635,11 @@ where
     //         if !(*child).style.aspect_ratio.is_nan() {
     //             if childWidth.is_nan() {
     //                 childWidth =
-    //                     marginRow + (childHeight - marginColumn) * (*child).style.aspect_ratio;
+    //                     margin_row + (childHeight - margin_column) * (*child).style.aspect_ratio;
     //             } else {
     //                 if childHeight.is_nan() {
     //                     childHeight =
-    //                         marginColumn + (childWidth - marginRow) / (*child).style.aspect_ratio;
+    //                         margin_column + (childWidth - margin_row) / (*child).style.aspect_ratio;
     //                 };
     //             };
     //         };
@@ -682,7 +661,7 @@ where
     //         // This is the same behavior as many browsers implement.
     //         if !isMainAxisRow
     //             && childWidth.is_nan()
-    //             && widthMode != MeasureMode::Undefined
+    //             && width_mode != MeasureMode::Undefined
     //             && width > 0.0
     //         {
     //             childWidth = width;
@@ -994,11 +973,11 @@ where
     //     &mut self,
     //     child: Self,
     //     width: R32,
-    //     widthMode: MeasureMode,
+    //     width_mode: MeasureMode,
     //     height: R32,
     //     parentWidth: R32,
     //     parentHeight: R32,
-    //     heightMode: MeasureMode,
+    //     height_mode: MeasureMode,
     //     direction: Direction,
     // ) -> () {
     //     let mainAxis: FlexDirection =
@@ -1054,19 +1033,19 @@ where
     //                 childHeight = ::std::f32::NAN;
     //                 childWidthMeasureMode = MeasureMode::Undefined;
     //                 childHeightMeasureMode = MeasureMode::Undefined;
-    //                 let marginRow: R32 =
+    //                 let margin_row: R32 =
     //                     YGNodeMarginForAxis(child, FlexDirection::Row, parentWidth);
-    //                 let marginColumn: R32 =
+    //                 let margin_column: R32 =
     //                     YGNodeMarginForAxis(child, FlexDirection::Column, parentWidth);
     //                 if isRowStyleDimDefined {
     //                     childWidth = YGResolveValue((*child).resolvedDimensions.width, parentWidth)
-    //                         + marginRow;
+    //                         + margin_row;
     //                     childWidthMeasureMode = MeasureMode::Exactly;
     //                 };
     //                 if isColumnStyleDimDefined {
     //                     childHeight =
     //                         YGResolveValue((*child).resolvedDimensions.height, parentHeight)
-    //                             + marginColumn;
+    //                             + margin_column;
     //                     childHeightMeasureMode = MeasureMode::Exactly;
     //                 };
     //                 // The W3C spec doesn't say anything about the 'overflow' property,
@@ -1089,12 +1068,12 @@ where
     //                 };
     //                 if !(*child).style.aspect_ratio.is_nan() {
     //                     if !isMainAxisRow && childWidthMeasureMode == MeasureMode::Exactly {
-    //                         childHeight = (childWidth - marginRow) / (*child).style.aspect_ratio;
+    //                         childHeight = (childWidth - margin_row) / (*child).style.aspect_ratio;
     //                         childHeightMeasureMode = MeasureMode::Exactly;
     //                     } else {
     //                         if isMainAxisRow && childHeightMeasureMode == MeasureMode::Exactly {
     //                             childWidth =
-    //                                 (childHeight - marginColumn) * (*child).style.aspect_ratio;
+    //                                 (childHeight - margin_column) * (*child).style.aspect_ratio;
     //                             childWidthMeasureMode = MeasureMode::Exactly;
     //                         };
     //                     };
@@ -1102,7 +1081,7 @@ where
     //                 // If child has no defined size in the cross axis and is set to stretch,
     //                 // set the cross
     //                 // axis to be measured exactly with the available inner width
-    //                 let hasExactWidth: bool = !width.is_nan() && widthMode == MeasureMode::Exactly;
+    //                 let hasExactWidth: bool = !width.is_nan() && width_mode == MeasureMode::Exactly;
     //                 let childWidthStretch: bool = YGNodeAlignItem(node, child) == Align::Stretch
     //                     && childWidthMeasureMode != MeasureMode::Exactly;
     //                 if !isMainAxisRow && !isRowStyleDimDefined && hasExactWidth && childWidthStretch
@@ -1110,12 +1089,12 @@ where
     //                     childWidth = width;
     //                     childWidthMeasureMode = MeasureMode::Exactly;
     //                     if !(*child).style.aspect_ratio.is_nan() {
-    //                         childHeight = (childWidth - marginRow) / (*child).style.aspect_ratio;
+    //                         childHeight = (childWidth - margin_row) / (*child).style.aspect_ratio;
     //                         childHeightMeasureMode = MeasureMode::Exactly;
     //                     };
     //                 };
     //                 let hasExactHeight: bool =
-    //                     !height.is_nan() && heightMode == MeasureMode::Exactly;
+    //                     !height.is_nan() && height_mode == MeasureMode::Exactly;
     //                 let childHeightStretch: bool = YGNodeAlignItem(node, child) == Align::Stretch
     //                     && childHeightMeasureMode != MeasureMode::Exactly;
     //                 if isMainAxisRow
@@ -1126,7 +1105,7 @@ where
     //                     childHeight = height;
     //                     childHeightMeasureMode = MeasureMode::Exactly;
     //                     if !(*child).style.aspect_ratio.is_nan() {
-    //                         childWidth = (childHeight - marginColumn) * (*child).style.aspect_ratio;
+    //                         childWidth = (childHeight - margin_column) * (*child).style.aspect_ratio;
     //                         childWidthMeasureMode = MeasureMode::Exactly;
     //                     };
     //                 };
@@ -1385,104 +1364,6 @@ where
     //     };
     // }
 
-    // fn YGNodeCanUseCachedMeasurement(
-    //     widthMode: MeasureMode,
-    //     width: R32,
-    //     heightMode: MeasureMode,
-    //     height: R32,
-    //     lastWidthMode: Option<MeasureMode>,
-    //     lastWidth: R32,
-    //     lastHeightMode: Option<MeasureMode>,
-    //     lastHeight: R32,
-    //     lastComputedWidth: R32,
-    //     lastComputedHeight: R32,
-    //     marginRow: R32,
-    //     marginColumn: R32,
-    //     config: YGConfigRef,
-    // ) -> bool {
-    //     if lastComputedHeight < 0.0 || lastComputedWidth < 0.0 {
-    //         return false;
-    //     };
-    //     let mut useRoundedComparison: bool = !config.is_null() && (*config).pointScaleFactor != 0.0;
-    //     let effectiveWidth: R32 = if useRoundedComparison {
-    //         YGRoundValueToPixelGrid(width, (*config).pointScaleFactor, false, false)
-    //     } else {
-    //         width
-    //     };
-    //     let effectiveHeight: R32 = if useRoundedComparison {
-    //         YGRoundValueToPixelGrid(height, (*config).pointScaleFactor, false, false)
-    //     } else {
-    //         height
-    //     };
-    //     let effectiveLastWidth: R32 = if useRoundedComparison {
-    //         YGRoundValueToPixelGrid(lastWidth, (*config).pointScaleFactor, false, false)
-    //     } else {
-    //         lastWidth
-    //     };
-    //     let effectiveLastHeight: R32 = if useRoundedComparison {
-    //         YGRoundValueToPixelGrid(lastHeight, (*config).pointScaleFactor, false, false)
-    //     } else {
-    //         lastHeight
-    //     };
-    //     let hasSameWidthSpec: bool =
-    //         lastWidthMode == Some(widthMode) && YGFloatsEqual(effectiveLastWidth, effectiveWidth);
-    //     let hasSameHeightSpec: bool = lastHeightMode == Some(heightMode)
-    //         && YGFloatsEqual(effectiveLastHeight, effectiveHeight);
-    //     let widthIsCompatible: bool = hasSameWidthSpec
-    //         || MeasureModeSizeIsExactAndMatchesOldMeasuredSize(
-    //             widthMode,
-    //             width - marginRow,
-    //             lastComputedWidth,
-    //         )
-    //         || MeasureModeOldSizeIsUnspecifiedAndStillFits(
-    //             widthMode,
-    //             width - marginRow,
-    //             lastWidthMode.unwrap(),
-    //             lastComputedWidth,
-    //         )
-    //         || MeasureModeNewMeasureSizeIsStricterAndStillValid(
-    //             widthMode,
-    //             width - marginRow,
-    //             lastWidthMode.unwrap(),
-    //             lastWidth,
-    //             lastComputedWidth,
-    //         );
-    //     let heightIsCompatible: bool = hasSameHeightSpec
-    //         || MeasureModeSizeIsExactAndMatchesOldMeasuredSize(
-    //             heightMode,
-    //             height - marginColumn,
-    //             lastComputedHeight,
-    //         )
-    //         || MeasureModeOldSizeIsUnspecifiedAndStillFits(
-    //             heightMode,
-    //             height - marginColumn,
-    //             lastHeightMode.unwrap(),
-    //             lastComputedHeight,
-    //         )
-    //         || MeasureModeNewMeasureSizeIsStricterAndStillValid(
-    //             heightMode,
-    //             height - marginColumn,
-    //             lastHeightMode.unwrap(),
-    //             lastHeight,
-    //             lastComputedHeight,
-    //         );
-    //     return widthIsCompatible && heightIsCompatible;
-    // }
-
-    // fn YGNodeMarkDirty(&mut self) -> () {
-    //     YGAssertWithNode(
-    //     node,
-    //     (*node).measure.is_some(),
-    //     b"Only leaf nodes with custom measure functionsshould manually mark themselves as dirty\x00"
-    //         as *const u8 as *const c_char,
-    // );
-    //     YGNodeMarkDirtyInternal(node);
-    // }
-
-    // fn YGNodeIsDirty(&mut self) -> bool {
-    //     return (*node).isDirty;
-    // }
-
     // fn copy_style(&mut self, mut from: Self) {
     //     let mut src = from.style();
     //     let mut dst = self.style();
@@ -1491,15 +1372,6 @@ where
     //         self.mark_dirty();
     //     }
     // }
-
-    // fn YGNodeSetContext(&mut self, mut context: *mut c_void) -> () {
-    //     (*node).context = context;
-    // }
-
-    // fn YGNodeGetContext(&mut self) -> *mut c_void {
-    //     return (*node).context;
-    // }
-
     // fn YGNodeSetMeasureFunc(&mut self, mut measureFunc: YGMeasureFunc) -> () {
     //     if measureFunc.is_none() {
     //         (*node).measure = None;
@@ -1527,15 +1399,6 @@ where
     // fn YGNodeGetBaselineFunc(&mut self) -> YGBaselineFunc {
     //     return (*node).baseline;
     // }
-
-    // fn YGNodeSetHasNewLayout(&mut self, mut hasNewLayout: bool) -> () {
-    //     (*node).hasNewLayout = hasNewLayout;
-    // }
-
-    // fn YGNodeGetHasNewLayout(&mut self) -> bool {
-    //     return (*node).hasNewLayout;
-    // }
-
     // fn YGNodeSetNodeType(&mut self, mut nodeType: NodeType) -> () {
     //     (*node).nodeType = nodeType;
     // }
@@ -1571,9 +1434,9 @@ where
     //     let textRounding = (*node).nodeType == NodeType::Text;
 
     //     (*node).layout.position[Edge::Left as usize] =
-    //         YGRoundValueToPixelGrid(nodeLeft, pointScaleFactor, false, textRounding);
+    //         round_value_to_pixel_grid(nodeLeft, pointScaleFactor, false, textRounding);
     //     (*node).layout.position[Edge::Top as usize] =
-    //         YGRoundValueToPixelGrid(nodeTop, pointScaleFactor, false, textRounding);
+    //         round_value_to_pixel_grid(nodeTop, pointScaleFactor, false, textRounding);
 
     //     // We multiply dimension by scale factor and if the result is close to the whole number, we don't
     //     // have any fraction
@@ -1583,20 +1446,20 @@ where
     //     let hasFractionalHeight = !YGFloatsEqual(nodeHeight * pointScaleFactor % 1.0, 0.0)
     //         && !YGFloatsEqual(nodeHeight * pointScaleFactor % 1.0, 1.0);
 
-    //     (*node).layout.dimensions[Dimension::Width as usize] = YGRoundValueToPixelGrid(
+    //     (*node).layout.dimensions[Dimension::Width as usize] = round_value_to_pixel_grid(
     //         absoluteNodeRight,
     //         pointScaleFactor,
     //         textRounding && hasFractionalWidth,
     //         textRounding && !hasFractionalWidth,
     //     )
-    //         - YGRoundValueToPixelGrid(absoluteNodeLeft, pointScaleFactor, false, textRounding);
-    //     (*node).layout.dimensions[Dimension::Height as usize] = YGRoundValueToPixelGrid(
+    //         - round_value_to_pixel_grid(absoluteNodeLeft, pointScaleFactor, false, textRounding);
+    //     (*node).layout.dimensions[Dimension::Height as usize] = round_value_to_pixel_grid(
     //         absoluteNodeBottom,
     //         pointScaleFactor,
     //         textRounding && hasFractionalHeight,
     //         textRounding && !hasFractionalHeight,
     //     )
-    //         - YGRoundValueToPixelGrid(absoluteNodeTop, pointScaleFactor, false, textRounding);
+    //         - round_value_to_pixel_grid(absoluteNodeTop, pointScaleFactor, false, textRounding);
 
     //     for i in 0..YGNodeListCount((*node).children) {
     //         YGRoundToPixelGrid(
@@ -1638,6 +1501,52 @@ where
     // TODO(anp): do these even need to exist?
     // static mut firstAbsoluteChild: Node = ::std::ptr::null_mut();
     // static mut currentAbsoluteChild: Node = ::std::ptr::null_mut();
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    // from here to the end of the comments is the main layout impl
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
 
     //
     // This is the main routine that implements a subset of the flexbox layout
@@ -3146,209 +3055,6 @@ where
     //             }
     //         }
     //     }
-    // }
-
-    // TODO(anp): do these even need to be a part of the trait?
-    // fn insert_child(&mut self, child: &mut Node, index: usize) {
-    //     unsafe {
-    //         internal::YGNodeInsertChild(self.inner_node, child.inner_node, index);
-    //     }
-    // }
-
-    // fn remove_child(&mut self, child: &mut Node) {
-    //     unsafe {
-    //         internal::YGNodeRemoveChild(self.inner_node, child.inner_node);
-    //     }
-    // }
-
-    // fn child_count(&self) -> usize {
-    //     unsafe { internal::YGNodeGetChildCount(self.inner_node) }
-    // }
-
-    // fn get_layout(&self) -> Layout {
-    //     unsafe {
-    //         Layout::new(
-    //             internal::YGNodeLayoutGetLeft(self.inner_node),
-    //             internal::YGNodeLayoutGetRight(self.inner_node),
-    //             internal::YGNodeLayoutGetTop(self.inner_node),
-    //             internal::YGNodeLayoutGetBottom(self.inner_node),
-    //             internal::YGNodeLayoutGetWidth(self.inner_node),
-    //             internal::YGNodeLayoutGetHeight(self.inner_node),
-    //         )
-    //     }
-    // }
-
-    // fn get_child_count(&self) -> usize {
-    //     unsafe { internal::YGNodeGetChildCount(self.inner_node) }
-    // }
-
-    // fn get_child(&self, index: usize) -> NodeRef {
-    //     unsafe { internal::YGNodeGetChild(self.inner_node, index) }
-    // }
-
-    // Layout Getters
-    // fn get_layout_margin_left(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetMargin(self.inner_node, Edge::Left) }
-    // }
-
-    // fn get_layout_margin_right(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetMargin(self.inner_node, Edge::Right) }
-    // }
-
-    // fn get_layout_margin_top(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetMargin(self.inner_node, Edge::Top) }
-    // }
-
-    // fn get_layout_margin_bottom(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetMargin(self.inner_node, Edge::Bottom) }
-    // }
-
-    // fn get_layout_margin_start(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetMargin(self.inner_node, Edge::Start) }
-    // }
-
-    // fn get_layout_margin_end(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetMargin(self.inner_node, Edge::End) }
-    // }
-
-    // fn get_layout_padding_left(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetPadding(self.inner_node, Edge::Left) }
-    // }
-
-    // fn get_layout_padding_right(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetPadding(self.inner_node, Edge::Right) }
-    // }
-
-    // fn get_layout_padding_top(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetPadding(self.inner_node, Edge::Top) }
-    // }
-
-    // fn get_layout_padding_bottom(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetPadding(self.inner_node, Edge::Bottom) }
-    // }
-
-    // fn get_layout_padding_start(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetPadding(self.inner_node, Edge::Start) }
-    // }
-
-    // fn get_layout_padding_end(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetPadding(self.inner_node, Edge::End) }
-    // }
-
-    // fn get_layout_left(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetLeft(self.inner_node) }
-    // }
-
-    // fn get_layout_right(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetRight(self.inner_node) }
-    // }
-
-    // fn get_layout_top(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetTop(self.inner_node) }
-    // }
-
-    // fn get_layout_bottom(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetBottom(self.inner_node) }
-    // }
-
-    // fn get_layout_border_left(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetBorder(self.inner_node, Edge::Left) }
-    // }
-
-    // fn get_layout_border_right(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetBorder(self.inner_node, Edge::Right) }
-    // }
-
-    // fn get_layout_border_top(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetBorder(self.inner_node, Edge::Top) }
-    // }
-
-    // fn get_layout_border_bottom(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetBorder(self.inner_node, Edge::Bottom) }
-    // }
-
-    // fn get_layout_width(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetWidth(self.inner_node) }
-    // }
-
-    // fn get_layout_height(&self) -> f32 {
-    //     unsafe { internal::YGNodeLayoutGetHeight(self.inner_node) }
-    // }
-
-    // fn get_layout_direction(&self) -> Direction {
-    //     unsafe { internal::YGNodeLayoutGetDirection(self.inner_node).into() }
-    // }
-
-    // fn is_dirty(&self) -> bool {
-    //     unsafe { internal::YGNodeIsDirty(self.inner_node) }
-    // }
-
-    // fn copy_style(&self, src_node: &Node) {
-    //     unsafe { internal::YGNodeCopyStyle(self.inner_node, src_node.inner_node) }
-    // }
-
-    // fn set_display(&mut self, display: Display) {
-    //     match display.apply(self.stye()) {
-    //         Updated::Clean => (),
-    //         Updated::Dirty => self.mark_dirty(),
-    //     }
-    // }
-
-    // fn set_measure_func(&mut self, func: MeasureFunc) {
-    //     match func {
-    //         Some(f) => unsafe {
-    //             type Callback =
-    //                 unsafe extern "C" fn(NodeRef, f32, MeasureMode, f32, MeasureMode) -> Size;
-    //             let casted_func: Callback = std::mem::transmute(f as usize);
-    //             internal::YGNodeSetMeasureFunc(self.inner_node, Some(casted_func));
-    //         },
-    //         None => unsafe {
-    //             internal::YGNodeSetMeasureFunc(self.inner_node, None);
-    //         },
-    //     }
-    // }
-
-    // fn set_baseline_func(&mut self, func: BaselineFunc) {
-    //     match func {
-    //         Some(f) => unsafe {
-    //             type Callback = unsafe extern "C" fn(NodeRef, f32, f32) -> f32;
-    //             let casted_func: Callback = std::mem::transmute(f as usize);
-    //             internal::YGNodeSetBaselineFunc(self.inner_node, Some(casted_func));
-    //         },
-    //         None => unsafe {
-    //             internal::YGNodeSetBaselineFunc(self.inner_node, None);
-    //         },
-    //     }
-    // }
-
-    // fn set_context(&mut self, value: Option<Context>) {
-    //     self.drop_context();
-
-    //     let raw = value.map_or_else(|| std::ptr::null_mut(), |context| context.into_raw());
-    //     unsafe { internal::YGNodeSetContext(self.inner_node, raw) }
-    // }
-
-    // fn get_context(node_ref: &NodeRef) -> Option<&Box<Any>> {
-    //     let raw = unsafe { internal::YGNodeGetContext(*node_ref) };
-    //     Context::get_inner_ref(raw)
-    // }
-
-    // fn get_context_mut(node_ref: &NodeRef) -> Option<&mut Box<Any>> {
-    //     let raw = unsafe { internal::YGNodeGetContext(*node_ref) };
-    //     Context::get_inner_mut(raw)
-    // }
-
-    // fn get_own_context(&self) -> Option<&Box<Any>> {
-    //     Node::get_context(&self.inner_node)
-    // }
-
-    // fn get_own_context_mut(&self) -> Option<&mut Box<Any>> {
-    //     Node::get_context_mut(&self.inner_node)
-    // }
-
-    // fn drop_context(&mut self) {
-    //     let prev_raw = unsafe { internal::YGNodeGetContext(self.inner_node) };
-    //     Context::drop_raw(prev_raw);
     // }
 }
 

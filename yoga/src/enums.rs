@@ -37,6 +37,15 @@ pub struct MeasuredDimensions {
     pub width: R32,
 }
 
+impl Into<Dimensions> for MeasuredDimensions {
+    fn into(self) -> Dimensions {
+        Dimensions {
+            width: Value::Point(self.width),
+            height: Value::Point(self.height),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Dimensions {
     pub height: Value,
@@ -248,36 +257,36 @@ pub enum MeasureMode {
 
 impl MeasureMode {
     pub fn new_measure_size_is_stricter_and_still_valid(
-        &self,
+        old_mode: Option<MeasureMode>,
         old_size: R32,
         old_computed: R32,
-        new_mode: MeasureMode,
+        new_mode: Option<MeasureMode>,
         new_size: R32,
     ) -> bool {
-        self == &MeasureMode::AtMost
-            && new_mode == MeasureMode::AtMost
+        old_mode == Some(MeasureMode::AtMost)
+            && new_mode == Some(MeasureMode::AtMost)
             && old_size > new_size
             && (old_computed <= new_size || new_size.approx_eq(old_computed))
     }
-}
 
-pub unsafe fn MeasureModeOldSizeIsUnspecifiedAndStillFits(
-    mut sizeMode: MeasureMode,
-    mut size: R32,
-    mut lastSizeMode: Option<MeasureMode>,
-    mut lastComputedSize: R32,
-) -> bool {
-    return sizeMode == MeasureMode::AtMost
-        && lastSizeMode == None
-        && (size >= lastComputedSize || size.approx_eq(lastComputedSize));
-}
+    pub fn old_size_is_unspecified_and_still_fits(
+        current: Option<MeasureMode>,
+        size: R32,
+        last_size_mode: Option<MeasureMode>,
+        last_computed_size: R32,
+    ) -> bool {
+        current == Some(MeasureMode::AtMost)
+            && last_size_mode.is_none()
+            && (size >= last_computed_size || size.approx_eq(last_computed_size))
+    }
 
-pub unsafe fn MeasureModeSizeIsExactAndMatchesOldMeasuredSize(
-    mut sizeMode: MeasureMode,
-    mut size: R32,
-    mut lastComputedSize: R32,
-) -> bool {
-    return sizeMode == MeasureMode::Exactly && size.approx_eq(lastComputedSize);
+    pub fn size_is_exact_and_matches_old_measured_size(
+        mode: Option<MeasureMode>,
+        size: R32,
+        last_computed_size: R32,
+    ) -> bool {
+        mode == Some(MeasureMode::Exactly) && size.approx_eq(last_computed_size)
+    }
 }
 
 #[repr(u32)]
@@ -336,40 +345,35 @@ impl PartialEq for Value {
     }
 }
 
-pub unsafe fn YGRoundValueToPixelGrid(
+pub(crate) fn round_value_to_pixel_grid(
     value: R32,
-    pointScaleFactor: R32,
-    forceCeil: bool,
-    forceFloor: bool,
+    point_scale_factor: f32,
+    force_ceiling: bool,
+    force_floor: bool,
 ) -> R32 {
-    let mut scaledValue = value * pointScaleFactor;
-    let mut fractial = scaledValue % 1.0;
+    let scaled_value = value * point_scale_factor;
+    let fractional = scaled_value % 1.0;
+
     // first we check if the value is already rounded
-    if fractial.approx_eq(r32(0.0)) {
-        scaledValue = scaledValue - fractial;
+    let scaled_value = if fractional.approx_eq(r32(0.0)) {
+        scaled_value - fractional
+    } else if fractional.approx_eq(r32(1.0)) {
+        (scaled_value - fractional) + 1.0
+    // Next we check if we need to use forced rounding
+    } else if force_ceiling {
+        scaled_value - fractional + 1.0
+    } else if force_floor {
+        scaled_value - fractional
     } else {
-        if fractial.approx_eq(r32(1.0)) {
-            scaledValue = (scaledValue - fractial) + 1.0f32;
+        // Finally we just round the value
+        scaled_value - fractional + if fractional >= 0.5 || fractional.approx_eq(r32(0.5)) {
+            1.0
         } else {
-            // Next we check if we need to use forced rounding
-            if forceCeil {
-                scaledValue = scaledValue - fractial + 1.0f32;
-            } else {
-                if forceFloor {
-                    scaledValue = scaledValue - fractial;
-                } else {
-                    // Finally we just round the value
-                    scaledValue = scaledValue - fractial
-                        + if fractial > 0.5f32 || fractial.approx_eq(r32(0.5)) {
-                            1.0f32
-                        } else {
-                            0.0f32
-                        };
-                };
-            };
-        };
+            0.0
+        }
     };
-    return scaledValue / pointScaleFactor;
+
+    scaled_value / point_scale_factor
 }
 
 #[repr(u32)]
