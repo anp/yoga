@@ -466,17 +466,6 @@ where
             .unwrap_or(r32(0.0))
     }
 
-    // fn YGNodeResolveDirection(&mut self, parent_direction: Direction) -> Direction {
-    //     if (*node).style.direction == Direction::Inherit {
-    //         return if parent_direction > Direction::Inherit {
-    //             parent_direction
-    //         } else {
-    //             Direction::LTR
-    //         };
-    //     } else {
-    //         return (*node).style.direction;
-    //     };
-    // }
     // fn YGNodeSetChildTrailingPosition(&mut self, child: Node, axis: FlexDirection) -> () {
     //     let size: R32 = (*child).layout.measured_dimensions[DIM[axis as usize]];
     //     (*child).layout.position[trailing[axis as usize] as usize] =
