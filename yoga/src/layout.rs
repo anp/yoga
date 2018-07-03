@@ -23,6 +23,7 @@ pub struct Layout {
     // cache some information to break early when nothing changed:
     pub generation_count: u32,
     pub last_parent_direction: Direction,
+    // TODO(anp): use arrayvec or an LRU crate for these
     pub next_cached_measurements_index: usize,
     pub cached_measurements: [Option<CachedMeasurement>; MAX_CACHED_RESULTS],
     pub measured_dimensions: Option<MeasuredDimensions>,
