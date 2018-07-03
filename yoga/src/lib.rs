@@ -1,3 +1,4 @@
+#![feature(specialization)]
 #![allow(dead_code)]
 #![allow(mutable_transmutes)]
 #![allow(non_camel_case_types)]
@@ -7,8 +8,8 @@
 #![allow(unknown_lints)]
 #![warn(clippy)]
 
+// TODO(anp): excise unwrap/expect/panic!
 // TODO(anp): check out the inline annotations from the c code
-// TODO(anp): double check c code for interesting comments
 // TODO(anp): revist raph's continuation-based layout stuff, in case you forget, june 2018 meetup at mozilla
 
 extern crate float_cmp;
@@ -52,6 +53,8 @@ pub trait Node
 where
     Self: 'static + std::fmt::Debug + Sized,
 {
+    const CUSTOM_MEASURE: bool;
+
     fn parent(&mut self) -> Option<&mut Self>;
     fn children(&mut self) -> &mut Vec<Self>;
     fn style(&mut self) -> &mut Style;
@@ -66,6 +69,7 @@ where
     fn resolved(&mut self) -> &mut ResolvedDimensions;
 
     fn increment_generation();
+    fn current_generation(&self) -> u32;
 
     fn is_style_dim_defined(&mut self, axis: FlexDirection, parent_size: R32) -> bool {
         parent_size.is_nan() || match self.resolved()[axis.dimension()] {
@@ -128,6 +132,11 @@ where
         parent_height: R32,
         parent_direction: Direction,
     ) {
+        // Increment the generation count. This will force the recursive routine to
+        // visit
+        // all dirty nodes at least once. Subsequent visits will be skipped if the
+        // input
+        // parameters don't change.
         Self::increment_generation();
 
         self.resolve_dimensions();
@@ -174,196 +183,219 @@ where
                 }
             };
 
-        // TODO(anp): get this compiling
-        // let did_something_wat = self.layout_node_internal(
-        //     width,
-        //     height,
-        //     parent_direction,
-        //     width_measure_mode,
-        //     height_measure_mode,
-        //     parent_width,
-        //     parent_height,
-        //     true,
-        //     "initial",
-        // );
+        let did_something_wat = self.layout_node_internal(
+            width.unwrap(),
+            height.unwrap(),
+            parent_direction,
+            width_measure_mode,
+            height_measure_mode,
+            parent_width,
+            parent_height,
+            true,
+            "initial",
+        );
 
-        // if did_something_wat {
-        //     self.set_position(
-        //         self.layout().direction,
-        //         parent_width,
-        //         parent_height,
-        //         parent_width,
-        //     );
+        if did_something_wat {
+            self.set_position(
+                self.layout().direction,
+                parent_width,
+                parent_height,
+                parent_width,
+            );
 
-        //     YGRoundToPixelGrid(node, (*(*node).config).pointScaleFactor, 0.0f32, 0.0f32);
-        // };
+            // FIXME(anp): uncomment
+            // YGRoundToPixelGrid(node, (*(*node).config).pointScaleFactor, 0.0f32, 0.0f32);
+        };
     }
 
-    // fn layout_node_internal(
-    //     &mut self,
-    //     availableWidth: R32,
-    //     availableHeight: R32,
-    //     parentDirection: Direction,
-    //     widthMeasureMode: MeasureMode,
-    //     heightMeasureMode: MeasureMode,
-    //     parentWidth: R32,
-    //     parentHeight: R32,
-    //     performLayout: bool,
-    //     reason: &str,
-    // ) -> bool {
-    //     trace!("layout for reason {} on node {:?}", reason, node);
-    //     let mut layout: *mut YGLayout_0 = &mut (*node).layout as *mut YGLayout_0;
-    //     gDepth = gDepth.wrapping_add(1);
-    //     let needToVisitNode: bool = (*node).isDirty
-    //         && (*layout).generationCount != gCurrentGenerationCount
-    //         || (*layout).lastParentDirection != parentDirection;
-    //     if needToVisitNode {
-    //         (*layout).nextCachedMeasurementsIndex = 0;
-    //         (*layout).cachedLayout.widthMeasureMode = None;
-    //         (*layout).cachedLayout.heightMeasureMode = None;
-    //         (*layout).cachedLayout.computedWidth = -1.0;
-    //         (*layout).cachedLayout.computedHeight = -1.0;
-    //     };
-    //     let mut cachedResults: *mut YGCachedMeasurement_0 = 0 as *mut YGCachedMeasurement_0;
-    //     if (*node).measure.is_some() {
-    //         let marginAxisRow: R32 = YGNodeMarginForAxis(node, FlexDirection::Row, parentWidth);
-    //         let marginAxisColumn: R32 =
-    //             YGNodeMarginForAxis(node, FlexDirection::Column, parentWidth);
-    //         if YGNodeCanUseCachedMeasurement(
-    //             widthMeasureMode,
-    //             availableWidth,
-    //             heightMeasureMode,
-    //             availableHeight,
-    //             (*layout).cachedLayout.widthMeasureMode,
-    //             (*layout).cachedLayout.availableWidth,
-    //             (*layout).cachedLayout.heightMeasureMode,
-    //             (*layout).cachedLayout.availableHeight,
-    //             (*layout).cachedLayout.computedWidth,
-    //             (*layout).cachedLayout.computedHeight,
-    //             marginAxisRow,
-    //             marginAxisColumn,
-    //             config,
-    //         ) {
-    //             cachedResults = &mut (*layout).cachedLayout as *mut YGCachedMeasurement_0;
-    //         } else {
-    //             let mut i = 0usize;
-    //             'loop1: while i < (*layout).nextCachedMeasurementsIndex {
-    //                 {
-    //                     if YGNodeCanUseCachedMeasurement(
-    //                         widthMeasureMode,
-    //                         availableWidth,
-    //                         heightMeasureMode,
-    //                         availableHeight,
-    //                         (*layout).cachedMeasurements[i as usize].widthMeasureMode,
-    //                         (*layout).cachedMeasurements[i as usize].availableWidth,
-    //                         (*layout).cachedMeasurements[i as usize].heightMeasureMode,
-    //                         (*layout).cachedMeasurements[i as usize].availableHeight,
-    //                         (*layout).cachedMeasurements[i as usize].computedWidth,
-    //                         (*layout).cachedMeasurements[i as usize].computedHeight,
-    //                         marginAxisRow,
-    //                         marginAxisColumn,
-    //                         config,
-    //                     ) {
-    //                         cachedResults = &mut (*layout).cachedMeasurements[i as usize]
-    //                             as *mut YGCachedMeasurement_0;
-    //                         break 'loop1;
-    //                     };
-    //                 }
-    //                 i = i.wrapping_add(1);
-    //             }
-    //         };
-    //     } else {
-    //         if performLayout {
-    //             if YGFloatsEqual((*layout).cachedLayout.availableWidth, availableWidth)
-    //                 && YGFloatsEqual((*layout).cachedLayout.availableHeight, availableHeight)
-    //                 && (*layout).cachedLayout.widthMeasureMode == Some(widthMeasureMode)
-    //                 && (*layout).cachedLayout.heightMeasureMode == Some(heightMeasureMode)
-    //             {
-    //                 cachedResults = &mut (*layout).cachedLayout as *mut YGCachedMeasurement_0;
-    //             };
-    //         } else {
-    //             let mut i = 0usize;
-    //             'loop2: while i < (*layout).nextCachedMeasurementsIndex {
-    //                 {
-    //                     if YGFloatsEqual(
-    //                         (*layout).cachedMeasurements[i as usize].availableWidth,
-    //                         availableWidth,
-    //                     )
-    //                         && YGFloatsEqual(
-    //                             (*layout).cachedMeasurements[i as usize].availableHeight,
-    //                             availableHeight,
-    //                         )
-    //                         && (*layout).cachedMeasurements[i as usize].widthMeasureMode
-    //                             == Some(widthMeasureMode)
-    //                         && (*layout).cachedMeasurements[i as usize].heightMeasureMode
-    //                             == Some(heightMeasureMode)
-    //                     {
-    //                         cachedResults = &mut (*layout).cachedMeasurements[i as usize]
-    //                             as *mut YGCachedMeasurement_0;
-    //                         break 'loop2;
-    //                     };
-    //                 }
-    //                 i = i.wrapping_add(1);
-    //             }
-    //         };
-    //     };
-    //     if !needToVisitNode && !cachedResults.is_null() {
-    //         (*layout).measuredDimensions.width = (*cachedResults).computedWidth;
-    //         (*layout).measuredDimensions.height = (*cachedResults).computedHeight;
-    //     } else {
-    //         YGNodelayoutImpl(
-    //             node,
-    //             availableWidth,
-    //             availableHeight,
-    //             parentDirection,
-    //             widthMeasureMode,
-    //             heightMeasureMode,
-    //             parentWidth,
-    //             parentHeight,
-    //             performLayout,
-    //             config,
-    //         );
-    //         (*layout).lastParentDirection = parentDirection;
-    //         if cachedResults.is_null() {
-    //             if (*layout).nextCachedMeasurementsIndex == 16 {
-    //                 (*layout).nextCachedMeasurementsIndex = 0;
-    //             };
-    //             let mut newCacheEntry: *mut YGCachedMeasurement_0;
-    //             if performLayout {
-    //                 newCacheEntry = &mut (*layout).cachedLayout as *mut YGCachedMeasurement_0;
-    //             } else {
-    //                 newCacheEntry = &mut (*layout).cachedMeasurements
-    //                     [(*layout).nextCachedMeasurementsIndex as usize]
-    //                     as *mut YGCachedMeasurement_0;
-    //                 (*layout).nextCachedMeasurementsIndex =
-    //                     (*layout).nextCachedMeasurementsIndex.wrapping_add(1);
-    //             };
-    //             (*newCacheEntry).availableWidth = availableWidth;
-    //             (*newCacheEntry).availableHeight = availableHeight;
-    //             (*newCacheEntry).widthMeasureMode = Some(widthMeasureMode);
-    //             (*newCacheEntry).heightMeasureMode = Some(heightMeasureMode);
-    //             (*newCacheEntry).computedWidth = (*layout).measuredDimensions.width;
-    //             (*newCacheEntry).computedHeight = (*layout).measuredDimensions.height;
-    //         };
-    //     };
-    //     if performLayout {
-    //         (*node).layout.dimensions[Dimension::Width as usize] =
-    //             (*node).layout.measuredDimensions.width;
-    //         (*node).layout.dimensions[Dimension::Height as usize] =
-    //             (*node).layout.measuredDimensions.height;
-    //         (*node).hasNewLayout = true;
-    //         (*node).isDirty = false;
-    //     };
-    //     gDepth = gDepth.wrapping_sub(1);
-    //     (*layout).generationCount = gCurrentGenerationCount;
-    //     return needToVisitNode || cachedResults.is_null();
-    // }
+    /// This is a wrapper around the YGNodelayoutImpl function. It determines whether the layout
+    /// request is redundant and can be skipped. Input parameters are the same as `YGNodelayoutImpl`
+    /// (see above). Return parameter is true if layout was performed, false if skipped.
+    fn layout_node_internal(
+        &mut self,
+        availableWidth: R32,
+        availableHeight: R32,
+        parent_direction: Direction,
+        width_measure_mode: Option<MeasureMode>,
+        height_measure_mode: Option<MeasureMode>,
+        parentWidth: R32,
+        parentHeight: R32,
+        performLayout: bool,
+        reason: &str,
+        // TODO(anp): make the return type an enum!!!!
+    ) -> bool {
+        trace!("layout for reason {} on node {:?}", reason, self);
+        let mut layout = self.layout();
+
+        // FIXME(anp): make this non-static wtf
+        // gDepth = gDepth.wrapping_add(1);
+
+        let need_to_visit_node = *self.dirty()
+            && layout.generation_count != self.current_generation()
+            || layout.last_parent_direction != parent_direction;
+
+        if need_to_visit_node {
+            // Invalidate the cached results.
+            layout.cached_layout = None;
+            layout.next_cached_measurements_index = 0;
+        };
+
+        let mut cached_results;
+        // Determine whether the results are already cached. We maintain a separate
+        // cache for layouts and measurements. A layout operation modifies the
+        // positions
+        // and dimensions for nodes in the subtree. The algorithm assumes that each
+        // node
+        // gets layed out a maximum of one time per tree layout, but multiple
+        // measurements
+        // may be required to resolve all of the flex dimensions.
+        // We handle nodes with measure functions specially here because they are the
+        // most
+        // expensive to measure, so it's worth avoiding redundant measurements if at
+        // all possible.
+        if Self::CUSTOM_MEASURE {
+            let marginAxisRow: R32 = YGNodeMarginForAxis(node, FlexDirection::Row, parentWidth);
+            let marginAxisColumn: R32 =
+                YGNodeMarginForAxis(node, FlexDirection::Column, parentWidth);
+            // First, try to use the layout cache.
+            if YGNodeCanUseCachedMeasurement(
+                width_measure_mode,
+                availableWidth,
+                height_measure_mode,
+                availableHeight,
+                (*layout).cached_layout.width_measure_mode,
+                (*layout).cached_layout.availableWidth,
+                (*layout).cached_layout.height_measure_mode,
+                (*layout).cached_layout.availableHeight,
+                (*layout).cached_layout.computedWidth,
+                (*layout).cached_layout.computedHeight,
+                marginAxisRow,
+                marginAxisColumn,
+                config,
+            ) {
+                cachedResults = &mut (*layout).cached_layout as *mut YGCachedMeasurement_0;
+            } else {
+                // Try to use the measurement cache.
+                let mut i = 0usize;
+                'loop1: while i < (*layout).next_cached_measurements_index {
+                    {
+                        if YGNodeCanUseCachedMeasurement(
+                            width_measure_mode,
+                            availableWidth,
+                            height_measure_mode,
+                            availableHeight,
+                            (*layout).cached_measurements[i as usize].width_measure_mode,
+                            (*layout).cached_measurements[i as usize].availableWidth,
+                            (*layout).cached_measurements[i as usize].height_measure_mode,
+                            (*layout).cached_measurements[i as usize].availableHeight,
+                            (*layout).cached_measurements[i as usize].computedWidth,
+                            (*layout).cached_measurements[i as usize].computedHeight,
+                            marginAxisRow,
+                            marginAxisColumn,
+                            config,
+                        ) {
+                            cachedResults = &mut (*layout).cached_measurements[i as usize]
+                                as *mut YGCachedMeasurement_0;
+                            break 'loop1;
+                        };
+                    }
+                    i = i.wrapping_add(1);
+                }
+            };
+        } else {
+            if performLayout {
+                if YGFloatsEqual((*layout).cached_layout.availableWidth, availableWidth)
+                    && YGFloatsEqual((*layout).cached_layout.availableHeight, availableHeight)
+                    && (*layout).cached_layout.width_measure_mode == Some(width_measure_mode)
+                    && (*layout).cached_layout.height_measure_mode == Some(height_measure_mode)
+                {
+                    cachedResults = &mut (*layout).cached_layout as *mut YGCachedMeasurement_0;
+                };
+            } else {
+                let mut i = 0usize;
+                'loop2: while i < (*layout).next_cached_measurements_index {
+                    {
+                        if YGFloatsEqual(
+                            (*layout).cached_measurements[i as usize].availableWidth,
+                            availableWidth,
+                        )
+                            && YGFloatsEqual(
+                                (*layout).cached_measurements[i as usize].availableHeight,
+                                availableHeight,
+                            )
+                            && (*layout).cached_measurements[i as usize].width_measure_mode
+                                == Some(width_measure_mode)
+                            && (*layout).cached_measurements[i as usize].height_measure_mode
+                                == Some(height_measure_mode)
+                        {
+                            cachedResults = &mut (*layout).cached_measurements[i as usize]
+                                as *mut YGCachedMeasurement_0;
+                            break 'loop2;
+                        };
+                    }
+                    i = i.wrapping_add(1);
+                }
+            };
+        };
+        if !need_to_visit_node && !cachedResults.is_null() {
+            (*layout).measured_dimensions.width = (*cachedResults).computedWidth;
+            (*layout).measured_dimensions.height = (*cachedResults).computedHeight;
+        } else {
+            YGNodelayoutImpl(
+                node,
+                availableWidth,
+                availableHeight,
+                parent_direction,
+                width_measure_mode,
+                height_measure_mode,
+                parentWidth,
+                parentHeight,
+                performLayout,
+                config,
+            );
+            (*layout).last_parent_direction = parent_direction;
+            if cachedResults.is_null() {
+                if (*layout).next_cached_measurements_index == 16 {
+                    (*layout).next_cached_measurements_index = 0;
+                };
+                let mut newCacheEntry: *mut YGCachedMeasurement_0;
+                if performLayout {
+                    // Use the single layout cache entry.
+                    newCacheEntry = &mut (*layout).cached_layout as *mut YGCachedMeasurement_0;
+                } else {
+                    // Allocate a new measurement cache entry.
+                    newCacheEntry = &mut (*layout).cached_measurements
+                        [(*layout).next_cached_measurements_index as usize]
+                        as *mut YGCachedMeasurement_0;
+                    (*layout).next_cached_measurements_index =
+                        (*layout).next_cached_measurements_index.wrapping_add(1);
+                };
+                (*newCacheEntry).availableWidth = availableWidth;
+                (*newCacheEntry).availableHeight = availableHeight;
+                (*newCacheEntry).width_measure_mode = Some(width_measure_mode);
+                (*newCacheEntry).height_measure_mode = Some(height_measure_mode);
+                (*newCacheEntry).computedWidth = (*layout).measured_dimensions.width;
+                (*newCacheEntry).computedHeight = (*layout).measured_dimensions.height;
+            };
+        };
+        if performLayout {
+            (*node).layout.dimensions[Dimension::Width as usize] =
+                (*node).layout.measured_dimensions.width;
+            (*node).layout.dimensions[Dimension::Height as usize] =
+                (*node).layout.measured_dimensions.height;
+            (*node).hasNewLayout = true;
+            (*node).isDirty = false;
+        };
+        gDepth = gDepth.wrapping_sub(1);
+        (*layout).generation_count = gCurrentGenerationCount;
+        return need_to_visit_node || cachedResults.is_null();
+    }
 
     fn mark_dirty(&mut self) {
         let dirty = *self.dirty();
         if !dirty {
             *self.dirty() = true;
-            self.layout().computedFlexBasis = None;
+            self.layout().computed_flex_basis = None;
 
             if let Some(p) = self.parent() {
                 p.mark_dirty();
@@ -400,6 +432,7 @@ where
         cross_size: R32,
         parent_width: R32,
     ) {
+        // Root nodes should be always layouted as LTR, so we don't return negative values.
         let direction_respecting_root: Direction = if self.parent().is_some() {
             direction
         } else {
@@ -438,6 +471,8 @@ where
             .unwrap_or(r32(0.0))
     }
 
+    // /// If both left and right are defined, then use left. Otherwise return
+    // /// +left or -right depending on which is defined.
     // fn YGNodeRelativePosition(&mut self, axis: FlexDirection, axisSize: R32) -> R32 {
     //     return if YGNodeIsLeadingPosDefined(node, axis) {
     //         YGNodeLeadingPosition(node, axis, axisSize)
@@ -461,10 +496,10 @@ where
 
     // static mut gDepth: uint32_t = 0i32 as uint32_t;
 
-    // fn YGNodeResolveDirection(&mut self, parentDirection: Direction) -> Direction {
+    // fn YGNodeResolveDirection(&mut self, parent_direction: Direction) -> Direction {
     //     if (*node).style.direction == Direction::Inherit {
-    //         return if parentDirection > Direction::Inherit {
-    //             parentDirection
+    //         return if parent_direction > Direction::Inherit {
+    //             parent_direction
     //         } else {
     //             Direction::LTR
     //         };
@@ -473,9 +508,9 @@ where
     //     };
     // }
     // fn YGNodeSetChildTrailingPosition(&mut self, child: Node, axis: FlexDirection) -> () {
-    //     let size: R32 = (*child).layout.measuredDimensions[DIM[axis as usize]];
+    //     let size: R32 = (*child).layout.measured_dimensions[DIM[axis as usize]];
     //     (*child).layout.position[trailing[axis as usize] as usize] =
-    //         (*node).layout.measuredDimensions[DIM[axis as usize]]
+    //         (*node).layout.measured_dimensions[DIM[axis as usize]]
     //             - size
     //             - (*child).layout.position[pos[axis as usize] as usize];
     // }
@@ -583,10 +618,13 @@ where
     //     if YGNodeIsStyleDimDefined(child, FlexDirection::Row, width) {
     //         childWidth = YGResolveValue((*child).resolvedDimensions.width, width) + marginRow;
     //     } else {
+    //         // If the child doesn't have a specified width, compute the width based
+    //         // on the left/right
+    //         // offsets if they're defined.
     //         if YGNodeIsLeadingPosDefined(child, FlexDirection::Row)
     //             && YGNodeIsTrailingPosDefined(child, FlexDirection::Row)
     //         {
-    //             childWidth = (*node).layout.measuredDimensions.width
+    //             childWidth = (*node).layout.measured_dimensions.width
     //                 - (YGNodeLeadingBorder(node, FlexDirection::Row)
     //                     + YGNodeTrailingBorder(node, FlexDirection::Row))
     //                 - (YGNodeLeadingPosition(child, FlexDirection::Row, width)
@@ -597,10 +635,13 @@ where
     //     if YGNodeIsStyleDimDefined(child, FlexDirection::Column, height) {
     //         childHeight = YGResolveValue((*child).resolvedDimensions.height, height) + marginColumn;
     //     } else {
+    //         // If the child doesn't have a specified height, compute the height
+    //         // based on the top/bottom
+    //         // offsets if they're defined.
     //         if YGNodeIsLeadingPosDefined(child, FlexDirection::Column)
     //             && YGNodeIsTrailingPosDefined(child, FlexDirection::Column)
     //         {
-    //             childHeight = (*node).layout.measuredDimensions.height
+    //             childHeight = (*node).layout.measured_dimensions.height
     //                 - (YGNodeLeadingBorder(node, FlexDirection::Column)
     //                     + YGNodeTrailingBorder(node, FlexDirection::Column))
     //                 - (YGNodeLeadingPosition(child, FlexDirection::Column, height)
@@ -609,6 +650,8 @@ where
     //                 YGNodeBoundAxis(child, FlexDirection::Column, childHeight, height, width);
     //         };
     //     };
+    //     // Exactly one dimension needs to be defined for us to be able to do aspect ratio
+    //     // calculation. One dimension being the anchor and the other being flexible.
     //     if childWidth.is_nan() || childHeight.is_nan() {
     //         if !(*child).style.aspect_ratio.is_nan() {
     //             if childWidth.is_nan() {
@@ -622,6 +665,7 @@ where
     //             };
     //         };
     //     };
+    //     // If we're still missing one or the other dimension, measure the content.
     //     if childWidth.is_nan() || childHeight.is_nan() {
     //         childWidthMeasureMode = if childWidth.is_nan() {
     //             MeasureMode::Undefined
@@ -633,6 +677,9 @@ where
     //         } else {
     //             MeasureMode::Exactly
     //         };
+    //         // If the size of the parent is defined then try to constrain the absolute child to that size
+    //         // as well. This allows text within the absolute child to wrap to the size of its parent.
+    //         // This is the same behavior as many browsers implement.
     //         if !isMainAxisRow
     //             && childWidth.is_nan()
     //             && widthMode != MeasureMode::Undefined
@@ -654,9 +701,9 @@ where
     //             "abs-measure",
     //             config,
     //         );
-    //         childWidth = (*child).layout.measuredDimensions.width
+    //         childWidth = (*child).layout.measured_dimensions.width
     //             + YGNodeMarginForAxis(child, FlexDirection::Row, width);
-    //         childHeight = (*child).layout.measuredDimensions.height
+    //         childHeight = (*child).layout.measured_dimensions.height
     //             + YGNodeMarginForAxis(child, FlexDirection::Column, width);
     //     };
     //     YGLayoutNodeInternal(
@@ -676,8 +723,8 @@ where
     //         && !YGNodeIsLeadingPosDefined(child, mainAxis)
     //     {
     //         (*child).layout.position[leading[mainAxis as usize] as usize] =
-    //             (*node).layout.measuredDimensions[DIM[mainAxis as usize]]
-    //                 - (*child).layout.measuredDimensions[DIM[mainAxis as usize]]
+    //             (*node).layout.measured_dimensions[DIM[mainAxis as usize]]
+    //                 - (*child).layout.measured_dimensions[DIM[mainAxis as usize]]
     //                 - YGNodeTrailingBorder(node, mainAxis)
     //                 - YGNodeTrailingMargin(child, mainAxis, width)
     //                 - YGNodeTrailingPosition(
@@ -690,16 +737,16 @@ where
     //             && (*node).style.justify_content == Justify::Center
     //         {
     //             (*child).layout.position[leading[mainAxis as usize] as usize] =
-    //                 ((*node).layout.measuredDimensions[DIM[mainAxis as usize]]
-    //                     - (*child).layout.measuredDimensions[DIM[mainAxis as usize]])
+    //                 ((*node).layout.measured_dimensions[DIM[mainAxis as usize]]
+    //                     - (*child).layout.measured_dimensions[DIM[mainAxis as usize]])
     //                     / 2.0f32;
     //         } else {
     //             if !YGNodeIsLeadingPosDefined(child, mainAxis)
     //                 && (*node).style.justify_content == Justify::FlexEnd
     //             {
     //                 (*child).layout.position[leading[mainAxis as usize] as usize] =
-    //                     (*node).layout.measuredDimensions[DIM[mainAxis as usize]]
-    //                         - (*child).layout.measuredDimensions[DIM[mainAxis as usize]];
+    //                     (*node).layout.measured_dimensions[DIM[mainAxis as usize]]
+    //                         - (*child).layout.measured_dimensions[DIM[mainAxis as usize]];
     //             };
     //         };
     //     };
@@ -707,8 +754,8 @@ where
     //         && !YGNodeIsLeadingPosDefined(child, crossAxis)
     //     {
     //         (*child).layout.position[leading[crossAxis as usize] as usize] =
-    //             (*node).layout.measuredDimensions[DIM[crossAxis as usize]]
-    //                 - (*child).layout.measuredDimensions[DIM[crossAxis as usize]]
+    //             (*node).layout.measured_dimensions[DIM[crossAxis as usize]]
+    //                 - (*child).layout.measured_dimensions[DIM[crossAxis as usize]]
     //                 - YGNodeTrailingBorder(node, crossAxis)
     //                 - YGNodeTrailingMargin(child, crossAxis, width)
     //                 - YGNodeTrailingPosition(
@@ -721,8 +768,8 @@ where
     //             && YGNodeAlignItem(node, child) == Align::Center
     //         {
     //             (*child).layout.position[leading[crossAxis as usize] as usize] =
-    //                 ((*node).layout.measuredDimensions[DIM[crossAxis as usize]]
-    //                     - (*child).layout.measuredDimensions[DIM[crossAxis as usize]])
+    //                 ((*node).layout.measured_dimensions[DIM[crossAxis as usize]]
+    //                     - (*child).layout.measured_dimensions[DIM[crossAxis as usize]])
     //                     / 2.0f32;
     //         } else {
     //             if !YGNodeIsLeadingPosDefined(child, crossAxis)
@@ -730,8 +777,8 @@ where
     //                     ^ ((*node).style.flex_wrap == YGWrapWrapReverse)
     //             {
     //                 (*child).layout.position[leading[crossAxis as usize] as usize] =
-    //                     (*node).layout.measuredDimensions[DIM[crossAxis as usize]]
-    //                         - (*child).layout.measuredDimensions[DIM[crossAxis as usize]];
+    //                     (*node).layout.measured_dimensions[DIM[crossAxis as usize]]
+    //                         - (*child).layout.measured_dimensions[DIM[crossAxis as usize]];
     //             };
     //         };
     //     };
@@ -760,6 +807,8 @@ where
     //                 .is_some())
     // }
 
+    // /// Like bound_axis_within_min_and_max but also ensures that the value doesn't go below the
+    // /// padding and border amount.
     // fn YGNodeBoundAxis(
     //     &mut self,
     //     axis: FlexDirection,
@@ -812,8 +861,8 @@ where
     //     if (*node).baseline.is_some() {
     //         let baseline: R32 = (*node).baseline.expect("non-null function pointer")(
     //             node,
-    //             (*node).layout.measuredDimensions.width,
-    //             (*node).layout.measuredDimensions.height,
+    //             (*node).layout.measured_dimensions.width,
+    //             (*node).layout.measured_dimensions.height,
     //         );
     //         YGAssertWithNode(
     //             node,
@@ -851,13 +900,13 @@ where
     //         }
     //     }
     //     if baselineChild.is_null() {
-    //         return (*node).layout.measuredDimensions.height;
+    //         return (*node).layout.measured_dimensions.height;
     //     };
     //     let baseline: R32 = YGBaseline(baselineChild);
     //     return baseline + (*baselineChild).layout.position[Edge::Top as usize];
     // }
     // fn YGNodeIsLayoutDimDefined(&mut self, axis: FlexDirection) -> bool {
-    //     let value: R32 = (*node).layout.measuredDimensions[DIM[axis as usize]];
+    //     let value: R32 = (*node).layout.measured_dimensions[DIM[axis as usize]];
     //     return !value.is_nan() && value >= 0.0f32;
     // }
     // fn YGIsBaselineLayout(&mut self) -> bool {
@@ -885,7 +934,7 @@ where
     //     return false;
     // }
     // fn YGNodeDimWithMargin(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-    //     return (*node).layout.measuredDimensions[DIM[axis as usize]]
+    //     return (*node).layout.measured_dimensions[DIM[axis as usize]]
     //         + YGNodeLeadingMargin(node, axis, widthSize)
     //         + YGNodeTrailingMargin(node, axis, widthSize);
     // }
@@ -904,6 +953,7 @@ where
     //     };
     // }
     // fn YGResolveFlexGrow(&mut self) -> R32 {
+    //     // Root nodes flexGrow should always be 0
     //     if (*node).parent.is_null() {
     //         return 0.0;
     //     };
@@ -917,6 +967,7 @@ where
     // }
 
     // fn YGNodeResolveFlexShrink(&mut self) -> R32 {
+    //     // Root nodes flexShrink should always be 0
     //     if (*node).parent.is_null() {
     //         return 0.0;
     //     };
@@ -970,31 +1021,35 @@ where
     //     let isColumnStyleDimDefined: bool =
     //         YGNodeIsStyleDimDefined(child, FlexDirection::Column, parentHeight);
     //     if !resolvedFlexBasis.is_nan() && !mainAxisSize.is_nan() {
-    //         if (*child).layout.computedFlexBasis.is_nan()
+    //         if (*child).layout.computed_flex_basis.is_nan()
     //             || YGConfigIsExperimentalFeatureEnabled(
     //                 (*child).config,
     //                 YGExperimentalFeatureWebFlexBasis,
     //             )
-    //                 && (*child).layout.computedFlexBasisGeneration != gCurrentGenerationCount
+    //                 && (*child).layout.computed_flex_basis_generation != gCurrentGenerationCount
     //         {
-    //             (*child).layout.computedFlexBasis = resolvedFlexBasis
+    //             (*child).layout.computed_flex_basis = resolvedFlexBasis
     //                 .max(YGNodePaddingAndBorderForAxis(child, mainAxis, parentWidth));
     //         };
     //     } else {
     //         if isMainAxisRow && isRowStyleDimDefined {
-    //             (*child).layout.computedFlexBasis =
+    //             // The width is definite, so use that as the flex basis.
+    //             (*child).layout.computed_flex_basis =
     //                 YGResolveValue((*child).resolvedDimensions.width, parentWidth).max(
     //                     YGNodePaddingAndBorderForAxis(child, FlexDirection::Row, parentWidth),
     //                 );
     //         } else {
     //             if !isMainAxisRow && isColumnStyleDimDefined {
-    //                 (*child).layout.computedFlexBasis = YGResolveValue(
+    //                 // The height is definite, so use that as the flex basis.
+    //                 (*child).layout.computed_flex_basis = YGResolveValue(
     //                     (*child).resolvedDimensions.height,
     //                     parentHeight,
     //                 ).max(
     //                     YGNodePaddingAndBorderForAxis(child, FlexDirection::Column, parentWidth),
     //                 );
     //             } else {
+    //                 // Compute the flex basis and hypothetical main size (i.e. the clamped
+    //                 // flex basis).
     //                 childWidth = ::std::f32::NAN;
     //                 childHeight = ::std::f32::NAN;
     //                 childWidthMeasureMode = MeasureMode::Undefined;
@@ -1014,6 +1069,8 @@ where
     //                             + marginColumn;
     //                     childHeightMeasureMode = MeasureMode::Exactly;
     //                 };
+    //                 // The W3C spec doesn't say anything about the 'overflow' property,
+    //                 // but all major browsers appear to implement the following logic.
     //                 if !isMainAxisRow && (*node).style.overflow == Overflow::Scroll
     //                     || (*node).style.overflow != Overflow::Scroll
     //                 {
@@ -1042,6 +1099,9 @@ where
     //                         };
     //                     };
     //                 };
+    //                 // If child has no defined size in the cross axis and is set to stretch,
+    //                 // set the cross
+    //                 // axis to be measured exactly with the available inner width
     //                 let hasExactWidth: bool = !width.is_nan() && widthMode == MeasureMode::Exactly;
     //                 let childWidthStretch: bool = YGNodeAlignItem(node, child) == Align::Stretch
     //                     && childWidthMeasureMode != MeasureMode::Exactly;
@@ -1099,13 +1159,13 @@ where
     //                     "measure",
     //                     config,
     //                 );
-    //                 (*child).layout.computedFlexBasis = (*child).layout.measuredDimensions
+    //                 (*child).layout.computed_flex_basis = (*child).layout.measured_dimensions
     //                     [DIM[mainAxis as usize]]
     //                     .max(YGNodePaddingAndBorderForAxis(child, mainAxis, parentWidth));
     //             };
     //         };
     //     };
-    //     (*child).layout.computedFlexBasisGeneration = gCurrentGenerationCount;
+    //     (*child).layout.computed_flex_basis_generation = gCurrentGenerationCount;
     // }
     // fn YGNodeResolveFlexBasisPtr(&mut self) -> *const Value {
     //     if (*node).style.flex_basis.unit != UnitType::Auto
@@ -1154,23 +1214,23 @@ where
     //     &mut self,
     //     availableWidth: R32,
     //     availableHeight: R32,
-    //     widthMeasureMode: MeasureMode,
-    //     heightMeasureMode: MeasureMode,
+    //     width_measure_mode: MeasureMode,
+    //     height_measure_mode: MeasureMode,
     //     parentWidth: R32,
     //     parentHeight: R32,
     // ) -> bool {
-    //     if widthMeasureMode == MeasureMode::AtMost && availableWidth <= 0.0f32
-    //         || heightMeasureMode == MeasureMode::AtMost && availableHeight <= 0.0f32
-    //         || widthMeasureMode == MeasureMode::Exactly && heightMeasureMode == MeasureMode::Exactly
+    //     if width_measure_mode == MeasureMode::AtMost && availableWidth <= 0.0f32
+    //         || height_measure_mode == MeasureMode::AtMost && availableHeight <= 0.0f32
+    //         || width_measure_mode == MeasureMode::Exactly && height_measure_mode == MeasureMode::Exactly
     //     {
     //         let marginAxisColumn: R32 =
     //             YGNodeMarginForAxis(node, FlexDirection::Column, parentWidth);
     //         let marginAxisRow: R32 = YGNodeMarginForAxis(node, FlexDirection::Row, parentWidth);
-    //         (*node).layout.measuredDimensions.width = YGNodeBoundAxis(
+    //         (*node).layout.measured_dimensions.width = YGNodeBoundAxis(
     //             node,
     //             FlexDirection::Row,
     //             if availableWidth.is_nan()
-    //                 || widthMeasureMode == MeasureMode::AtMost && availableWidth < 0.0f32
+    //                 || width_measure_mode == MeasureMode::AtMost && availableWidth < 0.0f32
     //             {
     //                 0.0f32
     //             } else {
@@ -1179,11 +1239,11 @@ where
     //             parentWidth,
     //             parentWidth,
     //         );
-    //         (*node).layout.measuredDimensions.height = YGNodeBoundAxis(
+    //         (*node).layout.measured_dimensions.height = YGNodeBoundAxis(
     //             node,
     //             FlexDirection::Column,
     //             if availableHeight.is_nan()
-    //                 || heightMeasureMode == MeasureMode::AtMost && availableHeight < 0.0f32
+    //                 || height_measure_mode == MeasureMode::AtMost && availableHeight < 0.0f32
     //             {
     //                 0.0f32
     //             } else {
@@ -1196,12 +1256,14 @@ where
     //     };
     //     return false;
     // }
+    // /// For nodes with no children, use the available values if they were provided,
+    // /// or the minimum size as indicated by the padding and border sizes.
     // fn YGNodeEmptyContainerSetMeasuredDimensions(
     //     &mut self,
     //     availableWidth: R32,
     //     availableHeight: R32,
-    //     widthMeasureMode: MeasureMode,
-    //     heightMeasureMode: MeasureMode,
+    //     width_measure_mode: MeasureMode,
+    //     height_measure_mode: MeasureMode,
     //     parentWidth: R32,
     //     parentHeight: R32,
     // ) -> () {
@@ -1211,10 +1273,10 @@ where
     //         YGNodePaddingAndBorderForAxis(node, FlexDirection::Column, parentWidth);
     //     let marginAxisRow: R32 = YGNodeMarginForAxis(node, FlexDirection::Row, parentWidth);
     //     let marginAxisColumn: R32 = YGNodeMarginForAxis(node, FlexDirection::Column, parentWidth);
-    //     (*node).layout.measuredDimensions.width = YGNodeBoundAxis(
+    //     (*node).layout.measured_dimensions.width = YGNodeBoundAxis(
     //         node,
     //         FlexDirection::Row,
-    //         if widthMeasureMode == MeasureMode::Undefined || widthMeasureMode == MeasureMode::AtMost
+    //         if width_measure_mode == MeasureMode::Undefined || width_measure_mode == MeasureMode::AtMost
     //         {
     //             paddingAndBorderAxisRow
     //         } else {
@@ -1223,11 +1285,11 @@ where
     //         parentWidth,
     //         parentWidth,
     //     );
-    //     (*node).layout.measuredDimensions.height = YGNodeBoundAxis(
+    //     (*node).layout.measured_dimensions.height = YGNodeBoundAxis(
     //         node,
     //         FlexDirection::Column,
-    //         if heightMeasureMode == MeasureMode::Undefined
-    //             || heightMeasureMode == MeasureMode::AtMost
+    //         if height_measure_mode == MeasureMode::Undefined
+    //             || height_measure_mode == MeasureMode::AtMost
     //         {
     //             paddingAndBorderAxisColumn
     //         } else {
@@ -1241,8 +1303,8 @@ where
     //     &mut self,
     //     availableWidth: R32,
     //     availableHeight: R32,
-    //     widthMeasureMode: MeasureMode,
-    //     heightMeasureMode: MeasureMode,
+    //     width_measure_mode: MeasureMode,
+    //     height_measure_mode: MeasureMode,
     //     parentWidth: R32,
     //     parentHeight: R32,
     // ) -> () {
@@ -1258,6 +1320,7 @@ where
     //     let marginAxisRow: R32 = YGNodeMarginForAxis(node, FlexDirection::Row, availableWidth);
     //     let marginAxisColumn: R32 =
     //         YGNodeMarginForAxis(node, FlexDirection::Column, availableWidth);
+    //     // We want to make sure we don't call measure with negative size
     //     let innerWidth: R32 = if availableWidth.is_nan() {
     //         availableWidth
     //     } else {
@@ -1268,15 +1331,16 @@ where
     //     } else {
     //         (0.0f32).max(availableHeight - marginAxisColumn - paddingAndBorderAxisColumn)
     //     };
-    //     if widthMeasureMode == MeasureMode::Exactly && heightMeasureMode == MeasureMode::Exactly {
-    //         (*node).layout.measuredDimensions.width = YGNodeBoundAxis(
+    //     if width_measure_mode == MeasureMode::Exactly && height_measure_mode == MeasureMode::Exactly {
+    //         // Don't bother sizing the text if both dimensions are already defined.
+    //         (*node).layout.measured_dimensions.width = YGNodeBoundAxis(
     //             node,
     //             FlexDirection::Row,
     //             availableWidth - marginAxisRow,
     //             parentWidth,
     //             parentWidth,
     //         );
-    //         (*node).layout.measuredDimensions.height = YGNodeBoundAxis(
+    //         (*node).layout.measured_dimensions.height = YGNodeBoundAxis(
     //             node,
     //             FlexDirection::Column,
     //             availableHeight - marginAxisColumn,
@@ -1284,18 +1348,19 @@ where
     //             parentWidth,
     //         );
     //     } else {
+    //         // Measure the text under the current constraints.
     //         let measuredSize: Size = (*node).measure.expect("non-null function pointer")(
     //             node,
     //             innerWidth,
-    //             widthMeasureMode,
+    //             width_measure_mode,
     //             innerHeight,
-    //             heightMeasureMode,
+    //             height_measure_mode,
     //         );
-    //         (*node).layout.measuredDimensions.width = YGNodeBoundAxis(
+    //         (*node).layout.measured_dimensions.width = YGNodeBoundAxis(
     //             node,
     //             FlexDirection::Row,
-    //             if widthMeasureMode == MeasureMode::Undefined
-    //                 || widthMeasureMode == MeasureMode::AtMost
+    //             if width_measure_mode == MeasureMode::Undefined
+    //                 || width_measure_mode == MeasureMode::AtMost
     //             {
     //                 measuredSize.width + paddingAndBorderAxisRow
     //             } else {
@@ -1304,11 +1369,11 @@ where
     //             availableWidth,
     //             availableWidth,
     //         );
-    //         (*node).layout.measuredDimensions.height = YGNodeBoundAxis(
+    //         (*node).layout.measured_dimensions.height = YGNodeBoundAxis(
     //             node,
     //             FlexDirection::Column,
-    //             if heightMeasureMode == MeasureMode::Undefined
-    //                 || heightMeasureMode == MeasureMode::AtMost
+    //             if height_measure_mode == MeasureMode::Undefined
+    //                 || height_measure_mode == MeasureMode::AtMost
     //             {
     //                 measuredSize.height + paddingAndBorderAxisColumn
     //             } else {
@@ -1617,12 +1682,12 @@ where
     //      or YGUndefined if the size is not available; interpretation depends on
     //      layout
     //      flags
-    //    - parentDirection: the inline (text) direction within the parent
+    //    - parent_direction: the inline (text) direction within the parent
     //    (left-to-right or
     //      right-to-left)
-    //    - widthMeasureMode: indicates the sizing rules for the width (see below
+    //    - width_measure_mode: indicates the sizing rules for the width (see below
     //    for explanation)
-    //    - heightMeasureMode: indicates the sizing rules for the height (see below
+    //    - height_measure_mode: indicates the sizing rules for the height (see below
     //    for explanation)
     //    - performLayout: specifies whether the caller is interested in just the
     //    dimensions
@@ -1635,11 +1700,11 @@ where
     //    elements. It uses the
     //    information in node.style, which is treated as a read-only input. It is
     //    responsible for
-    //    setting the layout.direction and layout.measuredDimensions fields for the
+    //    setting the layout.direction and layout.measured_dimensions fields for the
     //    input node as well
     //    as the layout.position and layout.lineIndex fields for its child nodes.
     //    The
-    //    layout.measuredDimensions field includes any border or padding for the
+    //    layout.measured_dimensions field includes any border or padding for the
     //    node but does
     //    not include margins.
     //
@@ -1664,9 +1729,9 @@ where
     //     &mut self,
     //     availableWidth: R32,
     //     availableHeight: R32,
-    //     parentDirection: Direction,
-    //     widthMeasureMode: MeasureMode,
-    //     heightMeasureMode: MeasureMode,
+    //     parent_direction: Direction,
+    //     width_measure_mode: MeasureMode,
+    //     height_measure_mode: MeasureMode,
     //     parentWidth: R32,
     //     parentHeight: R32,
     //     performLayout: bool,
@@ -1674,24 +1739,24 @@ where
     // ) {
     //     assert!(
     //         if availableWidth.is_nan() {
-    //             widthMeasureMode == MeasureMode::Undefined
+    //             width_measure_mode == MeasureMode::Undefined
     //         } else {
     //             true
     //         },
-    //         "availableWidth is indefinite so widthMeasureMode must be MeasureMode::Undefined"
+    //         "availableWidth is indefinite so width_measure_mode must be MeasureMode::Undefined"
     //     );
 
     //     assert!(
     //         if availableHeight.is_nan() {
-    //             heightMeasureMode == MeasureMode::Undefined
+    //             height_measure_mode == MeasureMode::Undefined
     //         } else {
     //             true
     //         },
-    //         "availableHeight is indefinite so heightMeasureMode must be MeasureMode::Undefined"
+    //         "availableHeight is indefinite so height_measure_mode must be MeasureMode::Undefined"
     //     );
 
     //     // // Set the resolved resolution in the node's layout.
-    //     let direction = YGNodeResolveDirection(node, parentDirection);
+    //     let direction = YGNodeResolveDirection(node, parent_direction);
     //     (*node).layout.direction = direction;
 
     //     let flexRowDirection = YGResolveFlexDirection(FlexDirection::Row, direction);
@@ -1726,8 +1791,8 @@ where
     //             node,
     //             availableWidth,
     //             availableHeight,
-    //             widthMeasureMode,
-    //             heightMeasureMode,
+    //             width_measure_mode,
+    //             height_measure_mode,
     //             parentWidth,
     //             parentHeight,
     //         );
@@ -1740,8 +1805,8 @@ where
     //             node,
     //             availableWidth,
     //             availableHeight,
-    //             widthMeasureMode,
-    //             heightMeasureMode,
+    //             width_measure_mode,
+    //             height_measure_mode,
     //             parentWidth,
     //             parentHeight,
     //         );
@@ -1755,8 +1820,8 @@ where
     //             node,
     //             availableWidth,
     //             availableHeight,
-    //             widthMeasureMode,
-    //             heightMeasureMode,
+    //             width_measure_mode,
+    //             height_measure_mode,
     //             parentWidth,
     //             parentHeight,
     //         ) {
@@ -1767,7 +1832,7 @@ where
     //     YGCloneChildrenIfNeeded(node);
 
     //     // Reset layout flags, as they could have changed.
-    //     (*node).layout.hadOverflow = false;
+    //     (*node).layout.had_overflow = false;
 
     //     // STEP 1: CALCULATE VALUES FOR REMAINDER OF ALGORITHM
     //     let mainAxis = YGResolveFlexDirection((*node).style.flex_direction, direction);
@@ -1797,14 +1862,14 @@ where
     //     let paddingAndBorderAxisCross = YGNodePaddingAndBorderForAxis(node, crossAxis, parentWidth);
 
     //     let mut measureModeMainDim = if isMainAxisRow {
-    //         widthMeasureMode
+    //         width_measure_mode
     //     } else {
-    //         heightMeasureMode
+    //         height_measure_mode
     //     };
     //     let measureModeCrossDim = if isMainAxisRow {
-    //         heightMeasureMode
+    //         height_measure_mode
     //     } else {
-    //         widthMeasureMode
+    //         width_measure_mode
     //     };
 
     //     let paddingAndBorderAxisRow = if isMainAxisRow {
@@ -1872,7 +1937,7 @@ where
     //     };
 
     //     // If there is only one child with flex_grow + flex_shrink it means we can set the
-    //     // computedFlexBasis to 0 instead of measuring and shrinking / flexing the child to exactly
+    //     // computed_flex_basis to 0 instead of measuring and shrinking / flexing the child to exactly
     //     // match the remaining space
     //     let mut singleFlexChild: Node = ::std::ptr::null_mut();
     //     if measureModeMainDim == MeasureMode::Exactly {
@@ -1930,25 +1995,25 @@ where
     //                 (*child).nextChild = ::std::ptr::null_mut();
     //             } else {
     //                 if child == singleFlexChild {
-    //                     (*child).layout.computedFlexBasisGeneration = gCurrentGenerationCount;
-    //                     (*child).layout.computedFlexBasis = 0.0;
+    //                     (*child).layout.computed_flex_basis_generation = gCurrentGenerationCount;
+    //                     (*child).layout.computed_flex_basis = 0.0;
     //                 } else {
     //                     YGNodeComputeFlexBasisForChild(
     //                         node,
     //                         child,
     //                         availableInnerWidth,
-    //                         widthMeasureMode,
+    //                         width_measure_mode,
     //                         availableInnerHeight,
     //                         availableInnerWidth,
     //                         availableInnerHeight,
-    //                         heightMeasureMode,
+    //                         height_measure_mode,
     //                         direction,
     //                         config,
     //                     );
     //                 }
     //             }
 
-    //             totalOuterFlexBasis += (*child).layout.computedFlexBasis;
+    //             totalOuterFlexBasis += (*child).layout.computed_flex_basis;
     //             totalOuterFlexBasis += YGNodeMarginForAxis(child, mainAxis, availableInnerWidth);
     //         }
 
@@ -2012,7 +2077,7 @@ where
     //                     let flexBasisWithMaxConstraints = YGResolveValue(
     //                         &(*child).style.max_dimensions[DIM[mainAxis as usize]],
     //                         mainAxisParentSize,
-    //                     ).min((*child).layout.computedFlexBasis);
+    //                     ).min((*child).layout.computed_flex_basis);
     //                     let flexBasisWithMinAndMaxConstraints = YGResolveValue(
     //                         &(*child).style.min_dimensions[DIM[mainAxis as usize]],
     //                         mainAxisParentSize,
@@ -2041,7 +2106,7 @@ where
 
     //                         // Unlike the grow factor, the shrink factor is scaled relative to the child dimension.
     //                         totalFlexShrinkScaledFactors +=
-    //                             -YGNodeResolveFlexShrink(child) * (*child).layout.computedFlexBasis;
+    //                             -YGNodeResolveFlexShrink(child) * (*child).layout.computed_flex_basis;
     //                     }
 
     //                     // Store a private linked list of children that need to be layed out.
@@ -2156,7 +2221,7 @@ where
     //                             &(*currentRelativeChild).style.min_dimensions
     //                                 [DIM[mainAxis as usize]],
     //                             mainAxisParentSize,
-    //                         ).max((*currentRelativeChild).layout.computedFlexBasis),
+    //                         ).max((*currentRelativeChild).layout.computed_flex_basis),
     //                     );
 
     //                     if remainingFreeSpace < 0.0 {
@@ -2233,7 +2298,7 @@ where
     //                             &(*currentRelativeChild).style.min_dimensions
     //                                 [DIM[mainAxis as usize]],
     //                             mainAxisParentSize,
-    //                         ).max((*currentRelativeChild).layout.computedFlexBasis),
+    //                         ).max((*currentRelativeChild).layout.computed_flex_basis),
     //                     );
     //                     let mut updatedMainSize = childFlexBasis;
 
@@ -2409,14 +2474,14 @@ where
     //                         "flex",
     //                         config,
     //                     );
-    //                     (*node).layout.hadOverflow |= (*currentRelativeChild).layout.hadOverflow;
+    //                     (*node).layout.had_overflow |= (*currentRelativeChild).layout.had_overflow;
 
     //                     currentRelativeChild = (*currentRelativeChild).nextChild;
     //                 }
     //             }
 
     //             remainingFreeSpace = originalRemainingFreeSpace + deltaFreeSpace;
-    //             (*node).layout.hadOverflow |= remainingFreeSpace < 0.0;
+    //             (*node).layout.had_overflow |= remainingFreeSpace < 0.0;
 
     //             // STEP 6: MAIN-AXIS JUSTIFICATION & CROSS-AXIS SIZE DETERMINATION
 
@@ -2529,7 +2594,7 @@ where
     //                             // they weren't computed. This means we can't call YGNodeDimWithMargin.
     //                             mainDim += betweenMainDim
     //                                 + YGNodeMarginForAxis(child, mainAxis, availableInnerWidth)
-    //                                 + (*child).layout.computedFlexBasis;
+    //                                 + (*child).layout.computed_flex_basis;
     //                             crossDim = availableInnerCrossDim;
     //                         } else {
     //                             // The main dimension is the sum of all the elements dimension plus the spacing.
@@ -2643,7 +2708,7 @@ where
     //                                 availableInnerCrossDim,
     //                             ) {
     //                                 let mut childMainSize =
-    //                                     (*child).layout.measuredDimensions[DIM[mainAxis as usize]];
+    //                                     (*child).layout.measured_dimensions[DIM[mainAxis as usize]];
     //                                 let mut childCrossSize = if !(*child)
     //                                     .style
     //                                     .aspect_ratio
@@ -2804,7 +2869,7 @@ where
     //                         }
     //                         if YGNodeIsLayoutDimDefined(child, crossAxis) {
     //                             lineHeight = lineHeight.max(
-    //                                 (*child).layout.measuredDimensions[DIM[crossAxis as usize]]
+    //                                 (*child).layout.measured_dimensions[DIM[crossAxis as usize]]
     //                                     + YGNodeMarginForAxis(
     //                                         child,
     //                                         crossAxis,
@@ -2819,7 +2884,7 @@ where
     //                                     FlexDirection::Column,
     //                                     availableInnerWidth,
     //                                 );
-    //                             let descent = (*child).layout.measuredDimensions.height
+    //                             let descent = (*child).layout.measured_dimensions.height
     //                                 + YGNodeMarginForAxis(
     //                                     child,
     //                                     FlexDirection::Column,
@@ -2860,11 +2925,11 @@ where
     //                                             crossAxis,
     //                                             availableInnerWidth,
     //                                         )
-    //                                         - (*child).layout.measuredDimensions
+    //                                         - (*child).layout.measured_dimensions
     //                                             [DIM[crossAxis as usize]];
     //                                 }
     //                                 Align::Center => {
-    //                                     let mut childHeight = (*child).layout.measuredDimensions
+    //                                     let mut childHeight = (*child).layout.measured_dimensions
     //                                         [DIM[crossAxis as usize]];
     //                                     (*child).layout.position
     //                                         [pos[crossAxis as usize] as usize] =
@@ -2887,7 +2952,7 @@ where
     //                                         availableInnerCrossDim,
     //                                     ) {
     //                                         let childWidth = if isMainAxisRow {
-    //                                             ((*child).layout.measuredDimensions.width
+    //                                             ((*child).layout.measured_dimensions.width
     //                                                 + YGNodeMarginForAxis(
     //                                                     child,
     //                                                     mainAxis,
@@ -2898,7 +2963,7 @@ where
     //                                         };
 
     //                                         let childHeight = if !isMainAxisRow {
-    //                                             ((*child).layout.measuredDimensions.height
+    //                                             ((*child).layout.measured_dimensions.height
     //                                                 + YGNodeMarginForAxis(
     //                                                     child,
     //                                                     crossAxis,
@@ -2910,11 +2975,11 @@ where
 
     //                                         if !(YGFloatsEqual(
     //                                             childWidth,
-    //                                             (*child).layout.measuredDimensions.width,
+    //                                             (*child).layout.measured_dimensions.width,
     //                                         )
     //                                             && YGFloatsEqual(
     //                                                 childHeight,
-    //                                                 (*child).layout.measuredDimensions.height,
+    //                                                 (*child).layout.measured_dimensions.height,
     //                                             )) {
     //                                             YGLayoutNodeInternal(
     //                                                 child,
@@ -2953,14 +3018,14 @@ where
     //         }
 
     //         // STEP 9: COMPUTING FINAL DIMENSIONS
-    //         (*node).layout.measuredDimensions.width = YGNodeBoundAxis(
+    //         (*node).layout.measured_dimensions.width = YGNodeBoundAxis(
     //             node,
     //             FlexDirection::Row,
     //             availableWidth - marginAxisRow,
     //             parentWidth,
     //             parentWidth,
     //         );
-    //         (*node).layout.measuredDimensions.height = YGNodeBoundAxis(
+    //         (*node).layout.measured_dimensions.height = YGNodeBoundAxis(
     //             node,
     //             FlexDirection::Column,
     //             availableHeight - marginAxisColumn,
@@ -2976,7 +3041,7 @@ where
     //         {
     //             // Clamp the size to the min/max size, if specified, and make sure it
     //             // doesn't go below the padding and border amount.
-    //             (*node).layout.measuredDimensions[DIM[mainAxis as usize]] = YGNodeBoundAxis(
+    //             (*node).layout.measured_dimensions[DIM[mainAxis as usize]] = YGNodeBoundAxis(
     //                 node,
     //                 mainAxis,
     //                 maxLineMainDim,
@@ -2986,7 +3051,7 @@ where
     //         } else if measureModeMainDim == MeasureMode::AtMost
     //             && (*node).style.overflow == Overflow::Scroll
     //         {
-    //             (*node).layout.measuredDimensions[DIM[mainAxis as usize]] = (availableInnerMainDim
+    //             (*node).layout.measured_dimensions[DIM[mainAxis as usize]] = (availableInnerMainDim
     //                 + paddingAndBorderAxisMain)
     //                 .min(YGNodeBoundAxisWithinMinAndMax(
     //                     node,
@@ -3003,7 +3068,7 @@ where
     //         {
     //             // Clamp the size to the min/max size, if specified, and make sure it
     //             // doesn't go below the padding and border amount.
-    //             (*node).layout.measuredDimensions[DIM[crossAxis as usize]] = YGNodeBoundAxis(
+    //             (*node).layout.measured_dimensions[DIM[crossAxis as usize]] = YGNodeBoundAxis(
     //                 node,
     //                 crossAxis,
     //                 totalLineCrossDim + paddingAndBorderAxisCross,
@@ -3013,7 +3078,7 @@ where
     //         } else if measureModeCrossDim == MeasureMode::AtMost
     //             && (*node).style.overflow == Overflow::Scroll
     //         {
-    //             (*node).layout.measuredDimensions[DIM[crossAxis as usize]] = (availableInnerCrossDim
+    //             (*node).layout.measured_dimensions[DIM[crossAxis as usize]] = (availableInnerCrossDim
     //                 + paddingAndBorderAxisCross)
     //                 .max(YGNodeBoundAxisWithinMinAndMax(
     //                     node,
@@ -3030,9 +3095,9 @@ where
     //                 let child = YGNodeGetChild(node, i);
     //                 if (*child).style.position_type == PositionType::Relative {
     //                     (*child).layout.position[pos[crossAxis as usize] as usize] =
-    //                         (*node).layout.measuredDimensions[DIM[crossAxis as usize]]
+    //                         (*node).layout.measured_dimensions[DIM[crossAxis as usize]]
     //                             - (*child).layout.position[pos[crossAxis as usize] as usize]
-    //                             - (*child).layout.measuredDimensions[DIM[crossAxis as usize]];
+    //                             - (*child).layout.measured_dimensions[DIM[crossAxis as usize]];
     //                 }
     //             }
     //         }

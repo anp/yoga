@@ -23,6 +23,7 @@ pub struct Style {
     pub dimensions: Dimensions,
     pub min_dimensions: Dimensions,
     pub max_dimensions: Dimensions,
+    // Yoga specific properties, not compatible with flexbox specification
     pub aspect_ratio: Option<R32>,
 }
 

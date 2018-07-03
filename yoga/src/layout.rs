@@ -1,35 +1,42 @@
 prelude!();
 
+// TODO(anp): validate this comment from the original c
+/// This value was chosen based on data. Even the most complicated layouts should not require more
+/// than 16 entries to fit within the cache.
+const MAX_CACHED_RESULTS: usize = 16;
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Layout {
-    left: R32,
-    right: R32,
-    top: R32,
-    bottom: R32,
+    pub left: R32,
+    pub right: R32,
+    pub top: R32,
+    pub bottom: R32,
     pub dimensions: Option<Dimensions>,
     pub direction: Direction,
-    margin: Edges<R32>,
-    border: Edges<R32>,
-    padding: Edges<R32>,
-    computedFlexBasisGeneration: u32,
-    pub computedFlexBasis: Option<R32>,
-    pub hadOverflow: bool,
-    generationCount: u32,
-    lastParentDirection: Direction,
-    nextCachedMeasurementsIndex: usize,
-    cachedMeasurements: [Option<CachedMeasurement>; 16],
-    measuredDimensions: Option<MeasuredDimensions>,
-    cachedLayout: Option<CachedMeasurement>,
+    pub margin: Edges<R32>,
+    pub border: Edges<R32>,
+    pub padding: Edges<R32>,
+    pub computed_flex_basis_generation: u32,
+    pub computed_flex_basis: Option<R32>,
+    pub had_overflow: bool,
+    // Instead of recomputing the entire layout every single time, we
+    // cache some information to break early when nothing changed:
+    pub generation_count: u32,
+    pub last_parent_direction: Direction,
+    pub next_cached_measurements_index: usize,
+    pub cached_measurements: [Option<CachedMeasurement>; MAX_CACHED_RESULTS],
+    pub measured_dimensions: Option<MeasuredDimensions>,
+    pub cached_layout: Option<CachedMeasurement>,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 struct CachedMeasurement {
-    availableWidth: R32,
-    availableHeight: R32,
-    widthMeasureMode: Option<MeasureMode>,
-    heightMeasureMode: Option<MeasureMode>,
-    computedWidth: R32,
-    computedHeight: R32,
+    available_width: R32,
+    available_weight: R32,
+    width_measure_mode: Option<MeasureMode>,
+    height_measure_mode: Option<MeasureMode>,
+    computed_width: R32,
+    computed_height: R32,
 }
 
 impl ::std::ops::Index<Edge> for Layout {
@@ -69,16 +76,16 @@ impl ::std::default::Default for Layout {
             border: Edges::empty(),
             padding: Edges::empty(),
             direction: Direction::Inherit,
-            computedFlexBasisGeneration: 0,
-            computedFlexBasis: None,
-            hadOverflow: false,
-            generationCount: 0,
+            computed_flex_basis_generation: 0,
+            computed_flex_basis: None,
+            had_overflow: false,
+            generation_count: 0,
             // RIIR(anp): this is not technically correct, it was uninit  before
-            lastParentDirection: Direction::Inherit,
-            nextCachedMeasurementsIndex: 0,
-            cachedMeasurements: [None; 16],
-            measuredDimensions: None,
-            cachedLayout: None,
+            last_parent_direction: Direction::Inherit,
+            next_cached_measurements_index: 0,
+            cached_measurements: [None; 16],
+            measured_dimensions: None,
+            cached_layout: None,
         }
     }
 }

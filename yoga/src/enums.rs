@@ -344,18 +344,21 @@ pub unsafe fn YGRoundValueToPixelGrid(
 ) -> R32 {
     let mut scaledValue = value * pointScaleFactor;
     let mut fractial = scaledValue % 1.0;
+    // first we check if the value is already rounded
     if fractial.approx_eq(r32(0.0)) {
         scaledValue = scaledValue - fractial;
     } else {
         if fractial.approx_eq(r32(1.0)) {
             scaledValue = (scaledValue - fractial) + 1.0f32;
         } else {
+            // Next we check if we need to use forced rounding
             if forceCeil {
                 scaledValue = scaledValue - fractial + 1.0f32;
             } else {
                 if forceFloor {
                     scaledValue = scaledValue - fractial;
                 } else {
+                    // Finally we just round the value
                     scaledValue = scaledValue - fractial
                         + if fractial > 0.5f32 || fractial.approx_eq(r32(0.5)) {
                             1.0f32
