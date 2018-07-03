@@ -57,12 +57,14 @@ pub(crate) const POINT_SCALE_FACTOR: f32 = 1.0;
 // FIXME(anp): this seems...wrong
 // static mut gDepth: uint32_t = 0i32 as uint32_t;
 
-pub trait Node
+pub trait Node<CHILDREN>
 where
+    CHILDREN: Iterator<Item = Self>,
     Self: 'static + std::fmt::Debug + Sized,
 {
     fn parent(&mut self) -> Option<&mut Self>;
-    fn children(&mut self) -> &mut Vec<Self>;
+    fn child(&mut self, index: usize) -> Option<&mut Self>;
+    fn children(&mut self) -> CHILDREN;
     fn style(&mut self) -> &mut Style;
     fn layout(&mut self) -> &mut Layout;
     fn line(&mut self) -> &mut usize;
