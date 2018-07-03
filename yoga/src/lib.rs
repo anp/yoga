@@ -96,7 +96,33 @@ where
         }
     }
 
-    fn trailing_position(&mut self, axis: FlexDirection, axis_size: R32) -> R32 {
+    /// If both left and right are defined, then use left. Otherwise return
+    /// +left or -right depending on which is defined.
+    // was YGNodeRelativePosition
+    fn relative_position(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
+        if let Some(pos) = self.leading_position(axis, axis_size) {
+            Some(pos)
+        } else {
+            self.trailing_position(axis, axis_size).map(|p| -p)
+        }
+    }
+
+    fn leading_position(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
+        let leading_edge = if axis.is_row() {
+            Edge::Start
+        } else {
+            axis.leading_edge()
+        };
+
+        self.style()
+            .position
+            .computed(leading_edge)
+            .into_iter()
+            .flat_map(|p| p.resolve(axis_size))
+            .next()
+    }
+
+    fn trailing_position(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
         let trailing_edge = if axis.is_row() {
             Edge::End
         } else {
@@ -109,7 +135,6 @@ where
             .into_iter()
             .flat_map(|p| p.resolve(axis_size))
             .next()
-            .unwrap_or(r32(0.0))
     }
 
     fn margin_for_axis(&mut self, axis: FlexDirection, width_size: R32) -> R32 {
@@ -388,22 +413,6 @@ where
         }
     }
 
-    fn relative_position(&mut self, axis: FlexDirection, axis_size: R32) -> R32 {
-        let leading_position_edge = if axis.is_row() {
-            Edge::Start
-        } else {
-            axis.leading_edge()
-        };
-
-        self.style()
-            .position
-            .computed(leading_position_edge)
-            .into_iter()
-            .flat_map(|p| p.resolve(axis_size))
-            .next()
-            .unwrap_or(r32(0.0))
-    }
-
     fn set_position(
         &mut self,
         direction: Direction,
@@ -424,8 +433,12 @@ where
             .resolve_direction(direction_respecting_root);
 
         let cross_axis: FlexDirection = main_axis.cross(direction_respecting_root);
-        let relative_position_main = self.relative_position(main_axis, main_size);
-        let relative_position_cross = self.relative_position(cross_axis, cross_size);
+        let relative_position_main = self
+            .relative_position(main_axis, main_size)
+            .unwrap_or(r32(0.0));
+        let relative_position_cross = self
+            .relative_position(cross_axis, cross_size)
+            .unwrap_or(r32(0.0));
 
         *self.layout().index_mut(main_axis.leading_edge()) =
             self.leading_margin(main_axis, parent_width) + relative_position_main;
@@ -449,25 +462,6 @@ where
             .next()
             .unwrap_or(r32(0.0))
     }
-
-    // /// If both left and right are defined, then use left. Otherwise return
-    // /// +left or -right depending on which is defined.
-    // fn YGNodeRelativePosition(&mut self, axis: FlexDirection, axisSize: R32) -> R32 {
-    //     return if YGNodeIsLeadingPosDefined(node, axis) {
-    //         YGNodeLeadingPosition(node, axis, axisSize)
-    //     } else {
-    //         -YGNodeTrailingPosition(node, axis, axisSize)
-    //     };
-    // }
-
-    // fn YGNodeIsLeadingPosDefined(&mut self, axis: FlexDirection) -> bool {
-    //     FlexDirectionIsRow(axis) && (*node).style.position.computed(Edge::Start).is_some()
-    //         || (*node)
-    //             .style
-    //             .position
-    //             .computed(leading[axis as usize])
-    //             .is_some()
-    // }
 
     // static ValueZero: Value = Value::Point(OrderedFloat::from(0.0));
 
