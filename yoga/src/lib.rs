@@ -54,6 +54,9 @@ prelude!();
 
 pub(crate) const POINT_SCALE_FACTOR: f32 = 1.0;
 
+// FIXME(anp): this seems...wrong
+// static mut gDepth: uint32_t = 0i32 as uint32_t;
+
 pub trait Node
 where
     Self: 'static + std::fmt::Debug + Sized,
@@ -462,12 +465,6 @@ where
             .next()
             .unwrap_or(r32(0.0))
     }
-
-    // static ValueZero: Value = Value::Point(OrderedFloat::from(0.0));
-
-    // static mut gCurrentGenerationCount: uint32_t = 0i32 as uint32_t;
-
-    // static mut gDepth: uint32_t = 0i32 as uint32_t;
 
     // fn YGNodeResolveDirection(&mut self, parent_direction: Direction) -> Direction {
     //     if (*node).style.direction == Direction::Inherit {
