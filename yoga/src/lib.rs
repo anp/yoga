@@ -61,16 +61,14 @@ pub trait Node
 where
     Self: 'static + std::fmt::Debug + Sized,
 {
-    const CUSTOM_MEASURE: bool;
-
     fn parent(&mut self) -> Option<&mut Self>;
     fn children(&mut self) -> &mut Vec<Self>;
     fn style(&mut self) -> &mut Style;
     fn layout(&mut self) -> &mut Layout;
     fn line(&mut self) -> &mut usize;
-    // NOTE(anp): ??? presumably will find out what these args are for later
-    fn measure(&self, f32, MeasureMode, f32, MeasureMode) -> Size;
-    fn baseline(&self, f32, f32) -> f32;
+    // TODO(anp): can this be done without dynamic dispatch?
+    fn measure_fn(&self) -> Option<&Fn(&Self, f32, MeasureMode, f32, MeasureMode) -> Size>;
+    fn baseline_fn(&self) -> Option<&Fn(&Self, f32, f32) -> f32>;
     fn dirty(&mut self) -> &mut bool;
     fn new_layout(&mut self) -> &mut bool;
     fn node_type(&self) -> NodeType;
@@ -282,7 +280,7 @@ where
         // expensive to measure, so it's worth avoiding redundant measurements if at
         // all possible.
         let cached_results = if let Some(cached) = self.layout().cached_layout {
-            if Self::CUSTOM_MEASURE {
+            if let Some(_) = self.measure_fn() {
                 let margin_axis_row = self.margin_for_axis(FlexDirection::Row, parent_width);
                 let margin_axis_column = self.margin_for_axis(FlexDirection::Column, parent_height);
                 // First, try to use the layout cache.
@@ -473,14 +471,16 @@ where
     //             - size
     //             - (*child).layout.position[pos[axis as usize] as usize];
     // }
-    // // static mut pos: [Edge; 4] = [Edge::Top, Edge::Bottom, Edge::Left, Edge::Right];
+
     // fn YGNodePaddingAndBorderForAxis(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
     //     return YGNodeLeadingPaddingAndBorder(node, axis, widthSize)
     //         + YGNodeTrailingPaddingAndBorder(node, axis, widthSize);
     // }
+
     // fn YGNodeTrailingPaddingAndBorder(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
     //     return YGNodeTrailingPadding(node, axis, widthSize) + YGNodeTrailingBorder(node, axis);
     // }
+
     // fn YGNodeTrailingBorder(&mut self, axis: FlexDirection) -> R32 {
     //     if FlexDirectionIsRow(axis) {
     //         match (*node).style.border[Edge::End] {
@@ -496,6 +496,7 @@ where
     //     )).value
     //         .max(0.0f32);
     // }
+
     // fn YGNodeTrailingPadding(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
     //     if FlexDirectionIsRow(axis) && (*node).style.padding[Edge::End].is_some()
     //         && YGResolveValue(
@@ -517,9 +518,11 @@ where
     //         widthSize,
     //     ).max(0.0f32);
     // }
+
     // fn YGNodeLeadingPaddingAndBorder(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
     //     return YGNodeLeadingPadding(node, axis, widthSize) + YGNodeLeadingBorder(node, axis);
     // }
+
     // fn YGNodeLeadingBorder(&mut self, axis: FlexDirection) -> R32 {
     //     if FlexDirectionIsRow(axis)
     //         && (*node).style.border[Edge::Start].is_some()
@@ -534,6 +537,7 @@ where
     //     )).value
     //         .max(0.0f32);
     // }
+
     // fn YGNodeLeadingPadding(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
     //     if FlexDirectionIsRow(axis) && (*node).style.padding[Edge::Start].is_some()
     //         && YGResolveValue(
@@ -816,6 +820,7 @@ where
     //     };
     //     return boundValue;
     // }
+
     // fn YGBaseline(&mut self) -> R32 {
     //     if (*node).baseline.is_some() {
     //         let baseline: R32 = (*node).baseline.expect("non-null function pointer")(
@@ -864,10 +869,12 @@ where
     //     let baseline: R32 = YGBaseline(baselineChild);
     //     return baseline + (*baselineChild).layout.position[Edge::Top as usize];
     // }
+
     // fn YGNodeIsLayoutDimDefined(&mut self, axis: FlexDirection) -> bool {
     //     let value: R32 = (*node).layout.measured_dimensions[DIM[axis as usize]];
     //     return !value.is_nan() && value >= 0.0f32;
     // }
+
     // fn YGIsBaselineLayout(&mut self) -> bool {
     //     if FlexDirectionIsColumn((*node).style.flex_direction) {
     //         return false;
@@ -892,11 +899,13 @@ where
     //     }
     //     return false;
     // }
+
     // fn YGNodeDimWithMargin(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
     //     return (*node).layout.measured_dimensions[DIM[axis as usize]]
     //         + YGNodeLeadingMargin(node, axis, widthSize)
     //         + YGNodeTrailingMargin(node, axis, widthSize);
     // }
+
     // fn YGMarginLeadingValue(&mut self, axis: FlexDirection) -> *mut Value {
     //     if FlexDirectionIsRow(axis) && (*node).style.margin[Edge::Start].is_some() {
     //         return &mut (*node).style.margin[Edge::Start as usize] as *mut Value;
@@ -904,6 +913,7 @@ where
     //         return &mut (*node).style.margin[leading[axis as usize] as usize] as *mut Value;
     //     };
     // }
+
     // fn YGMarginTrailingValue(&mut self, axis: FlexDirection) -> *mut Value {
     //     if FlexDirectionIsRow(axis) && (*node).style.margin[Edge::End].is_some() {
     //         return &mut (*node).style.margin[Edge::End as usize] as *mut Value;
@@ -911,6 +921,7 @@ where
     //         return &mut (*node).style.margin[trailing[axis as usize] as usize] as *mut Value;
     //     };
     // }
+
     // fn YGResolveFlexGrow(&mut self) -> R32 {
     //     // Root nodes flexGrow should always be 0
     //     if (*node).parent.is_null() {
@@ -945,10 +956,12 @@ where
     //         kDefaultFlexShrink
     //     };
     // }
+
     // fn YGNodeIsFlex(&mut self) -> bool {
     //     return (*node).style.position_type == PositionType::Relative
     //         && (YGResolveFlexGrow(node) != 0.0 || YGNodeResolveFlexShrink(node) != 0.0);
     // }
+
     // fn YGNodeComputeFlexBasisForChild(
     //     &mut self,
     //     child: Self,
@@ -1126,6 +1139,7 @@ where
     //     };
     //     (*child).layout.computed_flex_basis_generation = gCurrentGenerationCount;
     // }
+
     // fn YGNodeResolveFlexBasisPtr(&mut self) -> *const Value {
     //     if (*node).style.flex_basis.unit != UnitType::Auto
     //         && (*node).style.flex_basis.unit != UnitType::Undefined
@@ -1142,33 +1156,6 @@ where
     //     return &Value::Auto as *const Value;
     // }
 
-    // fn YGConfigIsExperimentalFeatureEnabled(
-    //     config: YGConfigRef,
-    //     feature: YGExperimentalFeature_0,
-    // ) -> bool {
-    //     return (*config).experimentalFeatures[feature as usize];
-    // }
-
-    // fn YGZeroOutLayoutRecursivly(&mut self) -> () {
-    //     memset(
-    //         &mut (*node).layout as *mut YGLayout_0 as *mut c_void,
-    //         0i32,
-    //         size_of::<YGLayout_0>(),
-    //     );
-    //     (*node).hasNewLayout = true;
-    //     YGCloneChildrenIfNeeded(node);
-    //     let childCount = YGNodeGetChildCount(node);
-    //     {
-    //         let mut i = 0;
-    //         while i < childCount {
-    //             {
-    //                 let child: Node = YGNodeListGet((*node).children, i);
-    //                 YGZeroOutLayoutRecursivly(child);
-    //             }
-    //             i = i.wrapping_add(1);
-    //         }
-    //     };
-    // }
     // fn YGNodeFixedSizeSetMeasuredDimensions(
     //     &mut self,
     //     availableWidth: R32,
@@ -1215,6 +1202,7 @@ where
     //     };
     //     return false;
     // }
+
     // /// For nodes with no children, use the available values if they were provided,
     // /// or the minimum size as indicated by the padding and border sizes.
     // fn YGNodeEmptyContainerSetMeasuredDimensions(
@@ -1258,6 +1246,7 @@ where
     //         parentWidth,
     //     );
     // }
+
     // fn YGNodeWithMeasureFuncSetMeasuredDimensions(
     //     &mut self,
     //     availableWidth: R32,
@@ -1352,6 +1341,7 @@ where
     //         self.mark_dirty();
     //     }
     // }
+
     // fn YGNodeSetMeasureFunc(&mut self, mut measureFunc: YGMeasureFunc) -> () {
     //     if measureFunc.is_none() {
     //         (*node).measure = None;
@@ -1368,17 +1358,6 @@ where
     //     };
     // }
 
-    // fn YGNodeGetMeasureFunc(&mut self) -> YGMeasureFunc {
-    //     return (*node).measure;
-    // }
-
-    // fn YGNodeSetBaselineFunc(&mut self, mut baselineFunc: YGBaselineFunc) -> () {
-    //     (*node).baseline = baselineFunc;
-    // }
-
-    // fn YGNodeGetBaselineFunc(&mut self) -> YGBaselineFunc {
-    //     return (*node).baseline;
-    // }
     // fn YGNodeSetNodeType(&mut self, mut nodeType: NodeType) -> () {
     //     (*node).nodeType = nodeType;
     // }
