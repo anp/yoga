@@ -170,7 +170,10 @@ macro_rules! edges {
     };
 }
 
-edges!(Border: R32, BorderResolved: R32);
+edges! { Border: R32, BorderResolved: R32 }
+edges! { Margin, MarginResolved }
+edges! { Padding, PaddingResolved }
+edges! { Position, PositionResolved }
 
 impl Border {
     pub fn resolve(&self, row_dir: FlexDirection, col_dir: FlexDirection) -> BorderResolved {
@@ -198,8 +201,6 @@ impl Border {
         }.max(r32(0.0))
     }
 }
-
-edges! { Margin, MarginResolved }
 
 impl Margin {
     pub fn trailing(&self, axis: FlexDirection, width_size: R32) -> Option<R32> {
@@ -242,13 +243,12 @@ impl Margin {
     }
 }
 
-edges! { Padding, PaddingResolved }
-
 impl Padding {
     pub fn trailing(&self, axis: FlexDirection, parent_width: R32) -> R32 {
         let existing = self[Edge::End];
         let resolved = existing.map(|v| v.resolve(parent_width));
 
+        // TODO(anp): why does leading have a max(0.0) call but this doesn't? my mistake?
         match (axis.is_row(), resolved) {
             (true, Some(Some(p))) if p >= 0.0 => p,
             _ => self[axis.trailing_edge()]
@@ -260,28 +260,17 @@ impl Padding {
     }
 
     pub fn leading(&self, axis: FlexDirection, parent_width: R32) -> R32 {
-        // fn YGNodeLeadingPadding(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-        //     if FlexDirectionIsRow(axis) && (*node).style.padding[Edge::Start].is_some()
-        //         && YGResolveValue(
-        //             &mut (*node).style.padding[Edge::Start as usize] as *mut Value,
-        //             widthSize,
-        //         ) >= 0.0f32
-        //     {
-        //         return YGResolveValue(
-        //             &mut (*node).style.padding[Edge::Start as usize] as *mut Value,
-        //             widthSize,
-        //         );
-        //     };
-        //     return YGResolveValue(
-        //         YGComputedEdgeValue(
-        //             (*node).style.padding.as_mut_ptr() as *const Value,
-        //             leading[axis as usize],
-        //             &mut ValueZero as *mut Value,
-        //         ),
-        //         widthSize,
-        //     ).max(0.0f32);
-        // }
-        unimplemented!();
+        let existing = self[Edge::Start];
+        let resolved = existing.map(|v| v.resolve(parent_width));
+
+        match (axis.is_row(), resolved) {
+            (true, Some(Some(p))) if p >= 0.0 => p,
+            _ => self[axis.leading_edge()]
+                .into_iter()
+                .flat_map(|p| p.resolve(parent_width))
+                .next()
+                .unwrap_or(r32(0.0)),
+        }.max(r32(0.0))
     }
 
     pub fn resolve(
@@ -301,8 +290,6 @@ impl Padding {
         }
     }
 }
-
-edges! { Position, PositionResolved }
 
 impl Position {
     /// If both left and right are defined, then use left. Otherwise return
