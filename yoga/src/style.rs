@@ -112,10 +112,7 @@ macro_rules! property_impl {
                 let to_apply = self.prep();
 
                 match ($field[$edge] == to_apply, to_apply) {
-                    (false, Some(a)) => {
-                        $field.set($edge, a);
-                        Updated::Dirty
-                    }
+                    (false, Some(a)) => $field.set($edge, a),
                     _ => Updated::Clean,
                 }
             }
