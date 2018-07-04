@@ -244,6 +244,64 @@ impl Margin {
 
 edges! { Padding, PaddingResolved }
 
+impl Padding {
+    pub fn trailing(&self, axis: FlexDirection, parent_width: R32) -> R32 {
+        let existing = self[Edge::End];
+        let resolved = existing.map(|v| v.resolve(parent_width));
+
+        match (axis.is_row(), resolved) {
+            (true, Some(Some(p))) if p >= 0.0 => p,
+            _ => self[axis.trailing_edge()]
+                .into_iter()
+                .flat_map(|p| p.resolve(parent_width))
+                .next()
+                .unwrap_or(r32(0.0)),
+        }
+    }
+
+    pub fn leading(&self, axis: FlexDirection, parent_width: R32) -> R32 {
+        // fn YGNodeLeadingPadding(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
+        //     if FlexDirectionIsRow(axis) && (*node).style.padding[Edge::Start].is_some()
+        //         && YGResolveValue(
+        //             &mut (*node).style.padding[Edge::Start as usize] as *mut Value,
+        //             widthSize,
+        //         ) >= 0.0f32
+        //     {
+        //         return YGResolveValue(
+        //             &mut (*node).style.padding[Edge::Start as usize] as *mut Value,
+        //             widthSize,
+        //         );
+        //     };
+        //     return YGResolveValue(
+        //         YGComputedEdgeValue(
+        //             (*node).style.padding.as_mut_ptr() as *const Value,
+        //             leading[axis as usize],
+        //             &mut ValueZero as *mut Value,
+        //         ),
+        //         widthSize,
+        //     ).max(0.0f32);
+        // }
+        unimplemented!();
+    }
+
+    pub fn resolve(
+        &self,
+        row_dir: FlexDirection,
+        col_dir: FlexDirection,
+        parent_width: R32,
+    ) -> PaddingResolved {
+        PaddingResolved {
+            // FIXME(anp): these don't need to be optional, needs change to macro
+            start: Some(self.leading(row_dir, parent_width)),
+            end: Some(self.trailing(row_dir, parent_width)),
+            top: Some(self.leading(col_dir, parent_width)),
+            bottom: Some(self.trailing(col_dir, parent_width)),
+            // FIXME(anp): pretty sure we dont actually need these anymore
+            ..Default::default()
+        }
+    }
+}
+
 edges! { Position, PositionResolved }
 
 impl Position {

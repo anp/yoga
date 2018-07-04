@@ -142,6 +142,7 @@ impl CachedMeasurement {
         height: R32,
         margin_row: R32,
         margin_column: R32,
+        point_scale_factor: R32,
     ) -> bool {
         let Self {
             available_width: last_width,
@@ -164,8 +165,8 @@ impl CachedMeasurement {
         };
 
         let (effective_width, effective_height, effective_last_width, effective_last_height) =
-            if POINT_SCALE_FACTOR != 0.0 {
-                let rounder = |v| round_value_to_pixel_grid(v, POINT_SCALE_FACTOR, false, false);
+            if point_scale_factor != 0.0 {
+                let rounder = |v| round_value_to_pixel_grid(v, point_scale_factor, false, false);
                 (
                     rounder(width),
                     rounder(height),

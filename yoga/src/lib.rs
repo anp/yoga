@@ -32,7 +32,6 @@ pub(crate) mod prelude {
     pub(crate) use super::layout::{CachedMeasurement, Layout};
     pub(crate) use super::style::{Property, Style};
     pub(crate) use super::Node;
-    pub(crate) use super::POINT_SCALE_FACTOR;
     pub(crate) use itertools::Itertools;
     pub(crate) use noisy_float::prelude::*;
     pub(crate) use serde::{Deserialize, Serialize};
@@ -58,8 +57,6 @@ pub mod style;
 
 prelude!();
 
-pub(crate) const POINT_SCALE_FACTOR: f32 = 1.0;
-
 // FIXME(anp): this seems...wrong
 // static mut gDepth: uint32_t = 0i32 as uint32_t;
 
@@ -68,6 +65,10 @@ where
     CHILDREN: Iterator<Item = Self>,
     Self: 'static + std::fmt::Debug + Sized,
 {
+    // TODO(anp): should probably be runtime configurable in some ergonomic way that doesn't force
+    // an extra field onto frequently-created structs
+    const POINT_SCALE_FACTOR: f32 = 1.0;
+
     fn parent(&mut self) -> Option<&mut Self>;
     fn child(&mut self, index: usize) -> Option<&mut Self>;
     fn children(&mut self) -> CHILDREN;
@@ -180,6 +181,7 @@ where
             height_measure_mode,
             parent_width,
             parent_height,
+            r32(Self::POINT_SCALE_FACTOR),
             true,
             "initial",
         );
@@ -205,6 +207,7 @@ where
         height_measure_mode: Option<MeasureMode>,
         parent_width: R32,
         parent_height: R32,
+        point_scale_factor: R32,
         perform_layout: bool,
         reason: &str,
         // TODO(anp): make the return type an enum!!!!
@@ -256,6 +259,7 @@ where
                     available_height,
                     margin_axis_row,
                     margin_axis_column,
+                    point_scale_factor,
                 ) {
                     Some(cached)
                 } else {
@@ -272,6 +276,7 @@ where
                                 available_height,
                                 margin_axis_row,
                                 margin_axis_column,
+                                point_scale_factor,
                             )
                         })
                         .into_iter()
@@ -559,14 +564,10 @@ where
             .border
             .resolve(flex_row_direction, flex_column_direction);
 
-        // (*node).layout.padding[Edge::Start as usize] =
-        //     YGNodeLeadingPadding(node, flexRowDirection, parentWidth);
-        // (*node).layout.padding[Edge::End as usize] =
-        //     YGNodeTrailingPadding(node, flexRowDirection, parentWidth);
-        // (*node).layout.padding[Edge::Top as usize] =
-        //     YGNodeLeadingPadding(node, flexColumnDirection, parentWidth);
-        // (*node).layout.padding[Edge::Bottom as usize] =
-        //     YGNodeTrailingPadding(node, flexColumnDirection, parentWidth);
+        self.layout().padding =
+            self.style()
+                .padding
+                .resolve(flex_row_direction, flex_column_direction, parent_width);
 
         // if (*node).measure.is_some() {
         //     YGNodeWithMeasureFuncSetMeasuredDimensions(
@@ -1934,63 +1935,6 @@ where
     //         (*node).layout.measured_dimensions[DIM[axis as usize]]
     //             - size
     //             - (*child).layout.position[pos[axis as usize] as usize];
-    // }
-
-    // fn YGNodePaddingAndBorderForAxis(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-    //     return YGNodeLeadingPaddingAndBorder(node, axis, widthSize)
-    //         + YGNodeTrailingPaddingAndBorder(node, axis, widthSize);
-    // }
-
-    // fn YGNodeTrailingPaddingAndBorder(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-    //     return YGNodeTrailingPadding(node, axis, widthSize) + YGNodeTrailingBorder(node, axis);
-    // }
-
-    // fn YGNodeTrailingPadding(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-    //     if FlexDirectionIsRow(axis) && (*node).style.padding[Edge::End].is_some()
-    //         && YGResolveValue(
-    //             &mut (*node).style.padding[Edge::End as usize] as *mut Value,
-    //             widthSize,
-    //         ) >= 0.0f32
-    //     {
-    //         return YGResolveValue(
-    //             &mut (*node).style.padding[Edge::End as usize] as *mut Value,
-    //             widthSize,
-    //         );
-    //     };
-    //     return YGResolveValue(
-    //         YGComputedEdgeValue(
-    //             (*node).style.padding.as_mut_ptr() as *const Value,
-    //             trailing[axis as usize],
-    //             &mut ValueZero as *mut Value,
-    //         ),
-    //         widthSize,
-    //     ).max(0.0f32);
-    // }
-
-    // fn YGNodeLeadingPaddingAndBorder(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-    //     return YGNodeLeadingPadding(node, axis, widthSize) + YGNodeLeadingBorder(node, axis);
-    // }
-
-    // fn YGNodeLeadingPadding(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-    //     if FlexDirectionIsRow(axis) && (*node).style.padding[Edge::Start].is_some()
-    //         && YGResolveValue(
-    //             &mut (*node).style.padding[Edge::Start as usize] as *mut Value,
-    //             widthSize,
-    //         ) >= 0.0f32
-    //     {
-    //         return YGResolveValue(
-    //             &mut (*node).style.padding[Edge::Start as usize] as *mut Value,
-    //             widthSize,
-    //         );
-    //     };
-    //     return YGResolveValue(
-    //         YGComputedEdgeValue(
-    //             (*node).style.padding.as_mut_ptr() as *const Value,
-    //             leading[axis as usize],
-    //             &mut ValueZero as *mut Value,
-    //         ),
-    //         widthSize,
-    //     ).max(0.0f32);
     // }
 
     // fn YGNodeAbsoluteLayoutChild(

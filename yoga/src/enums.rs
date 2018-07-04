@@ -297,7 +297,7 @@ impl PartialEq for Value {
 
 pub(crate) fn round_value_to_pixel_grid(
     value: R32,
-    point_scale_factor: f32,
+    point_scale_factor: R32,
     force_ceiling: bool,
     force_floor: bool,
 ) -> R32 {
