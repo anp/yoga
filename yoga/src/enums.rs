@@ -1,8 +1,6 @@
 prelude!();
 
 use std::f32::EPSILON;
-use std::fmt::Debug;
-use std::hash::Hash;
 use std::ops::{Index, IndexMut};
 
 #[must_use]
@@ -86,6 +84,7 @@ pub enum Dimension {
     Width = 0,
     Height = 1,
 }
+
 #[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Direction {
@@ -106,86 +105,18 @@ impl Direction {
     }
 }
 
+impl Default for Direction {
+    // wow this feels imperialist to implement
+    fn default() -> Self {
+        Direction::LTR
+    }
+}
+
 #[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Display {
     Flex = 0,
     None = 1,
-}
-
-#[repr(usize)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Edge {
-    Left = 0,
-    Top = 1,
-    Right = 2,
-    Bottom = 3,
-    Start = 4,
-    End = 5,
-    Horizontal = 6,
-    Vertical = 7,
-    All = 8,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct Edges<V>([Option<V>; 9])
-where
-    V: 'static + Debug + PartialEq + Eq + PartialOrd + Ord + Hash + Copy + Clone;
-
-impl<V> Edges<V>
-where
-    V: 'static + Debug + PartialEq + Eq + PartialOrd + Ord + Hash + Copy + Clone,
-{
-    pub fn empty() -> Self {
-        Edges([None, None, None, None, None, None, None, None, None])
-    }
-
-    pub fn computed(&mut self, edge: Edge) -> Option<V> {
-        if let Some(v) = self[edge] {
-            return Some(v);
-        }
-
-        match edge {
-            Edge::Top | Edge::Bottom => if let Some(v) = self[Edge::Vertical] {
-                return Some(v);
-            },
-
-            Edge::Left | Edge::Right | Edge::Start | Edge::End => {
-                if let Some(v) = self[Edge::Horizontal] {
-                    return Some(v);
-                }
-            }
-
-            _ => (),
-        };
-
-        if let Some(v) = self[Edge::All] {
-            return Some(v);
-        }
-
-        return None;
-    }
-}
-
-impl<V> ::std::ops::Index<Edge> for Edges<V>
-where
-    V: 'static + Debug + PartialEq + Eq + PartialOrd + Ord + Hash + Copy + Clone,
-{
-    type Output = Option<V>;
-    fn index(&self, index: Edge) -> &Self::Output {
-        // UNSAFE(anp): we know that Edge and Edges cannot index incorrectly
-        unsafe { self.0.get_unchecked(index as usize) }
-    }
-}
-
-impl<V> ::std::ops::IndexMut<Edge> for Edges<V>
-where
-    V: 'static + Debug + PartialEq + Eq + PartialOrd + Ord + Hash + Copy + Clone,
-{
-    fn index_mut(&mut self, index: Edge) -> &mut Self::Output {
-        // UNSAFE(anp): we know that Edge and Edges cannot index incorrectly
-        unsafe { self.0.get_unchecked_mut(index as usize) }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
@@ -343,6 +274,12 @@ impl Value {
             Value::Percent(v) => Some(v * parent_size / r32(100.0)),
             _ => None,
         }
+    }
+}
+
+impl Default for Value {
+    fn default() -> Self {
+        Value::Point(r32(0.0))
     }
 }
 

@@ -26,6 +26,7 @@ extern crate serde_derive;
 
 #[allow(unused_imports)]
 pub(crate) mod prelude {
+    pub(crate) use super::edges::*;
     pub(crate) use super::enums::*;
     pub(crate) use super::hacks::ApproxEqHackForReals;
     pub(crate) use super::layout::{CachedMeasurement, Layout};
@@ -34,6 +35,10 @@ pub(crate) mod prelude {
     pub(crate) use super::POINT_SCALE_FACTOR;
     pub(crate) use itertools::Itertools;
     pub(crate) use noisy_float::prelude::*;
+    pub(crate) use serde::{Deserialize, Serialize};
+    pub(crate) use std::default::Default;
+    pub(crate) use std::fmt::Debug;
+    pub(crate) use std::hash::Hash;
     pub(crate) use std::ops::{Index, IndexMut};
 }
 
@@ -45,6 +50,7 @@ macro_rules! prelude {
     };
 }
 
+pub mod edges;
 pub mod enums;
 pub(crate) mod hacks;
 pub mod layout;
@@ -68,7 +74,7 @@ where
     fn style(&mut self) -> &mut Style;
     fn layout(&mut self) -> &mut Layout;
     fn line(&mut self) -> &mut usize;
-    // TODO(anp): can this be done without dynamic dispatch?
+    // TODO(anp): can this be easly done without dynamic dispatch?
     fn measure_fn(&self) -> Option<&Fn(&Self, f32, MeasureMode, f32, MeasureMode) -> Size>;
     fn baseline_fn(&self) -> Option<&Fn(&Self, f32, f32) -> f32>;
     fn dirty(&mut self) -> &mut bool;
@@ -99,66 +105,6 @@ where
         }
     }
 
-    /// If both left and right are defined, then use left. Otherwise return
-    /// +left or -right depending on which is defined.
-    // was YGNodeRelativePosition
-    fn relative_position(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
-        if let Some(pos) = self.leading_position(axis, axis_size) {
-            Some(pos)
-        } else {
-            self.trailing_position(axis, axis_size).map(|p| -p)
-        }
-    }
-
-    fn leading_position(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
-        let leading_edge = if axis.is_row() {
-            Edge::Start
-        } else {
-            axis.leading_edge()
-        };
-
-        self.style()
-            .position
-            .computed(leading_edge)
-            .into_iter()
-            .flat_map(|p| p.resolve(axis_size))
-            .next()
-    }
-
-    fn trailing_position(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
-        let trailing_edge = if axis.is_row() {
-            Edge::End
-        } else {
-            axis.trailing_edge()
-        };
-
-        self.style()
-            .position
-            .computed(trailing_edge)
-            .into_iter()
-            .flat_map(|p| p.resolve(axis_size))
-            .next()
-    }
-
-    fn margin_for_axis(&mut self, axis: FlexDirection, width_size: R32) -> R32 {
-        self.leading_margin(axis, width_size).unwrap_or(r32(0.0))
-            + self.trailing_margin(axis, width_size).unwrap_or(r32(0.0))
-    }
-
-    fn leading_margin(&mut self, axis: FlexDirection, width_size: R32) -> Option<R32> {
-        let leading_edge = match (self.style().margin[Edge::Start], axis.is_row()) {
-            (Some(_), true) => Edge::Start,
-            _ => axis.leading_edge(),
-        };
-
-        self.style()
-            .margin
-            .computed(leading_edge)
-            .into_iter()
-            .flat_map(|m| m.resolve(width_size))
-            .next()
-    }
-
     fn calculate_layout(
         &mut self,
         parent_width: R32,
@@ -180,7 +126,12 @@ where
                     self.resolved()[FlexDirection::Row.dimension()]
                         .into_iter()
                         .flat_map(|v| v.resolve(parent_width))
-                        .map(|v| v + self.margin_for_axis(FlexDirection::Row, parent_width))
+                        .map(|v| {
+                            v + self
+                                .style()
+                                .margin
+                                .for_axis(FlexDirection::Row, parent_width)
+                        })
                         .next(),
                     Some(MeasureMode::Exactly),
                 )
@@ -201,7 +152,12 @@ where
                     self.resolved()[FlexDirection::Column.dimension()]
                         .into_iter()
                         .flat_map(|v| v.resolve(parent_height))
-                        .map(|v| v + self.margin_for_axis(FlexDirection::Column, parent_height))
+                        .map(|v| {
+                            v + self
+                                .style()
+                                .margin
+                                .for_axis(FlexDirection::Column, parent_height)
+                        })
                         .next(),
                     Some(MeasureMode::Exactly),
                 )
@@ -261,7 +217,7 @@ where
         let current_generation = self.current_generation();
         let need_to_visit_node = *self.dirty()
             && self.layout().generation_count != current_generation
-            || self.layout().last_parent_direction != parent_direction;
+            || self.layout().last_parent_direction != Some(parent_direction);
 
         if need_to_visit_node {
             // Invalidate the cached results.
@@ -283,8 +239,14 @@ where
         // all possible.
         let cached_results = if let Some(cached) = self.layout().cached_layout {
             if let Some(_) = self.measure_fn() {
-                let margin_axis_row = self.margin_for_axis(FlexDirection::Row, parent_width);
-                let margin_axis_column = self.margin_for_axis(FlexDirection::Column, parent_height);
+                let margin_axis_row = self
+                    .style()
+                    .margin
+                    .for_axis(FlexDirection::Row, parent_width);
+                let margin_axis_column = self
+                    .style()
+                    .margin
+                    .for_axis(FlexDirection::Column, parent_height);
                 // First, try to use the layout cache.
                 if CachedMeasurement::usable(
                     Some(cached),
@@ -355,7 +317,7 @@ where
                 perform_layout,
             );
 
-            self.layout().last_parent_direction = parent_direction;
+            self.layout().last_parent_direction = Some(parent_direction);
             if cached_results.is_none() {
                 if self.layout().next_cached_measurements_index == 16 {
                     self.layout().next_cached_measurements_index = 0;
@@ -435,36 +397,39 @@ where
 
         let cross_axis: FlexDirection = main_axis.cross(direction_respecting_root);
         let relative_position_main = self
-            .relative_position(main_axis, main_size)
+            .style()
+            .position
+            .relative(main_axis, main_size)
             .unwrap_or(r32(0.0));
         let relative_position_cross = self
-            .relative_position(cross_axis, cross_size)
+            .style()
+            .position
+            .relative(cross_axis, cross_size)
             .unwrap_or(r32(0.0));
 
         *self.layout().index_mut(main_axis.leading_edge()) =
-            self.leading_margin(main_axis, parent_width)
+            self.style()
+                .margin
+                .leading(main_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_main;
 
         *self.layout().index_mut(main_axis.trailing_edge()) =
-            self.trailing_margin(main_axis, parent_width)
+            self.style()
+                .margin
+                .trailing(main_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_main;
 
         *self.layout().index_mut(cross_axis.leading_edge()) =
-            self.leading_margin(cross_axis, parent_width)
+            self.style()
+                .margin
+                .leading(cross_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_cross;
 
         *self.layout().index_mut(cross_axis.trailing_edge()) = self
-            .trailing_margin(cross_axis, parent_width)
+            .style()
+            .margin
+            .trailing(cross_axis, parent_width)
             .unwrap_or(r32(0.0));
-    }
-
-    fn trailing_margin(&mut self, axis: FlexDirection, width_size: R32) -> Option<R32> {
-        match (self.style().margin[Edge::End], axis.is_row()) {
-            (Some(v), true) => Some(v),
-            _ => self.style().margin.computed(axis.trailing_edge()),
-        }.into_iter()
-            .flat_map(|v| v.resolve(width_size))
-            .next()
     }
 
     //
@@ -584,18 +549,15 @@ where
         let flex_column_direction = FlexDirection::Column.resolve_direction(direction);
         self.layout().direction = direction;
 
-        self.layout().margin[Edge::Start] = self.leading_margin(flex_row_direction, parent_width);
-        self.layout().margin[Edge::End] = self.trailing_margin(flex_row_direction, parent_width);
+        self.layout().margin =
+            self.style()
+                .margin
+                .resolve(flex_row_direction, flex_column_direction, parent_width);
 
-        self.layout().margin[Edge::Top] = self.leading_margin(flex_column_direction, parent_width);
-        self.layout().margin[Edge::Bottom] =
-            self.trailing_margin(flex_column_direction, parent_width);
-
-        // (*node).layout.border[Edge::Start as usize] = YGNodeLeadingBorder(node, flexRowDirection);
-        // (*node).layout.border[Edge::End as usize] = YGNodeTrailingBorder(node, flexRowDirection);
-        // (*node).layout.border[Edge::Top as usize] = YGNodeLeadingBorder(node, flexColumnDirection);
-        // (*node).layout.border[Edge::Bottom as usize] =
-        //     YGNodeTrailingBorder(node, flexColumnDirection);
+        self.layout().border = self
+            .style()
+            .border
+            .resolve(flex_row_direction, flex_column_direction);
 
         // (*node).layout.padding[Edge::Start as usize] =
         //     YGNodeLeadingPadding(node, flexRowDirection, parentWidth);
@@ -1983,22 +1945,6 @@ where
     //     return YGNodeTrailingPadding(node, axis, widthSize) + YGNodeTrailingBorder(node, axis);
     // }
 
-    // fn YGNodeTrailingBorder(&mut self, axis: FlexDirection) -> R32 {
-    //     if FlexDirectionIsRow(axis) {
-    //         match (*node).style.border[Edge::End] {
-    //             Some(Value::Point(v)) | Some(Value::Percent(v)) if v >= 0.0 => {
-    //                 return v.into();
-    //             }
-    //         }
-    //     };
-    //     return (*YGComputedEdgeValue(
-    //         (*node).style.border.as_mut_ptr() as *const Value,
-    //         trailing[axis as usize],
-    //         &mut ValueZero as *mut Value,
-    //     )).value
-    //         .max(0.0f32);
-    // }
-
     // fn YGNodeTrailingPadding(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
     //     if FlexDirectionIsRow(axis) && (*node).style.padding[Edge::End].is_some()
     //         && YGResolveValue(
@@ -2023,21 +1969,6 @@ where
 
     // fn YGNodeLeadingPaddingAndBorder(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
     //     return YGNodeLeadingPadding(node, axis, widthSize) + YGNodeLeadingBorder(node, axis);
-    // }
-
-    // fn YGNodeLeadingBorder(&mut self, axis: FlexDirection) -> R32 {
-    //     if FlexDirectionIsRow(axis)
-    //         && (*node).style.border[Edge::Start].is_some()
-    //         && (*node).style.border[Edge::Start as usize].value >= 0.0f32
-    //     {
-    //         return (*node).style.border[Edge::Start as usize].value;
-    //     };
-    //     return (*YGComputedEdgeValue(
-    //         (*node).style.border.as_mut_ptr() as *const Value,
-    //         leading[axis as usize],
-    //         &mut ValueZero as *mut Value,
-    //     )).value
-    //         .max(0.0f32);
     // }
 
     // fn YGNodeLeadingPadding(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {

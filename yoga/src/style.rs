@@ -16,10 +16,10 @@ pub struct Style {
     pub flex_grow: R32,
     pub flex_shrink: R32,
     pub flex_basis: Value,
-    pub margin: Edges<Value>,
-    pub position: Edges<Value>,
-    pub padding: Edges<Value>,
-    pub border: Edges<Value>,
+    pub margin: Margin,
+    pub position: Position,
+    pub padding: Padding,
+    pub border: Border,
     pub dimensions: Dimensions,
     pub min_dimensions: Dimensions,
     pub max_dimensions: Dimensions,
@@ -48,10 +48,10 @@ impl ::std::default::Default for Style {
                 0.0
             }),
             flex_basis: Value::Auto,
-            margin: Edges::empty(),
-            position: Edges::empty(),
-            padding: Edges::empty(),
-            border: Edges::empty(),
+            margin: Margin::default(),
+            position: Position::default(),
+            padding: Padding::default(),
+            border: Border::default(),
             dimensions: Dimensions {
                 width: Value::Auto,
                 height: Value::Auto,
@@ -73,27 +73,54 @@ pub trait Property
 where
     Self: Sized,
 {
-    type Target: Eq + PartialEq;
+    type Target: Copy + Clone + Eq + PartialEq;
 
     fn prep(self) -> Self::Target;
-    fn field(style: &Style) -> &Self::Target;
-    fn field_mut(style: &mut Style) -> &mut Self::Target;
-
-    // inline attribute necessary for cross-crate inlining
-    #[inline]
-    fn apply(self, style: &mut Style) -> Updated {
-        let apply = self.prep();
-        let mut field = Self::field_mut(style);
-        if *field == apply {
-            Updated::Clean
-        } else {
-            *field = apply;
-            Updated::Dirty
-        }
-    }
+    fn value(style: &Style) -> Self::Target;
+    fn apply(self, style: &mut Style) -> Updated;
 }
 
 macro_rules! property_impl {
+    {
+        @edge_apply
+        struct: $struct:ty,
+        target: $target:ty,
+        prep: |$inner:ident| $prep:expr,
+        style: $style:ident,
+        edge: $edge:expr,
+        field: $field:expr,
+    } => {
+        impl Property for $struct {
+            type Target = Option<$target>;
+
+            // inline attribute necessary for cross-crate inlining
+            #[inline]
+            fn prep(self) -> Self::Target {
+                Some(|$inner: $struct| -> $target { $prep }(self))
+            }
+
+            // inline attribute necessary for cross-crate inlining
+            #[inline]
+            fn value(style: &Style) -> Self::Target {
+                let $style = style;
+                $field.get($edge)
+            }
+
+            #[inline]
+            fn apply(self, style: &mut Style) -> Updated {
+                let $style = style;
+                let to_apply = self.prep();
+
+                match ($field[$edge] == to_apply, to_apply) {
+                    (false, Some(a)) => {
+                        $field.set($edge, a);
+                        Updated::Dirty
+                    }
+                    _ => Updated::Clean,
+                }
+            }
+        }
+    };
     {
         @trait
         struct: $struct:ty,
@@ -112,16 +139,24 @@ macro_rules! property_impl {
 
             // inline attribute necessary for cross-crate inlining
             #[inline]
-            fn field<'a>(style: &'a Style) -> &'a Self::Target {
+            fn value(style: &Style) -> Self::Target {
                 let $style = style;
-                &$field
+                $field
             }
 
-            // inline attribute necessary for cross-crate inlining
             #[inline]
-            fn field_mut(style: &mut Style) -> &mut Self::Target {
+            fn apply(self, style: &mut Style) -> Updated {
                 let $style = style;
-                &mut $field
+                let mut field = &mut $field;
+
+                let to_apply = self.prep();
+
+                if *field == to_apply {
+                    Updated::Clean
+                } else {
+                    *field = to_apply;
+                    Updated::Dirty
+                }
             }
         }
     };
@@ -159,6 +194,19 @@ macro_rules! property_impl {
             |v| -> Option<$target> { Some(v.0) }
         );
     };
+    (| $style:ident | $field:expr, $edge:expr, $struct:ident(optional $target:ty) ) => {
+        pub struct $struct($target);
+
+        property_impl!(
+            @edge_apply
+            struct: $struct,
+            target: $target,
+            prep: |v| { v.0 },
+            style: $style,
+            edge: $edge,
+            field: $field,
+        );
+    };
     (| $style:ident | $field:expr, $struct:ident($target:ty)) => {
         property_impl!(|$style| $field, $struct($target), |v| -> $target { v.0 });
     };
@@ -170,51 +218,51 @@ property_impl!(@trait |s| s.flex_wrap, Wrap);
 property_impl!(@trait |s| s.justify_content, Justify);
 property_impl!(@trait |s| s.overflow, Overflow);
 property_impl!(@trait |s| s.position_type, PositionType);
-
-property_impl!(|s| s.border, Border(Edges<Value>));
-property_impl!(|s| s.margin, Margin(Edges<Value>));
-property_impl!(|s| s.padding, Padding(Edges<Value>));
+property_impl!(@trait |s| s.border, Border);
+property_impl!(@trait |s| s.margin, Margin);
+property_impl!(@trait |s| s.padding, Padding);
 
 property_impl!(|s| s.align_content, AlignContent(Align));
 property_impl!(|s| s.align_items, AlignItems(Align));
 property_impl!(|s| s.align_self, AlignSelf(Align));
 property_impl!(|s| s.aspect_ratio, AspectRatio(optional R32));
-property_impl!(|s| s.border[Edge::Bottom], BorderBottom(optional Value));
-property_impl!(|s| s.border[Edge::End], BorderEnd(optional Value));
-property_impl!(|s| s.border[Edge::Left], BorderLeft(optional Value));
-property_impl!(|s| s.border[Edge::Right], BorderRight(optional Value));
-property_impl!(|s| s.border[Edge::Start], BorderStart(optional Value));
-property_impl!(|s| s.border[Edge::Top], BorderTop(optional Value));
-property_impl!(|s| s.position[Edge::Bottom], Bottom(optional Value));
-property_impl!(|s| s.position[Edge::End], End(optional Value));
-property_impl!(|s| s.flex, Flex(optional R32));
 property_impl!(|s| s.flex_basis, FlexBasis(Value));
 property_impl!(|s| s.flex_grow, FlexGrow(R32));
 property_impl!(|s| s.flex_shrink, FlexShrink(R32));
-property_impl!(|s| s.position[Edge::Left], Left(optional Value));
-property_impl!(|s| s.margin[Edge::Bottom], MarginBottom(optional Value));
-property_impl!(|s| s.margin[Edge::End], MarginEnd(optional Value));
-property_impl!(|s| s.margin[Edge::Horizontal], MarginHorizontal(optional Value));
-property_impl!(|s| s.margin[Edge::Left], MarginLeft(optional Value));
-property_impl!(|s| s.margin[Edge::Right], MarginRight(optional Value));
-property_impl!(|s| s.margin[Edge::Start], MarginStart(optional Value));
-property_impl!(|s| s.margin[Edge::Top], MarginTop(optional Value));
-property_impl!(|s| s.margin[Edge::Vertical], MarginVertical(optional Value));
+property_impl!(|s| s.flex, Flex(optional R32));
 property_impl!(|s| s.max_dimensions.height, MaxHeight(Value));
 property_impl!(|s| s.max_dimensions.width, MaxWidth(Value));
 property_impl!(|s| s.min_dimensions.height, MinHeight(Value));
 property_impl!(|s| s.min_dimensions.width, MinWidth(Value));
-property_impl!(|s| s.padding[Edge::Bottom], PaddingBottom(optional Value));
-property_impl!(|s| s.padding[Edge::End], PaddingEnd(optional Value));
-property_impl!(|s| s.padding[Edge::Horizontal], PaddingHorizontal(optional Value));
-property_impl!(|s| s.padding[Edge::Left], PaddingLeft(optional Value));
-property_impl!(|s| s.padding[Edge::Right], PaddingRight(optional Value));
-property_impl!(|s| s.padding[Edge::Start], PaddingStart(optional Value));
-property_impl!(|s| s.padding[Edge::Top], PaddingTop(optional Value));
-property_impl!(|s| s.padding[Edge::Vertical], PaddingVertical(optional Value));
-property_impl!(|s| s.position[Edge::Right], Right(optional Value));
-property_impl!(|s| s.position[Edge::Start], Start(optional Value));
-property_impl!(|s| s.position[Edge::Top], Top(optional Value));
+
+property_impl!(|s| s.border, Edge::Bottom, BorderBottom(optional R32));
+property_impl!(|s| s.border, Edge::End, BorderEnd(optional R32));
+property_impl!(|s| s.border, Edge::Left, BorderLeft(optional R32));
+property_impl!(|s| s.border, Edge::Right, BorderRight(optional R32));
+property_impl!(|s| s.border, Edge::Start, BorderStart(optional R32));
+property_impl!(|s| s.border, Edge::Top, BorderTop(optional R32));
+property_impl!(|s| s.margin, Edge::Bottom, MarginBottom(optional Value));
+property_impl!(|s| s.margin, Edge::End, MarginEnd(optional Value));
+property_impl!(|s| s.margin, Edge::Horizontal, MarginHorizontal(optional Value));
+property_impl!(|s| s.margin, Edge::Left, MarginLeft(optional Value));
+property_impl!(|s| s.margin, Edge::Right, MarginRight(optional Value));
+property_impl!(|s| s.margin, Edge::Start, MarginStart(optional Value));
+property_impl!(|s| s.margin, Edge::Top, MarginTop(optional Value));
+property_impl!(|s| s.margin, Edge::Vertical, MarginVertical(optional Value));
+property_impl!(|s| s.padding, Edge::Bottom, PaddingBottom(optional Value));
+property_impl!(|s| s.padding, Edge::End, PaddingEnd(optional Value));
+property_impl!(|s| s.padding, Edge::Horizontal, PaddingHorizontal(optional Value));
+property_impl!(|s| s.padding, Edge::Left, PaddingLeft(optional Value));
+property_impl!(|s| s.padding, Edge::Right, PaddingRight(optional Value));
+property_impl!(|s| s.padding, Edge::Start, PaddingStart(optional Value));
+property_impl!(|s| s.padding, Edge::Top, PaddingTop(optional Value));
+property_impl!(|s| s.padding, Edge::Vertical, PaddingVertical(optional Value));
+property_impl!(|s| s.position, Edge::Bottom, Bottom(optional Value));
+property_impl!(|s| s.position, Edge::End, End(optional Value));
+property_impl!(|s| s.position, Edge::Left, Left(optional Value));
+property_impl!(|s| s.position, Edge::Right, Right(optional Value));
+property_impl!(|s| s.position, Edge::Start, Start(optional Value));
+property_impl!(|s| s.position, Edge::Top, Top(optional Value));
 
 property_impl!(
     |s| s.dimensions.height,
