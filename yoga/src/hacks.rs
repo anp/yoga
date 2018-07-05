@@ -1,5 +1,15 @@
 prelude!();
 
+macro_rules! default {
+    ($struct:ty, $value:expr) => {
+        impl ::std::default::Default for $struct {
+            fn default() -> Self {
+                $value
+            }
+        }
+    };
+}
+
 pub use float_cmp::ApproxEq;
 pub(crate) trait ApproxEqHackForReals {
     fn approx_eq(&self, other: Self) -> bool;

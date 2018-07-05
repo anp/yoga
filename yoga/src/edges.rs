@@ -295,7 +295,7 @@ impl Position {
     /// If both left and right are defined, then use left. Otherwise return
     /// +left or -right depending on which is defined.
     // was YGNodeRelativePosition
-    pub(crate) fn relative(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
+    pub(crate) fn relative(&self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
         if let Some(pos) = self.leading(axis, axis_size) {
             Some(pos)
         } else {
@@ -303,7 +303,7 @@ impl Position {
         }
     }
 
-    pub(crate) fn leading(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
+    pub(crate) fn leading(&self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
         let leading_edge = if axis.is_row() {
             Edge::Start
         } else {
@@ -316,7 +316,7 @@ impl Position {
             .next()
     }
 
-    pub(crate) fn trailing(&mut self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
+    pub(crate) fn trailing(&self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
         let trailing_edge = if axis.is_row() {
             Edge::End
         } else {

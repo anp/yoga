@@ -54,9 +54,11 @@ macro_rules! prelude {
     };
 }
 
+#[macro_use]
+pub(crate) mod hacks;
+
 pub mod edges;
 pub mod enums;
-pub(crate) mod hacks;
 pub mod layout;
 pub mod style;
 
@@ -73,13 +75,22 @@ where
     // an extra field onto frequently-created structs
     const POINT_SCALE_FACTOR: f32 = 1.0;
 
-    fn parent(&mut self) -> Option<&mut Self>;
-    fn child(&mut self, index: usize) -> Option<&mut Self>;
-    fn children(&mut self) -> &mut Vec<Self>;
-    fn style(&mut self) -> &mut Style;
-    fn layout(&mut self) -> &mut Layout;
+    // TODO(anp): eliminate mutable methods and require all mutations to be passed back to caller
+    fn parent(&self) -> Option<&Self>;
+    fn parent_mut(&mut self) -> Option<&mut Self>;
+    fn child(&self, index: usize) -> Option<&Self>;
+    fn child_mut(&mut self, index: usize) -> Option<&mut Self>;
+    // TODO(anp): abstract over this, children shouldn't have to be in a slice
+    fn children(&self) -> &[Self];
+    fn children_mut(&mut self) -> &mut [Self];
+    fn style(&self) -> &Style;
+    fn style_mut(&mut self) -> &mut Style;
+    fn layout(&self) -> &Layout;
+    fn layout_mut(&mut self) -> &mut Layout;
     fn line(&mut self) -> &mut usize;
     // TODO(anp): can this be easly done without dynamic dispatch?
+    // thought from later: probably not, it would require dyanamic dispatch of all nodes, much less
+    // this specific method
     fn measure_fn(
         &self,
     ) -> Option<&'static Fn(&Self, R32, Option<MeasureMode>, R32, Option<MeasureMode>) -> Size>;
@@ -230,8 +241,8 @@ where
 
         if need_to_visit_node {
             // Invalidate the cached results.
-            self.layout().cached_layout = None;
-            self.layout().next_cached_measurements_index = 0;
+            self.layout_mut().cached_layout = None;
+            self.layout_mut().next_cached_measurements_index = 0;
         };
 
         // Determine whether the results are already cached. We maintain a separate
@@ -315,7 +326,7 @@ where
         };
 
         if let (false, Some(cached)) = (need_to_visit_node, cached_results) {
-            self.layout().measured_dimensions = Some(cached.computed);
+            self.layout_mut().measured_dimensions = Some(cached.computed);
         } else {
             self.layout_impl(
                 available_width,
@@ -328,21 +339,21 @@ where
                 perform_layout,
             );
 
-            self.layout().last_parent_direction = Some(parent_direction);
+            self.layout_mut().last_parent_direction = Some(parent_direction);
             if cached_results.is_none() {
-                if self.layout().next_cached_measurements_index == 16 {
-                    self.layout().next_cached_measurements_index = 0;
+                if self.layout_mut().next_cached_measurements_index == 16 {
+                    self.layout_mut().next_cached_measurements_index = 0;
                 };
 
-                let computed = self.layout().measured_dimensions.unwrap();
+                let computed = self.layout_mut().measured_dimensions.unwrap();
 
                 let mut new_cache_entry = if perform_layout {
                     // Use the single layout cache entry.
-                    &mut self.layout().cached_layout
+                    &mut self.layout_mut().cached_layout
                 } else {
-                    self.layout().next_cached_measurements_index += 1;
-                    let idx = self.layout().next_cached_measurements_index;
-                    &mut self.layout().cached_measurements[idx]
+                    self.layout_mut().next_cached_measurements_index += 1;
+                    let idx = self.layout_mut().next_cached_measurements_index;
+                    &mut self.layout_mut().cached_measurements[idx]
                 };
 
                 *new_cache_entry = Some(CachedMeasurement {
@@ -355,10 +366,10 @@ where
             }
         }
 
-        self.layout().generation_count = self.current_generation();
+        self.layout_mut().generation_count = self.current_generation();
 
         if perform_layout {
-            self.layout().dimensions = self.layout().measured_dimensions.map(|d| d.into());
+            self.layout_mut().dimensions = self.layout_mut().measured_dimensions.map(|d| d.into());
             self.new_layout();
             *self.dirty() = false;
         };
@@ -373,16 +384,16 @@ where
         let dirty = *self.dirty();
         if !dirty {
             *self.dirty() = true;
-            self.layout().computed_flex_basis = None;
+            self.layout_mut().computed_flex_basis = None;
 
-            if let Some(p) = self.parent() {
+            if let Some(p) = self.parent_mut() {
                 p.mark_dirty();
             }
         };
     }
 
     fn apply_style<P: Property>(&mut self, new_style: P) {
-        if Updated::Dirty == new_style.apply(self.style()) {
+        if Updated::Dirty == new_style.apply(self.style_mut()) {
             self.mark_dirty();
         }
     }
@@ -418,26 +429,26 @@ where
             .relative(cross_axis, cross_size)
             .unwrap_or(r32(0.0));
 
-        *self.layout().index_mut(main_axis.leading_edge()) =
+        *self.layout_mut().index_mut(main_axis.leading_edge()) =
             self.style()
                 .margin
                 .leading(main_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_main;
 
-        *self.layout().index_mut(main_axis.trailing_edge()) =
+        *self.layout_mut().index_mut(main_axis.trailing_edge()) =
             self.style()
                 .margin
                 .trailing(main_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_main;
 
-        *self.layout().index_mut(cross_axis.leading_edge()) =
+        *self.layout_mut().index_mut(cross_axis.leading_edge()) =
             self.style()
                 .margin
                 .leading(cross_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_cross;
 
         // FIXME(anp): this looks like a bug
-        *self.layout().index_mut(cross_axis.trailing_edge()) = self
+        *self.layout_mut().index_mut(cross_axis.trailing_edge()) = self
             .style()
             .margin
             .trailing(cross_axis, parent_width)
@@ -714,13 +725,32 @@ where
         }
     }
 
-    fn resolve_flex_grow(&mut self) -> R32 {
+    fn resolve_flex_grow(&self) -> R32 {
         // Root nodes flexGrow should always be 0
-        match (self.parent(), self.style().flex_grow, self.style().flex) {
+        let flex_grow = self.style().flex_grow;
+        let flex = self.style().flex;
+        match (self.parent(), flex_grow, flex) {
             (None, _, _) => r32(0.0),
-            (_, grow, _) => grow,
+            // FIXME(anp): flex_grow should probably be an option?
+            (_, grow, _) if grow != Style::DEFAULT_FLEX_GROW => grow,
             (_, _, Some(flex)) if flex > 0.0 => flex,
             _ => r32(Style::DEFAULT_FLEX_GROW),
+        }
+    }
+
+    fn resolve_flex_shrink(&self) -> R32 {
+        match (
+            self.parent(),
+            self.style().flex_shrink,
+            self.style().flex,
+            cfg!(feature = "web-default"),
+        ) {
+            // Root nodes flexShrink should always be 0
+            (None, _, _, _) => r32(0.0),
+            // FIXME(anp): flex_shrink should probably be an option?
+            (_, shrink, _, _) if shrink != Style::DEFAULT_FLEX_SHRINK => shrink,
+            (_, _, Some(flex), false) if flex < 0.0 => -flex,
+            _ => r32(Style::DEFAULT_FLEX_SHRINK),
         }
     }
 
@@ -838,26 +868,26 @@ where
         let direction = self.layout().direction.resolve(parent_direction);
         let flex_row_direction = FlexDirection::Row.resolve_direction(direction);
         let flex_column_direction = FlexDirection::Column.resolve_direction(direction);
-        self.layout().direction = direction;
+        self.layout_mut().direction = direction;
 
-        self.layout().margin =
+        self.layout_mut().margin =
             self.style()
                 .margin
                 .resolve(flex_row_direction, flex_column_direction, parent_width);
 
-        self.layout().border = self
+        self.layout_mut().border = self
             .style()
             .border
             .resolve(flex_row_direction, flex_column_direction);
 
-        self.layout().padding =
+        self.layout_mut().padding =
             self.style()
                 .padding
                 .resolve(flex_row_direction, flex_column_direction, parent_width);
 
         // TODO(anp): make this idempotent/typesafe/etc
         if self.measure_fn().is_some() {
-            self.layout().measured_dimensions =
+            self.layout_mut().measured_dimensions =
                 Some(self.with_measure_func_set_measured_dimensions(
                     available_width,
                     available_height,
@@ -870,14 +900,15 @@ where
         }
 
         if self.children().is_empty() {
-            self.layout().measured_dimensions = Some(self.empty_container_set_measured_dimensions(
-                available_width,
-                available_height,
-                width_measure_mode,
-                height_measure_mode,
-                parent_width,
-                parent_height,
-            ));
+            self.layout_mut().measured_dimensions =
+                Some(self.empty_container_set_measured_dimensions(
+                    available_width,
+                    available_height,
+                    width_measure_mode,
+                    height_measure_mode,
+                    parent_width,
+                    parent_height,
+                ));
             return;
         };
 
@@ -894,12 +925,12 @@ where
                 parent_height,
             ),
         ) {
-            self.layout().measured_dimensions = Some(d);
+            self.layout_mut().measured_dimensions = Some(d);
             return;
         }
 
         // Reset layout flags, as they could have changed.
-        self.layout().had_overflow = false;
+        self.layout_mut().had_overflow = false;
 
         // STEP 1: CALCULATE VALUES FOR REMAINDER OF ALGORITHM
         let main_axis = self.style().flex_direction.resolve_direction(direction);
@@ -2648,27 +2679,6 @@ where
     //         return &mut self.style.margin[Edge::End as usize] as *mut Value;
     //     } else {
     //         return &mut self.style.margin[trailing[axis as usize] as usize] as *mut Value;
-    //     };
-    // }
-
-    // fn ResolveFlexShrink(&mut self) -> R32 {
-    //     // Root nodes flexShrink should always be 0
-    //     if self.parent.is_null() {
-    //         return 0.0;
-    //     };
-    //     if !self.style.flex_shrink.is_nan() {
-    //         return self.style.flex_shrink;
-    //     };
-    //     if !(*self.config).useWebDefaults
-    //         && !self.style.flex.is_nan()
-    //         && self.style.flex < 0.0f32
-    //     {
-    //         return -self.style.flex;
-    //     };
-    //     return if (*self.config).useWebDefaults {
-    //         kWebDefaultFlexShrink
-    //     } else {
-    //         kDefaultFlexShrink
     //     };
     // }
 

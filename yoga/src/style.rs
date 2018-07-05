@@ -30,6 +30,12 @@ pub struct Style {
 impl Style {
     pub const DEFAULT_FLEX_GROW: f32 = 0.0;
 
+    #[cfg(feature = "web-default")]
+    pub const DEFAULT_FLEX_SHRINK: f32 = 1.0;
+
+    #[cfg(not(feature = "web-default"))]
+    pub const DEFAULT_FLEX_SHRINK: f32 = 0.0;
+
     #[inline]
     pub fn padding_and_border_for_axis(&self, axis: FlexDirection, width_size: R32) -> R32 {
         self.leading_padding_and_border(axis, width_size)

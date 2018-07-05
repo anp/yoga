@@ -105,12 +105,7 @@ impl Direction {
     }
 }
 
-impl Default for Direction {
-    // wow this feels imperialist to implement
-    fn default() -> Self {
-        Direction::LTR
-    }
-}
+default!(Direction, Direction::LTR);
 
 #[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
