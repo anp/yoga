@@ -81,6 +81,17 @@ default!(
 );
 
 impl Layout {
+    // fn DimWithMargin(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
+    //     return self.layout().measured_dimensions[DIM[axis as usize]]
+    //         + LeadingMargin(node, axis, widthSize)
+    //         + TrailingMargin(node, axis, widthSize);
+    // }
+
+    // fn IsLayoutDimDefined(&mut self, axis: FlexDirection) -> bool {
+    //     let value: R32 = self.layout().measured_dimensions[DIM[axis as usize]];
+    //     return !value.is_nan() && value >= 0.0f32;
+    // }
+
     fn edge_with_direction(&self, edge: Edge) -> Edge {
         match (edge, self.direction) {
             (Edge::Left, Direction::RTL) => Edge::End,

@@ -51,6 +51,31 @@ impl Style {
     pub fn trailing_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
         self.padding.trailing(axis, width_size) + self.border.trailing(axis)
     }
+
+    pub fn resolve_flex_basis(&self, parent_size: R32) -> Option<R32> {
+        if let Value::Point(p) = self.flex_basis {
+            Value::Point(p)
+        } else if let Value::Percent(p) = self.flex_basis {
+            Value::Percent(p)
+        } else if let (Some((flex, true)), false) = (
+            self.flex.map(|f| (f, f > 0.0)),
+            cfg!(feature = "web-default"),
+        ) {
+            Value::Point(r32(0.0))
+        } else {
+            Value::Auto
+        }.resolve(parent_size)
+    }
+
+    // fn is_trailing_pos_defined(&mut self, axis: FlexDirection) -> bool {
+    //     axis.is_row()
+    //         && (self.style().position.computed(Edge::End).is_some()
+    //             || self
+    //                 .style
+    //                 .position
+    //                 .computed(trailing[axis as usize])
+    //                 .is_some())
+    // }
 }
 
 default!(

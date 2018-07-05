@@ -195,6 +195,22 @@ impl Border {
 }
 
 impl Margin {
+    // fn YGMarginLeadingValue(&mut self, axis: FlexDirection) -> *mut Value {
+    //     if axis.is_row() && self.style().margin[Edge::Start].is_some() {
+    //         return &mut self.style().margin[Edge::Start as usize] as *mut Value;
+    //     } else {
+    //         return &mut self.style().margin[leading[axis as usize] as usize] as *mut Value;
+    //     };
+    // }
+
+    // fn YGMarginTrailingValue(&mut self, axis: FlexDirection) -> *mut Value {
+    //     if axis.is_row() && self.style().margin[Edge::End].is_some() {
+    //         return &mut self.style().margin[Edge::End as usize] as *mut Value;
+    //     } else {
+    //         return &mut self.style().margin[trailing[axis as usize] as usize] as *mut Value;
+    //     };
+    // }
+
     pub fn trailing(&self, axis: FlexDirection, width_size: R32) -> Option<R32> {
         match (axis.is_row(), self[Edge::End]) {
             (true, Some(v)) => Some(v),
