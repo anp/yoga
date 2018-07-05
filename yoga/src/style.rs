@@ -53,45 +53,44 @@ impl Style {
     }
 }
 
-impl ::std::default::Default for Style {
-    fn default() -> Self {
-        Style {
-            direction: Direction::default(),
-            flex_direction: FlexDirection::default(),
-            justify_content: Justify::default(),
-            align_content: Align::FlexStart,
-            align_items: Align::Stretch,
-            align_self: Align::Auto,
-            position_type: PositionType::default(),
-            flex_wrap: Wrap::default(),
-            overflow: Overflow::default(),
-            display: Display::default(),
-            flex: None,
-            flex_grow: r32(Self::DEFAULT_FLEX_GROW),
-            flex_shrink: r32(Self::DEFAULT_FLEX_SHRINK),
-            flex_basis: Value::Auto,
-            margin: Margin::default(),
-            position: Position::default(),
-            padding: Padding::default(),
-            border: Border::default(),
-            // FIXME(anp): i seem to recall there being specific logic in the setter  to prevent
-            // these values from being assigned here...
-            dimensions: Dimensions {
-                width: Value::Auto,
-                height: Value::Auto,
-            },
-            min_dimensions: Dimensions {
-                width: Value::Auto,
-                height: Value::Auto,
-            },
-            max_dimensions: Dimensions {
-                width: Value::Auto,
-                height: Value::Auto,
-            },
-            aspect_ratio: None,
-        }
+default!(
+    Style,
+    Style {
+        direction: Direction::default(),
+        flex_direction: FlexDirection::default(),
+        justify_content: Justify::default(),
+        align_content: Align::FlexStart,
+        align_items: Align::Stretch,
+        align_self: Align::Auto,
+        position_type: PositionType::default(),
+        flex_wrap: Wrap::default(),
+        overflow: Overflow::default(),
+        display: Display::default(),
+        flex: None,
+        flex_grow: r32(Self::DEFAULT_FLEX_GROW),
+        flex_shrink: r32(Self::DEFAULT_FLEX_SHRINK),
+        flex_basis: Value::Auto,
+        margin: Margin::default(),
+        position: Position::default(),
+        padding: Padding::default(),
+        border: Border::default(),
+        // FIXME(anp): i seem to recall there being specific logic in the setter  to prevent
+        // these values from being assigned here...
+        dimensions: Dimensions {
+            width: Value::Auto,
+            height: Value::Auto,
+        },
+        min_dimensions: Dimensions {
+            width: Value::Auto,
+            height: Value::Auto,
+        },
+        max_dimensions: Dimensions {
+            width: Value::Auto,
+            height: Value::Auto,
+        },
+        aspect_ratio: None,
     }
-}
+);
 
 pub trait Property
 where

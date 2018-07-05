@@ -55,31 +55,30 @@ impl ::std::ops::IndexMut<Edge> for Layout {
     }
 }
 
-impl ::std::default::Default for Layout {
-    fn default() -> Self {
-        Layout {
-            left: r32(0.0),
-            right: r32(0.0),
-            top: r32(0.0),
-            bottom: r32(0.0),
-            dimensions: None,
-            margin: MarginResolved::default(),
-            border: BorderResolved::default(),
-            padding: PaddingResolved::default(),
-            direction: Direction::default(),
-            computed_flex_basis_generation: 0,
-            computed_flex_basis: None,
-            had_overflow: false,
-            generation_count: 0,
-            // RIIR(anp): this is not technically correct, it was uninit  before
-            last_parent_direction: None,
-            next_cached_measurements_index: 0,
-            cached_measurements: [None; 16],
-            measured_dimensions: None,
-            cached_layout: None,
-        }
+default!(
+    Layout,
+    Layout {
+        left: r32(0.0),
+        right: r32(0.0),
+        top: r32(0.0),
+        bottom: r32(0.0),
+        dimensions: None,
+        margin: MarginResolved::default(),
+        border: BorderResolved::default(),
+        padding: PaddingResolved::default(),
+        direction: Direction::default(),
+        computed_flex_basis_generation: 0,
+        computed_flex_basis: None,
+        had_overflow: false,
+        generation_count: 0,
+        // RIIR(anp): this is not technically correct, it was uninit  before
+        last_parent_direction: None,
+        next_cached_measurements_index: 0,
+        cached_measurements: [None; 16],
+        measured_dimensions: None,
+        cached_layout: None,
     }
-}
+);
 
 impl Layout {
     fn edge_with_direction(&self, edge: Edge) -> Edge {

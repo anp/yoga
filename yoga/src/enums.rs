@@ -278,11 +278,7 @@ impl Value {
     }
 }
 
-impl Default for Value {
-    fn default() -> Self {
-        Value::Point(r32(0.0))
-    }
-}
+default!(Value, Value::Point(r32(0.0)));
 
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {

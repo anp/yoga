@@ -99,15 +99,7 @@ macro_rules! edges {
     };
 
     (@both $struct:ident [ $($field:ident)* ] $field_ty:ty) => {
-        impl ::std::default::Default for $struct {
-            fn default() -> Self {
-                $struct {
-                    $(
-                        $field: None,
-                    )*
-                }
-            }
-        }
+        default!($struct, $struct { $( $field: None, )* });
 
         impl $struct {
             pub(crate) fn set(&mut self, edge: Edge, new: $field_ty) -> Updated {
