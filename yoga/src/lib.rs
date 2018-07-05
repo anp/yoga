@@ -14,6 +14,9 @@
 // TODO(anp): excise unwrap/expect/panic!
 // TODO(anp): check out the inline annotations from the c code
 // TODO(anp): revist raph's continuation-based layout stuff, in case you forget, june 2018 meetup at mozilla
+// TODO(anp): pub/pub(crate)/private audit
+// TODO(anp): #![deny(missing_docs)]
+// TODO(anp): mutability pass
 
 extern crate arrayvec;
 extern crate float_cmp;
@@ -62,9 +65,8 @@ prelude!();
 // FIXME(anp): this seems...wrong
 // static mut gDepth: uint32_t = 0i32 as uint32_t;
 
-pub trait Node<CHILDREN>
+pub trait Node
 where
-    CHILDREN: Iterator<Item = Self>,
     Self: 'static + std::fmt::Debug + Sized,
 {
     // TODO(anp): should probably be runtime configurable in some ergonomic way that doesn't force
@@ -73,7 +75,7 @@ where
 
     fn parent(&mut self) -> Option<&mut Self>;
     fn child(&mut self, index: usize) -> Option<&mut Self>;
-    fn children(&mut self) -> CHILDREN;
+    fn children(&mut self) -> &mut Vec<Self>;
     fn style(&mut self) -> &mut Style;
     fn layout(&mut self) -> &mut Layout;
     fn line(&mut self) -> &mut usize;
@@ -450,7 +452,7 @@ where
         height_measure_mode: Option<MeasureMode>,
         parent_width: R32,
         parent_height: R32,
-    ) {
+    ) -> MeasuredDimensions {
         // TODO(anp): guarantee this statically i think
         let measure = self
             .measure_fn()
@@ -489,7 +491,7 @@ where
         // };
         let inner_height = available_height;
 
-        let new_dimensions = if width_measure_mode == Some(MeasureMode::Exactly)
+        if width_measure_mode == Some(MeasureMode::Exactly)
             && height_measure_mode == Some(MeasureMode::Exactly)
         {
             // Don't bother sizing the text if both dimensions are already defined.
@@ -558,9 +560,7 @@ where
                     available_width,
                 ),
             }
-        };
-
-        self.layout().measured_dimensions = Some(new_dimensions);
+        }
     }
 
     /// Like bound_axis_within_min_and_max but also ensures that the value doesn't go below the
@@ -606,7 +606,57 @@ where
         }
     }
 
-    //
+    /// For nodes with no children, use the available values if they were provided,
+    /// or the minimum size as indicated by the padding and border sizes.
+    fn empty_container_set_measured_dimensions(
+        &mut self,
+        available_width: R32,
+        available_height: R32,
+        width_measure_mode: Option<MeasureMode>,
+        height_measure_mode: Option<MeasureMode>,
+        parent_width: R32,
+        parent_height: R32,
+    ) -> MeasuredDimensions {
+        let padding_and_border_axis_row = self
+            .style()
+            .padding_and_border_for_axis(FlexDirection::Row, parent_width);
+        let padding_and_border_axis_column = self
+            .style()
+            .padding_and_border_for_axis(FlexDirection::Column, parent_width);
+
+        let margin_axis_row = self
+            .style()
+            .margin
+            .for_axis(FlexDirection::Row, parent_width);
+        let margin_axis_column = self
+            .style()
+            .margin
+            .for_axis(FlexDirection::Column, parent_width);
+
+        MeasuredDimensions {
+            width: self.bound_axis(
+                FlexDirection::Row,
+                if width_measure_mode == None || width_measure_mode == Some(MeasureMode::AtMost) {
+                    padding_and_border_axis_row
+                } else {
+                    available_width - margin_axis_row
+                },
+                parent_width,
+                parent_width,
+            ),
+            height: self.bound_axis(
+                FlexDirection::Column,
+                if height_measure_mode == None || height_measure_mode == Some(MeasureMode::AtMost) {
+                    padding_and_border_axis_column
+                } else {
+                    available_height - margin_axis_column
+                },
+                parent_height,
+                parent_width,
+            ),
+        }
+    }
+
     // This is the main routine that implements a subset of the flexbox layout
     // algorithm
     // described in the W3C YG documentation: https://www.w3.org/TR/YG3-flexbox/.
@@ -739,7 +789,7 @@ where
                 .resolve(flex_row_direction, flex_column_direction, parent_width);
 
         // TODO(anp): make this idempotent/typesafe/etc
-        if self.measure_fn().is_some() {
+        let measured_dimensions = if self.measure_fn().is_some() {
             self.with_measure_func_set_measured_dimensions(
                 available_width,
                 available_height,
@@ -747,23 +797,21 @@ where
                 height_measure_mode,
                 parent_width,
                 parent_height,
-            );
-            return;
-        }
+            )
+        } else if self.children().is_empty() {
+            self.empty_container_set_measured_dimensions(
+                available_width,
+                available_height,
+                width_measure_mode,
+                height_measure_mode,
+                parent_width,
+                parent_height,
+            )
+        } else {
+            unimplemented!()
+        };
 
-        // let childCount = ListCount(self.children);
-        // if childCount == 0 {
-        //     EmptyContainerSetMeasuredDimensions(
-        //         node,
-        //         availableWidth,
-        //         availableHeight,
-        //         width_measure_mode,
-        //         height_measure_mode,
-        //         parentWidth,
-        //         parentHeight,
-        //     );
-        //     return;
-        // }
+        self.layout().measured_dimensions = Some(measured_dimensions);
 
         // // If we're not being asked to perform a full layout we can skip the algorithm if we already know
         // // the size
@@ -2782,50 +2830,6 @@ where
     //         return true;
     //     };
     //     return false;
-    // }
-
-    // /// For nodes with no children, use the available values if they were provided,
-    // /// or the minimum size as indicated by the padding and border sizes.
-    // fn EmptyContainerSetMeasuredDimensions(
-    //     &mut self,
-    //     availableWidth: R32,
-    //     availableHeight: R32,
-    //     width_measure_mode: MeasureMode,
-    //     height_measure_mode: MeasureMode,
-    //     parentWidth: R32,
-    //     parentHeight: R32,
-    // ) -> () {
-    //     let paddingAndBorderAxisRow: R32 =
-    //         PaddingAndBorderForAxis(node, FlexDirection::Row, parentWidth);
-    //     let paddingAndBorderAxisColumn: R32 =
-    //         PaddingAndBorderForAxis(node, FlexDirection::Column, parentWidth);
-    //     let marginAxisRow: R32 = MarginForAxis(node, FlexDirection::Row, parentWidth);
-    //     let marginAxisColumn: R32 = MarginForAxis(node, FlexDirection::Column, parentWidth);
-    //     self.layout.measured_dimensions.width = bound_axis(
-    //         node,
-    //         FlexDirection::Row,
-    //         if width_measure_mode == MeasureMode::Undefined || width_measure_mode == MeasureMode::AtMost
-    //         {
-    //             paddingAndBorderAxisRow
-    //         } else {
-    //             availableWidth - marginAxisRow
-    //         },
-    //         parentWidth,
-    //         parentWidth,
-    //     );
-    //     self.layout.measured_dimensions.height = bound_axis(
-    //         node,
-    //         FlexDirection::Column,
-    //         if height_measure_mode == MeasureMode::Undefined
-    //             || height_measure_mode == MeasureMode::AtMost
-    //         {
-    //             paddingAndBorderAxisColumn
-    //         } else {
-    //             availableHeight - marginAxisColumn
-    //         },
-    //         parentHeight,
-    //         parentWidth,
-    //     );
     // }
 
     // fn copy_style(&mut self, mut from: Self) {
