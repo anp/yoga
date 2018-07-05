@@ -657,6 +657,61 @@ where
         }
     }
 
+    fn fixed_size_set_measured_dimensions(
+        &mut self,
+        available_width: R32,
+        available_height: R32,
+        width_measure_mode: Option<MeasureMode>,
+        height_measure_mode: Option<MeasureMode>,
+        parent_width: R32,
+        parent_height: R32,
+        // TODO(anp): maybe a different type than bool?
+    ) -> bool {
+        if width_measure_mode == Some(MeasureMode::AtMost) && available_width <= 0.0
+            || height_measure_mode == Some(MeasureMode::AtMost) && available_height <= 0.0
+            || width_measure_mode == Some(MeasureMode::Exactly)
+                && height_measure_mode == Some(MeasureMode::Exactly)
+        {
+            let margin_axis_column = self
+                .style()
+                .margin
+                .for_axis(FlexDirection::Column, parent_width);
+
+            let margin_axis_row = self
+                .style()
+                .margin
+                .for_axis(FlexDirection::Row, parent_width);
+            self.layout.measured_dimensions.width = bound_axis(
+                node,
+                FlexDirection::Row,
+                if availableWidth.is_nan()
+                    || width_measure_mode == MeasureMode::AtMost && availableWidth < 0.0f32
+                {
+                    0.0f32
+                } else {
+                    availableWidth - marginAxisRow
+                },
+                parentWidth,
+                parentWidth,
+            );
+            self.layout.measured_dimensions.height = bound_axis(
+                node,
+                FlexDirection::Column,
+                if availableHeight.is_nan()
+                    || height_measure_mode == MeasureMode::AtMost && availableHeight < 0.0f32
+                {
+                    0.0f32
+                } else {
+                    availableHeight - marginAxisColumn
+                },
+                parentHeight,
+                parentWidth,
+            );
+            return true;
+        };
+        return false;
+    }
+
     // This is the main routine that implements a subset of the flexbox layout
     // algorithm
     // described in the W3C YG documentation: https://www.w3.org/TR/YG3-flexbox/.
@@ -789,44 +844,44 @@ where
                 .resolve(flex_row_direction, flex_column_direction, parent_width);
 
         // TODO(anp): make this idempotent/typesafe/etc
-        let measured_dimensions = if self.measure_fn().is_some() {
-            self.with_measure_func_set_measured_dimensions(
+        if self.measure_fn().is_some() {
+            self.layout().measured_dimensions =
+                Some(self.with_measure_func_set_measured_dimensions(
+                    available_width,
+                    available_height,
+                    width_measure_mode,
+                    height_measure_mode,
+                    parent_width,
+                    parent_height,
+                ));
+            return;
+        }
+
+        if self.children().is_empty() {
+            self.layout().measured_dimensions = Some(self.empty_container_set_measured_dimensions(
                 available_width,
                 available_height,
                 width_measure_mode,
                 height_measure_mode,
                 parent_width,
                 parent_height,
-            )
-        } else if self.children().is_empty() {
-            self.empty_container_set_measured_dimensions(
-                available_width,
-                available_height,
-                width_measure_mode,
-                height_measure_mode,
-                parent_width,
-                parent_height,
-            )
-        } else {
-            unimplemented!()
+            ));
+            return;
         };
 
-        self.layout().measured_dimensions = Some(measured_dimensions);
-
-        // // If we're not being asked to perform a full layout we can skip the algorithm if we already know
-        // // the size
-        // if !performLayout
-        //     && FixedSizeSetMeasuredDimensions(
-        //         node,
-        //         availableWidth,
-        //         availableHeight,
-        //         width_measure_mode,
-        //         height_measure_mode,
-        //         parentWidth,
-        //         parentHeight,
-        //     ) {
-        //     return;
-        // }
+        // If we're not being asked to perform a full layout we can skip the algorithm if we already know
+        // the size
+        if !perform_layout
+            && self.fixed_size_set_measured_dimensions(
+                available_width,
+                available_height,
+                width_measure_mode,
+                height_measure_mode,
+                parent_width,
+                parent_height,
+            ) {
+            return;
+        }
 
         // // Reset layout flags, as they could have changed.
         // self.layout.had_overflow = false;
@@ -2783,53 +2838,6 @@ where
     //         };
     //     };
     //     return &Value::Auto as *const Value;
-    // }
-
-    // fn FixedSizeSetMeasuredDimensions(
-    //     &mut self,
-    //     availableWidth: R32,
-    //     availableHeight: R32,
-    //     width_measure_mode: MeasureMode,
-    //     height_measure_mode: MeasureMode,
-    //     parentWidth: R32,
-    //     parentHeight: R32,
-    // ) -> bool {
-    //     if width_measure_mode == MeasureMode::AtMost && availableWidth <= 0.0f32
-    //         || height_measure_mode == MeasureMode::AtMost && availableHeight <= 0.0f32
-    //         || width_measure_mode == MeasureMode::Exactly && height_measure_mode == MeasureMode::Exactly
-    //     {
-    //         let marginAxisColumn: R32 =
-    //             MarginForAxis(node, FlexDirection::Column, parentWidth);
-    //         let marginAxisRow: R32 = MarginForAxis(node, FlexDirection::Row, parentWidth);
-    //         self.layout.measured_dimensions.width = bound_axis(
-    //             node,
-    //             FlexDirection::Row,
-    //             if availableWidth.is_nan()
-    //                 || width_measure_mode == MeasureMode::AtMost && availableWidth < 0.0f32
-    //             {
-    //                 0.0f32
-    //             } else {
-    //                 availableWidth - marginAxisRow
-    //             },
-    //             parentWidth,
-    //             parentWidth,
-    //         );
-    //         self.layout.measured_dimensions.height = bound_axis(
-    //             node,
-    //             FlexDirection::Column,
-    //             if availableHeight.is_nan()
-    //                 || height_measure_mode == MeasureMode::AtMost && availableHeight < 0.0f32
-    //             {
-    //                 0.0f32
-    //             } else {
-    //                 availableHeight - marginAxisColumn
-    //             },
-    //             parentHeight,
-    //             parentWidth,
-    //         );
-    //         return true;
-    //     };
-    //     return false;
     // }
 
     // fn copy_style(&mut self, mut from: Self) {
