@@ -28,6 +28,8 @@ pub struct Style {
 }
 
 impl Style {
+    pub const DEFAULT_FLEX_GROW: f32 = 0.0;
+
     #[inline]
     pub fn padding_and_border_for_axis(&self, axis: FlexDirection, width_size: R32) -> R32 {
         self.leading_padding_and_border(axis, width_size)
@@ -59,7 +61,7 @@ impl ::std::default::Default for Style {
             overflow: Overflow::Visible,
             display: Display::Flex,
             flex: None,
-            flex_grow: r32(0.0),
+            flex_grow: r32(Self::DEFAULT_FLEX_GROW),
             flex_shrink: r32(if cfg!(feature = "web-defaults") {
                 1.0
             } else {
