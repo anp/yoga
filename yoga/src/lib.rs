@@ -714,6 +714,16 @@ where
         }
     }
 
+    fn resolve_flex_grow(&mut self) -> R32 {
+        // Root nodes flexGrow should always be 0
+        match (self.parent(), self.style().flex_grow, self.style().flex) {
+            (None, _, _) => r32(0.0),
+            (_, grow, _) => grow,
+            (_, _, Some(flex)) if flex > 0.0 => flex,
+            _ => r32(Style::DEFAULT_FLEX_GROW),
+        }
+    }
+
     // This is the main routine that implements a subset of the flexbox layout
     // algorithm
     // described in the W3C YG documentation: https://www.w3.org/TR/YG3-flexbox/.
@@ -958,74 +968,89 @@ where
             .margin
             .for_axis(FlexDirection::Column, parent_width);
 
-        // // STEP 2: DETERMINE AVAILABLE SIZE IN MAIN AND CROSS DIRECTIONS
-        // let minInnerWidth = YGResolveValue(&self.style.min_dimensions.width, parentWidth)
-        //     - marginAxisRow
-        //     - paddingAndBorderAxisRow;
-        // let maxInnerWidth = YGResolveValue(&self.style.max_dimensions.width, parentWidth)
-        //     - marginAxisRow
-        //     - paddingAndBorderAxisRow;
-        // let minInnerHeight = YGResolveValue(&self.style.min_dimensions.height, parentHeight)
-        //     - marginAxisColumn
-        //     - paddingAndBorderAxisColumn;
-        // let maxInnerHeight = YGResolveValue(&self.style.max_dimensions.height, parentHeight)
-        //     - marginAxisColumn
-        //     - paddingAndBorderAxisColumn;
-        // let minInnerMainDim = if isMainAxisRow {
-        //     minInnerWidth
-        // } else {
-        //     minInnerHeight
-        // };
-        // let maxInnerMainDim = if isMainAxisRow {
-        //     maxInnerWidth
-        // } else {
-        //     maxInnerHeight
-        // };
+        // STEP 2: DETERMINE AVAILABLE SIZE IN MAIN AND CROSS DIRECTIONS
+        let min_inner_width =
+            self.style()
+                .min_dimensions
+                .width
+                .resolve(parent_width)
+                .unwrap_or(r32(0.0)) - margin_axis_row - padding_and_border_axis_row;
+        let max_inner_width =
+            self.style()
+                .max_dimensions
+                .width
+                .resolve(parent_width)
+                .unwrap_or(r32(0.0)) - margin_axis_row - padding_and_border_axis_row;
+        let min_inner_height = self
+            .style()
+            .min_dimensions
+            .height
+            .resolve(parent_height)
+            .unwrap_or(r32(0.0)) - margin_axis_column
+            - padding_and_border_axis_column;
+        let max_inner_height = self
+            .style()
+            .max_dimensions
+            .height
+            .resolve(parent_height)
+            .unwrap_or(r32(0.0)) - margin_axis_column
+            - padding_and_border_axis_column;
 
-        // // Max dimension overrides predefined dimension value; Min dimension in turn overrides both of the
-        // // above
-        // let mut availableInnerWidth = availableWidth - marginAxisRow - paddingAndBorderAxisRow;
-        // if !availableInnerWidth.is_nan() {
-        //     // We want to make sure our available width does not violate min and max constraints
-        //     availableInnerWidth = availableInnerWidth.min(maxInnerWidth).max(minInnerWidth);
-        // }
+        let min_inner_main_dim = if is_main_axis_row {
+            min_inner_width
+        } else {
+            min_inner_height
+        };
+        let max_inner_main_dim = if is_main_axis_row {
+            max_inner_width
+        } else {
+            max_inner_height
+        };
 
-        // let mut availableInnerHeight =
-        //     availableHeight - marginAxisColumn - paddingAndBorderAxisColumn;
-        // if !availableInnerHeight.is_nan() {
-        //     // We want to make sure our available height does not violate min and max constraints
-        //     availableInnerHeight = availableInnerHeight.min(maxInnerHeight).max(minInnerHeight);
-        // }
+        // Max dimension overrides predefined dimension value;
+        // Min dimension in turn overrides both of the above
+        let mut available_inner_width =
+            available_width - margin_axis_row - padding_and_border_axis_row;
+        if !available_inner_width.is_nan() {
+            // We want to make sure our available width does not violate min and max constraints
+            available_inner_width = available_inner_width
+                .min(max_inner_width)
+                .max(min_inner_width);
+        }
 
-        // let mut availableInnerMainDim = if isMainAxisRow {
-        //     availableInnerWidth
-        // } else {
-        //     availableInnerHeight
-        // };
-        // let mut availableInnerCrossDim = if isMainAxisRow {
-        //     availableInnerHeight
-        // } else {
-        //     availableInnerWidth
-        // };
+        let mut available_inner_height =
+            available_height - margin_axis_column - padding_and_border_axis_column;
+        if !available_inner_height.is_nan() {
+            // We want to make sure our available height does not violate min and max constraints
+            available_inner_height = available_inner_height
+                .min(max_inner_height)
+                .max(min_inner_height);
+        }
 
-        // // If there is only one child with flex_grow + flex_shrink it means we can set the
-        // // computed_flex_basis to 0 instead of measuring and shrinking / flexing the child to exactly
-        // // match the remaining space
-        // let mut singleFlexChild: Node = ::std::ptr::null_mut();
-        // if measureModeMainDim == MeasureMode::Exactly {
-        //     for i in 0..childCount {
-        //         let child = GetChild(node, i);
-        //         if !singleFlexChild.is_null() {
-        //             if IsFlex(child) {
-        //                 // There is already a flexible child, abort.
-        //                 singleFlexChild = ::std::ptr::null_mut();
-        //                 break;
-        //             }
-        //         } else if YGResolveFlexGrow(child) > 0.0 && ResolveFlexShrink(child) > 0.0 {
-        //             singleFlexChild = child;
-        //         }
-        //     }
-        // }
+        let mut available_inner_main_dim = if is_main_axis_row {
+            available_inner_width
+        } else {
+            available_inner_height
+        };
+        let mut available_inner_cross_dim = if is_main_axis_row {
+            available_inner_height
+        } else {
+            available_inner_width
+        };
+
+        // If there is only one child with flex_grow + flex_shrink it means we can set the
+        // computed_flex_basis to 0 instead of measuring and shrinking / flexing the child to exactly
+        // match the remaining space
+        let single_flex_child = if measure_mode_main_dim == Some(MeasureMode::Exactly) {
+            self.children()
+                .iter()
+                .filter(|&child| {
+                    child.resolve_flex_grow() > 0.0 && child.resolve_flex_shrink() > 0.0
+                })
+                .next()
+        } else {
+            None
+        };
 
         // let mut totalOuterFlexBasis = 0.0;
 
@@ -2624,20 +2649,6 @@ where
     //     } else {
     //         return &mut self.style.margin[trailing[axis as usize] as usize] as *mut Value;
     //     };
-    // }
-
-    // fn YGResolveFlexGrow(&mut self) -> R32 {
-    //     // Root nodes flexGrow should always be 0
-    //     if self.parent.is_null() {
-    //         return 0.0;
-    //     };
-    //     if !self.style.flex_grow.is_nan() {
-    //         return self.style.flex_grow;
-    //     };
-    //     if !self.style.flex.is_nan() && self.style.flex > 0.0 {
-    //         return self.style.flex;
-    //     };
-    //     return kDefaultFlexGrow;
     // }
 
     // fn ResolveFlexShrink(&mut self) -> R32 {
