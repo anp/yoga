@@ -666,7 +666,7 @@ where
         parent_width: R32,
         parent_height: R32,
         // TODO(anp): maybe a different type than bool?
-    ) -> bool {
+    ) -> Option<MeasuredDimensions> {
         if width_measure_mode == Some(MeasureMode::AtMost) && available_width <= 0.0
             || height_measure_mode == Some(MeasureMode::AtMost) && available_height <= 0.0
             || width_measure_mode == Some(MeasureMode::Exactly)
@@ -681,35 +681,37 @@ where
                 .style()
                 .margin
                 .for_axis(FlexDirection::Row, parent_width);
-            self.layout.measured_dimensions.width = bound_axis(
-                node,
-                FlexDirection::Row,
-                if availableWidth.is_nan()
-                    || width_measure_mode == MeasureMode::AtMost && availableWidth < 0.0f32
-                {
-                    0.0f32
-                } else {
-                    availableWidth - marginAxisRow
-                },
-                parentWidth,
-                parentWidth,
-            );
-            self.layout.measured_dimensions.height = bound_axis(
-                node,
-                FlexDirection::Column,
-                if availableHeight.is_nan()
-                    || height_measure_mode == MeasureMode::AtMost && availableHeight < 0.0f32
-                {
-                    0.0f32
-                } else {
-                    availableHeight - marginAxisColumn
-                },
-                parentHeight,
-                parentWidth,
-            );
-            return true;
-        };
-        return false;
+
+            Some(MeasuredDimensions {
+                width: self.bound_axis(
+                    FlexDirection::Row,
+                    if available_width.is_nan()
+                        || width_measure_mode == Some(MeasureMode::AtMost) && available_width < 0.0
+                    {
+                        r32(0.0)
+                    } else {
+                        available_width - margin_axis_row
+                    },
+                    parent_width,
+                    parent_width,
+                ),
+                height: self.bound_axis(
+                    FlexDirection::Column,
+                    if available_height.is_nan()
+                        || height_measure_mode == Some(MeasureMode::AtMost)
+                            && available_height < 0.0
+                    {
+                        r32(0.0)
+                    } else {
+                        available_height - margin_axis_column
+                    },
+                    parent_height,
+                    parent_width,
+                ),
+            })
+        } else {
+            None
+        }
     }
 
     // This is the main routine that implements a subset of the flexbox layout
@@ -871,20 +873,23 @@ where
 
         // If we're not being asked to perform a full layout we can skip the algorithm if we already know
         // the size
-        if !perform_layout
-            && self.fixed_size_set_measured_dimensions(
+        if let (false, Some(d)) = (
+            perform_layout,
+            self.fixed_size_set_measured_dimensions(
                 available_width,
                 available_height,
                 width_measure_mode,
                 height_measure_mode,
                 parent_width,
                 parent_height,
-            ) {
+            ),
+        ) {
+            self.layout().measured_dimensions = Some(d);
             return;
         }
 
-        // // Reset layout flags, as they could have changed.
-        // self.layout.had_overflow = false;
+        // Reset layout flags, as they could have changed.
+        self.layout().had_overflow = false;
 
         // // STEP 1: CALCULATE VALUES FOR REMAINDER OF ALGORITHM
         // let mainAxis = YGResolveFlexDirection(self.style.flex_direction, direction);
