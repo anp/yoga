@@ -17,6 +17,8 @@
 // TODO(anp): pub/pub(crate)/private audit
 // TODO(anp): #![deny(missing_docs)]
 // TODO(anp): mutability pass
+// TODO(anp): create a style builder that can be constructed with some defaults
+//   and used to churn out nodes
 
 extern crate arrayvec;
 extern crate float_cmp;

@@ -44,40 +44,38 @@ impl Style {
 
     #[inline]
     pub fn leading_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
-        unimplemented!()
+        self.padding.leading(axis, width_size) + self.border.leading(axis)
     }
 
     #[inline]
     pub fn trailing_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
-        unimplemented!()
+        self.padding.trailing(axis, width_size) + self.border.trailing(axis)
     }
 }
 
 impl ::std::default::Default for Style {
     fn default() -> Self {
         Style {
-            direction: Direction::Inherit,
-            flex_direction: FlexDirection::Column,
-            justify_content: Justify::FlexStart,
+            direction: Direction::default(),
+            flex_direction: FlexDirection::default(),
+            justify_content: Justify::default(),
             align_content: Align::FlexStart,
             align_items: Align::Stretch,
             align_self: Align::Auto,
-            position_type: PositionType::Relative,
-            flex_wrap: Wrap::NoWrap,
-            overflow: Overflow::Visible,
-            display: Display::Flex,
+            position_type: PositionType::default(),
+            flex_wrap: Wrap::default(),
+            overflow: Overflow::default(),
+            display: Display::default(),
             flex: None,
             flex_grow: r32(Self::DEFAULT_FLEX_GROW),
-            flex_shrink: r32(if cfg!(feature = "web-defaults") {
-                1.0
-            } else {
-                0.0
-            }),
+            flex_shrink: r32(Self::DEFAULT_FLEX_SHRINK),
             flex_basis: Value::Auto,
             margin: Margin::default(),
             position: Position::default(),
             padding: Padding::default(),
             border: Border::default(),
+            // FIXME(anp): i seem to recall there being specific logic in the setter  to prevent
+            // these values from being assigned here...
             dimensions: Dimensions {
                 width: Value::Auto,
                 height: Value::Auto,

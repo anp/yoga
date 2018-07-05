@@ -3,6 +3,19 @@ prelude!();
 use std::f32::EPSILON;
 use std::ops::{Index, IndexMut};
 
+#[cfg(feature = "web-default")]
+default!(FlexDirection, FlexDirection::Row);
+
+#[cfg(not(feature = "web-default"))]
+default!(FlexDirection, FlexDirection::Column);
+
+default!(Direction, Direction::LTR);
+default!(Justify, Justify::FlexStart);
+default!(PositionType, PositionType::Relative);
+default!(Wrap, Wrap::NoWrap);
+default!(Overflow, Overflow::Visible);
+default!(Display, Display::Flex);
+
 #[must_use]
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub enum Updated {
@@ -10,17 +23,16 @@ pub enum Updated {
     Clean,
 }
 
-#[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Align {
-    Auto = 0,
-    FlexStart = 1,
-    Center = 2,
-    FlexEnd = 3,
-    Stretch = 4,
-    Baseline = 5,
-    SpaceBetween = 6,
-    SpaceAround = 7,
+    Auto,
+    FlexStart,
+    Center,
+    FlexEnd,
+    Stretch,
+    Baseline,
+    SpaceBetween,
+    SpaceAround,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
@@ -78,19 +90,17 @@ index_with_dimension!(Dimensions, Value);
 index_with_dimension!(MeasuredDimensions, R32);
 index_with_dimension!(ResolvedDimensions, Option<Value>);
 
-#[repr(usize)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Dimension {
-    Width = 0,
-    Height = 1,
+    Width,
+    Height,
 }
 
-#[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Direction {
-    Inherit = 0,
-    LTR = 1,
-    RTL = 2,
+    Inherit,
+    LTR,
+    RTL,
 }
 
 impl Direction {
@@ -105,13 +115,10 @@ impl Direction {
     }
 }
 
-default!(Direction, Direction::LTR);
-
-#[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Display {
-    Flex = 0,
-    None = 1,
+    Flex,
+    None,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
@@ -178,15 +185,16 @@ impl FlexDirection {
         }
     }
 }
-#[repr(u32)]
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Justify {
-    FlexStart = 0,
-    Center = 1,
-    FlexEnd = 2,
-    SpaceBetween = 3,
-    SpaceAround = 4,
+    FlexStart,
+    Center,
+    FlexEnd,
+    SpaceBetween,
+    SpaceAround,
 }
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum MeasureMode {
     // undefined was 1
@@ -228,25 +236,23 @@ impl MeasureMode {
     }
 }
 
-#[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum NodeType {
-    Default = 0,
-    Text = 1,
+    Default,
+    Text,
 }
 
-#[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Overflow {
-    Visible = 0,
-    Hidden = 1,
-    Scroll = 2,
+    Visible,
+    Hidden,
+    Scroll,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum PositionType {
-    Relative = 0,
-    Absolute = 1,
+    Relative,
+    Absolute,
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Copy, Clone, Serialize, Deserialize)]
@@ -321,10 +327,9 @@ pub(crate) fn round_value_to_pixel_grid(
     scaled_value / point_scale_factor
 }
 
-#[repr(u32)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum Wrap {
-    NoWrap = 0,
-    Wrap = 1,
-    WrapReverse = 2,
+    NoWrap,
+    Wrap,
+    WrapReverse,
 }
