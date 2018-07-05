@@ -27,6 +27,24 @@ pub struct Style {
     pub aspect_ratio: Option<R32>,
 }
 
+impl Style {
+    #[inline]
+    pub fn padding_and_border_for_axis(&self, axis: FlexDirection, width_size: R32) -> R32 {
+        self.leading_padding_and_border(axis, width_size)
+            + self.trailing_padding_and_border(axis, width_size)
+    }
+
+    #[inline]
+    pub fn leading_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
+        unimplemented!()
+    }
+
+    #[inline]
+    pub fn trailing_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
+        unimplemented!()
+    }
+}
+
 impl ::std::default::Default for Style {
     fn default() -> Self {
         Style {

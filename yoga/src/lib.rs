@@ -78,8 +78,10 @@ where
     fn layout(&mut self) -> &mut Layout;
     fn line(&mut self) -> &mut usize;
     // TODO(anp): can this be easly done without dynamic dispatch?
-    fn measure_fn(&self) -> Option<&Fn(&Self, f32, MeasureMode, f32, MeasureMode) -> Size>;
-    fn baseline_fn(&self) -> Option<&Fn(&Self, f32, f32) -> f32>;
+    fn measure_fn(
+        &self,
+    ) -> Option<&'static Fn(&Self, R32, Option<MeasureMode>, R32, Option<MeasureMode>) -> Size>;
+    fn baseline_fn(&self) -> Option<&'static Fn(&Self, R32, R32) -> R32>;
     fn dirty(&mut self) -> &mut bool;
     fn new_layout(&mut self) -> &mut bool;
     fn node_type(&self) -> NodeType;
@@ -432,11 +434,176 @@ where
                 .leading(cross_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_cross;
 
+        // FIXME(anp): this looks like a bug
         *self.layout().index_mut(cross_axis.trailing_edge()) = self
             .style()
             .margin
             .trailing(cross_axis, parent_width)
             .unwrap_or(r32(0.0));
+    }
+
+    fn with_measure_func_set_measured_dimensions(
+        &mut self,
+        available_width: R32,
+        available_height: R32,
+        width_measure_mode: Option<MeasureMode>,
+        height_measure_mode: Option<MeasureMode>,
+        parent_width: R32,
+        parent_height: R32,
+    ) {
+        // TODO(anp): guarantee this statically i think
+        let measure = self
+            .measure_fn()
+            .expect("expected node to have custom measure function");
+
+        let padding_and_border_axis_row = self
+            .style()
+            .padding_and_border_for_axis(FlexDirection::Row, available_width);
+        let padding_and_border_axis_column = self
+            .style()
+            .padding_and_border_for_axis(FlexDirection::Column, available_width);
+        let margin_axis_row = self
+            .style()
+            .margin
+            .for_axis(FlexDirection::Row, available_width);
+        let margin_axis_column = self
+            .style()
+            .margin
+            .for_axis(FlexDirection::Column, available_width);
+
+        // We want to make sure we don't call measure with negative size
+        // TODO(anp): presumably this is supposed to end up being NaN under some conditions?
+        //   let inner_width = if YGFloatIsUndefined(availableWidth) {
+        //                                availableWidth } else {
+        //                                (availableWidth - marginAxisRow - paddingAndBorderAxisRow).max(0.0)};
+        let inner_width = available_width;
+
+        // TODO(anp): these types will panic if this were to be true
+        // let inner_height = if YGFloatIsUndefined(availableHeight) {
+        //     availableHeight
+        // } else {
+        //     fmaxf(
+        //         0,
+        //         availableHeight - marginAxisColumn - paddingAndBorderAxisColumn,
+        //     )
+        // };
+        let inner_height = available_height;
+
+        let new_dimensions = if width_measure_mode == Some(MeasureMode::Exactly)
+            && height_measure_mode == Some(MeasureMode::Exactly)
+        {
+            // Don't bother sizing the text if both dimensions are already defined.
+            let width = self.bound_axis(
+                FlexDirection::Row,
+                available_width - margin_axis_row,
+                parent_width,
+                parent_width,
+            );
+
+            let height = self.bound_axis(
+                FlexDirection::Column,
+                available_height - margin_axis_column,
+                parent_height,
+                parent_width,
+            );
+
+            MeasuredDimensions {
+                // TODO(anp): the original source said parentWidth 2x here, not sure why
+                width,
+                height,
+            }
+        } else {
+            // Measure the text under the current constraints.
+            let measured_size = measure(
+                self,
+                inner_width,
+                width_measure_mode,
+                inner_height,
+                height_measure_mode,
+            );
+
+            let mut bound = |dir,
+                             measure_mode: Option<MeasureMode>,
+                             measured_size,
+                             axis_margin,
+                             available1,
+                             available2| {
+                self.bound_axis(
+                    dir,
+                    if measure_mode.is_none() || measure_mode == Some(MeasureMode::AtMost) {
+                        measured_size + padding_and_border_axis_row
+                    } else {
+                        available_width - axis_margin
+                    },
+                    available1,
+                    available2,
+                )
+            };
+
+            MeasuredDimensions {
+                width: bound(
+                    FlexDirection::Row,
+                    width_measure_mode,
+                    measured_size.width,
+                    margin_axis_row,
+                    available_width,
+                    available_width,
+                ),
+                height: bound(
+                    FlexDirection::Column,
+                    height_measure_mode,
+                    measured_size.height,
+                    padding_and_border_axis_column,
+                    available_height,
+                    available_width,
+                ),
+            }
+        };
+
+        self.layout().measured_dimensions = Some(new_dimensions);
+    }
+
+    /// Like bound_axis_within_min_and_max but also ensures that the value doesn't go below the
+    /// padding and border amount.
+    fn bound_axis(
+        &mut self,
+        axis: FlexDirection,
+        value: R32,
+        axisSize: R32,
+        widthSize: R32,
+    ) -> R32 {
+        self.bound_axis_within_min_and_max(axis, value, axisSize)
+            .max(self.style().padding_and_border_for_axis(axis, widthSize))
+    }
+
+    fn bound_axis_within_min_and_max(
+        &mut self,
+        axis: FlexDirection,
+        value: R32,
+        axis_size: R32,
+    ) -> R32 {
+        let (min, max) = match axis {
+            FlexDirection::Column | FlexDirection::ColumnReverse => (
+                self.style().min_dimensions.height.resolve(axis_size),
+                self.style().max_dimensions.height.resolve(axis_size),
+            ),
+            FlexDirection::Row | FlexDirection::RowReverse => (
+                self.style().min_dimensions.width.resolve(axis_size),
+                self.style().max_dimensions.width.resolve(axis_size),
+            ),
+        };
+
+        let value = if let Some(min) = min {
+            value.max(min)
+        } else {
+            value
+        };
+
+        if let Some(max) = max {
+            value.min(max)
+        } else {
+            value
+        }
     }
 
     //
@@ -571,21 +738,18 @@ where
                 .padding
                 .resolve(flex_row_direction, flex_column_direction, parent_width);
 
-        if let Some(measure) = self.measure_fn() {
-            //     with_measure_func_set_measured_dimensions((
-            //         node,
-            //         availableWidth,
-            //         availableHeight,
-            //         width_measure_mode,
-            //         height_measure_mode,
-            //         parentWidth,
-            //         parentHeight,
-            //     );
-            //     return;
+        // TODO(anp): make this idempotent/typesafe/etc
+        if self.measure_fn().is_some() {
+            self.with_measure_func_set_measured_dimensions(
+                available_width,
+                available_height,
+                width_measure_mode,
+                height_measure_mode,
+                parent_width,
+                parent_height,
+            );
+            return;
         }
-
-        // if self.measure.is_some() {
-        // }
 
         // let childCount = ListCount(self.children);
         // if childCount == 0 {
@@ -2236,57 +2400,6 @@ where
     //                 .position
     //                 .computed(trailing[axis as usize])
     //                 .is_some())
-    // }
-
-    // /// Like bound_axis_within_min_and_max but also ensures that the value doesn't go below the
-    // /// padding and border amount.
-    // fn bound_axis(
-    //     &mut self,
-    //     axis: FlexDirection,
-    //     value: R32,
-    //     axisSize: R32,
-    //     widthSize: R32,
-    // ) -> R32 {
-    //     return bound_axis_within_min_and_max(node, axis, value, axisSize)
-    //         .max(PaddingAndBorderForAxis(node, axis, widthSize));
-    // }
-    // fn bound_axis_within_min_and_max(
-    //     &mut self,
-    //     axis: FlexDirection,
-    //     value: R32,
-    //     axisSize: R32,
-    // ) -> R32 {
-    //     let mut min: R32 = ::std::f32::NAN;
-    //     let mut max: R32 = ::std::f32::NAN;
-    //     if FlexDirectionIsColumn(axis) {
-    //         min = YGResolveValue(
-    //             &mut self.style.min_dimensions[Dimension::Height] as *mut Value,
-    //             axisSize,
-    //         );
-    //         max = YGResolveValue(
-    //             &mut self.style.max_dimensions[Dimension::Height] as *mut Value,
-    //             axisSize,
-    //         );
-    //     } else {
-    //         if axis.is_row() {
-    //             min = YGResolveValue(
-    //                 &mut self.style.min_dimensions[Dimension::Width] as *mut Value,
-    //                 axisSize,
-    //             );
-    //             max = YGResolveValue(
-    //                 &mut self.style.max_dimensions[Dimension::Width] as *mut Value,
-    //                 axisSize,
-    //             );
-    //         };
-    //     };
-    //     let mut boundValue: R32 = value;
-    //     if !max.is_nan() && max >= 0.0f32 && boundValue > max {
-    //         boundValue = max;
-    //     };
-    //     if !min.is_nan() && min >= 0.0f32 && boundValue < min {
-    //         boundValue = min;
-    //     };
-    //     return boundValue;
     // }
 
     // fn baseline(&mut self) -> R32 {
