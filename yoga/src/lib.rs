@@ -891,57 +891,72 @@ where
         // Reset layout flags, as they could have changed.
         self.layout().had_overflow = false;
 
-        // // STEP 1: CALCULATE VALUES FOR REMAINDER OF ALGORITHM
-        // let mainAxis = YGResolveFlexDirection(self.style.flex_direction, direction);
-        // let crossAxis = FlexDirectionCross(mainAxis, direction);
-        // let isMainAxisRow = FlexDirectionIsRow(mainAxis);
-        // let justify_content = self.style.justify_content;
-        // let isNodeFlexWrap = self.style.flex_wrap != YGWrapNoWrap;
+        // STEP 1: CALCULATE VALUES FOR REMAINDER OF ALGORITHM
+        let main_axis = self.style().flex_direction.resolve_direction(direction);
+        let cross_axis = main_axis.cross(direction);
+        let is_main_axis_row = main_axis.is_row();
+        let justify_content = self.style().justify_content;
+        let is_node_flex_wrap = self.style().flex_wrap != Wrap::NoWrap;
 
-        // let mainAxisParentSize = if isMainAxisRow {
-        //     parentWidth
-        // } else {
-        //     parentHeight
-        // };
-        // let crossAxisParentSize = if isMainAxisRow {
-        //     parentHeight
-        // } else {
-        //     parentWidth
-        // };
+        let main_axis_parent_size = if is_main_axis_row {
+            parent_width
+        } else {
+            parent_height
+        };
 
-        // let leadingPaddingAndBorderMain =
-        //     LeadingPaddingAndBorder(node, mainAxis, parentWidth);
-        // let trailingPaddingAndBorderMain =
-        //     TrailingPaddingAndBorder(node, mainAxis, parentWidth);
-        // let leadingPaddingAndBorderCross =
-        //     LeadingPaddingAndBorder(node, crossAxis, parentWidth);
-        // let paddingAndBorderAxisMain = PaddingAndBorderForAxis(node, mainAxis, parentWidth);
-        // let paddingAndBorderAxisCross = PaddingAndBorderForAxis(node, crossAxis, parentWidth);
+        let cross_axis_parent_size = if is_main_axis_row {
+            parent_height
+        } else {
+            parent_width
+        };
 
-        // let mut measureModeMainDim = if isMainAxisRow {
-        //     width_measure_mode
-        // } else {
-        //     height_measure_mode
-        // };
-        // let measureModeCrossDim = if isMainAxisRow {
-        //     height_measure_mode
-        // } else {
-        //     width_measure_mode
-        // };
+        let leading_padding_and_border_main = self
+            .style()
+            .leading_padding_and_border(main_axis, parent_width);
+        let trailing_padding_and_border_main = self
+            .style()
+            .trailing_padding_and_border(main_axis, parent_width);
+        let leading_padding_and_border_cross = self
+            .style()
+            .leading_padding_and_border(cross_axis, parent_width);
+        let padding_and_border_axis_main = self
+            .style()
+            .padding_and_border_for_axis(main_axis, parent_width);
+        let padding_and_border_axis_cross = self
+            .style()
+            .padding_and_border_for_axis(cross_axis, parent_width);
 
-        // let paddingAndBorderAxisRow = if isMainAxisRow {
-        //     paddingAndBorderAxisMain
-        // } else {
-        //     paddingAndBorderAxisCross
-        // };
-        // let paddingAndBorderAxisColumn = if isMainAxisRow {
-        //     paddingAndBorderAxisCross
-        // } else {
-        //     paddingAndBorderAxisMain
-        // };
+        let mut measure_mode_main_dim = if is_main_axis_row {
+            width_measure_mode
+        } else {
+            height_measure_mode
+        };
 
-        // let marginAxisRow = MarginForAxis(node, FlexDirection::Row, parentWidth);
-        // let marginAxisColumn = MarginForAxis(node, FlexDirection::Column, parentWidth);
+        let measure_mode_cross_dim = if is_main_axis_row {
+            height_measure_mode
+        } else {
+            width_measure_mode
+        };
+
+        let padding_and_border_axis_row = if is_main_axis_row {
+            padding_and_border_axis_main
+        } else {
+            padding_and_border_axis_cross
+        };
+        let padding_and_border_axis_column = if is_main_axis_row {
+            padding_and_border_axis_cross
+        } else {
+            padding_and_border_axis_main
+        };
+
+        let margin_axis_row = self
+            .style()
+            .margin
+            .for_axis(FlexDirection::Row, parent_width);
+        let margin_axis_column = self
+            .style()
+            .margin
+            .for_axis(FlexDirection::Column, parent_width);
 
         // // STEP 2: DETERMINE AVAILABLE SIZE IN MAIN AND CROSS DIRECTIONS
         // let minInnerWidth = YGResolveValue(&self.style.min_dimensions.width, parentWidth)
