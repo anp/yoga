@@ -36,6 +36,7 @@ extern crate serde_derive;
 #[allow(unused_imports)]
 pub(crate) mod prelude {
     pub(crate) use super::edges::*;
+    pub(crate) use super::enums::Value::*;
     pub(crate) use super::enums::*;
     pub(crate) use super::hacks::ApproxEqHackForReals;
     pub(crate) use super::layout::{CachedMeasurement, Layout};
@@ -1174,10 +1175,10 @@ where
         let mut lines: Vec<FlexLine> = Vec::new();
 
         // Accumulated cross dimensions of all lines so far.
-        let total_line_cross_dim = r32(0.0);
+        let mut total_line_cross_dim = r32(0.0);
 
         // Max main dimension of all the lines.
-        let max_line_main_dim = r32(0.0);
+        let mut max_line_main_dim = r32(0.0);
 
         // reset this and push onto lines vec when a line is full
         let mut current_line = FlexLine {
@@ -1802,173 +1803,199 @@ where
                 parent_width,
             ) - padding_and_border_axis_cross;
 
-            //         // STEP 7: CROSS-AXIS ALIGNMENT
-            //         // We can skip child alignment if we're just measuring the container.
-            //         if performLayout {
-            //             for i in startOfLineIndex..endOfLineIndex {
-            //                 let child = ListGet(self.children, i);
-            //                 if child.style().display == Display::None {
-            //                     continue;
-            //                 }
-            //                 if child.style().position_type == PositionType::Absolute {
-            //                     // If the child is absolutely positioned and has a
-            //                     // top/left/bottom/right
-            //                     // set, override all the previously computed positions to set it
-            //                     // correctly.
-            //                     let isChildLeadingPosDefined =
-            //                         IsLeadingPosDefined(child, crossAxis);
-            //                     if isChildLeadingPosDefined {
-            //                         child.layout.position[pos[crossAxis as usize] as usize] =
-            //                             LeadingPosition(child, crossAxis, availableInnerCrossDim)
-            //                                 + LeadingBorder(node, crossAxis)
-            //                                 + LeadingMargin(
-            //                                     child,
-            //                                     crossAxis,
-            //                                     availableInnerWidth,
-            //                                 );
-            //                     }
-            //                     // If leading position is not defined or calculations result in Nan, default to border + margin
-            //                     if !isChildLeadingPosDefined
-            //                         || child.layout.position[pos[crossAxis as usize] as usize]
-            //                             .is_nan()
-            //                     {
-            //                         child.layout.position[pos[crossAxis as usize] as usize] =
-            //                             LeadingBorder(node, crossAxis)
-            //                                 + LeadingMargin(
-            //                                     child,
-            //                                     crossAxis,
-            //                                     availableInnerWidth,
-            //                                 );
-            //                     }
-            //                 } else {
-            //                     let mut leadingCrossDim = leadingPaddingAndBorderCross;
+            // STEP 7: CROSS-AXIS ALIGNMENT
+            // We can skip child alignment if we're just measuring the container.
+            if perform_layout {
+                for i in start_of_line_index..end_of_line_index {
+                    if self.child(i).style().display == Display::None {
+                        continue;
+                    }
 
-            //                     // For a relative children, we're either using align_items (parent) or
-            //                     // align_self (child) in order to determine the position in the cross
-            //                     // axis
-            //                     let alignItem = align_item(node, child);
+                    if self.child(i).style().position_type == PositionType::Absolute {
+                        // If the child is absolutely positioned and has a top/left/bottom/right
+                        // set, override all the previously computed positions to set it correctly.
+                        if let Some(child_leading_pos) = self
+                            .child(i)
+                            .style()
+                            .position
+                            .leading(cross_axis, available_inner_cross_dim)
+                        {
+                            let own_leading_border = self.style().border.leading(cross_axis);
+                            let child_leading_margin = self
+                                .child(i)
+                                .style()
+                                .margin
+                                .leading(cross_axis, available_inner_width)
+                                .unwrap_or(r32(0.0));
+                            self.child_mut(i).layout_mut().position.set(
+                                cross_axis.leading_edge(),
+                                child_leading_pos + own_leading_border + child_leading_margin,
+                            );
+                        } else if self.child(i).style().position[cross_axis.leading_edge()]
+                            .is_none()
+                        {
+                            // If leading position is not defined or calculations result in Nan,
+                            // default to border + margin
+                            let own_leading_border = self.style().border.leading(cross_axis);
+                            let child_leading_margin = self
+                                .child(i)
+                                .style()
+                                .margin
+                                .leading(cross_axis, available_inner_width)
+                                .unwrap_or(r32(0.0));
+                            self.child_mut(i).layout_mut().position.set(
+                                cross_axis.leading_edge(),
+                                own_leading_border + child_leading_margin,
+                            );
+                        }
+                    } else {
+                        let mut leading_cross_dim = leading_padding_and_border_cross;
 
-            //                     // If the child uses align stretch, we need to lay it out one more
-            //                     // time, this time
-            //                     // forcing the cross-axis size to be the computed cross size for the
-            //                     // current line.
-            //                     if alignItem == Align::Stretch
-            //                         && (*YGMarginLeadingValue(child, crossAxis)) != Value::Auto
-            //                         && (*YGMarginTrailingValue(child, crossAxis)) != Value::Auto
-            //                     {
-            //                         // If the child defines a definite size for its cross axis, there's
-            //                         // no need to stretch.
-            //                         if !IsStyleDimDefined(
-            //                             child,
-            //                             crossAxis,
-            //                             availableInnerCrossDim,
-            //                         ) {
-            //                             let mut childMainSize =
-            //                                 child.layout.measured_dimensions[DIM[mainAxis as usize]];
-            //                             let mut childCrossSize = if !child
-            //                                 .style
-            //                                 .aspect_ratio
-            //                                 .is_nan()
-            //                             {
-            //                                 (MarginForAxis(child, crossAxis, availableInnerWidth)
-            //                                     + (if isMainAxisRow {
-            //                                         childMainSize / child.style().aspect_ratio
-            //                                     } else {
-            //                                         childMainSize * child.style().aspect_ratio
-            //                                     }))
-            //                             } else {
-            //                                 crossDim
-            //                             };
+                        // For a relative children, we're either using align_items (parent) or
+                        // align_self (child) in order to determine the position in the cross
+                        // axis
+                        let align_item = self.align_item(self.child(i));
 
-            //                             childMainSize +=
-            //                                 MarginForAxis(child, mainAxis, availableInnerWidth);
+                        // If the child uses align stretch, we need to lay it out one more
+                        // time, this time
+                        // forcing the cross-axis size to be the computed cross size for the
+                        // current line.
+                        let stretch_aligned = align_item == Align::Stretch;
 
-            //                             let mut childMainMeasureMode = MeasureMode::Exactly;
-            //                             let mut childCrossMeasureMode = MeasureMode::Exactly;
-            //                             YGConstrainMaxSizeForMode(
-            //                                 child,
-            //                                 mainAxis,
-            //                                 availableInnerMainDim,
-            //                                 availableInnerWidth,
-            //                                 &mut childMainMeasureMode,
-            //                                 &mut childMainSize,
-            //                             );
-            //                             YGConstrainMaxSizeForMode(
-            //                                 child,
-            //                                 crossAxis,
-            //                                 availableInnerCrossDim,
-            //                                 availableInnerWidth,
-            //                                 &mut childCrossMeasureMode,
-            //                                 &mut childCrossSize,
-            //                             );
+                        let child_leading_margin =
+                            self.child(i).style().margin.leading_value(cross_axis);
+                        let child_trailing_margin =
+                            self.child(i).style().margin.trailing_value(cross_axis);
 
-            //                             let childWidth = if isMainAxisRow {
-            //                                 childMainSize
-            //                             } else {
-            //                                 childCrossSize
-            //                             };
-            //                             let childHeight = if !isMainAxisRow {
-            //                                 childMainSize
-            //                             } else {
-            //                                 childCrossSize
-            //                             };
+                        if stretch_aligned
+                            && child_leading_margin != Some(Value::Auto)
+                            && child_trailing_margin != Some(Value::Auto)
+                        {
+                            // If the child defines a definite size for its cross axis, there's
+                            // no need to stretch.
+                            if !self
+                                .child(i)
+                                .is_style_dim_defined(cross_axis, available_inner_cross_dim)
+                            {
+                                let mut child_main_size =
+                                    self.child(i).layout().measured_dimensions.unwrap()
+                                        [main_axis.dimension()];
 
-            //                             let childWidthMeasureMode = if childWidth.is_nan() {
-            //                                 MeasureMode::Undefined
-            //                             } else {
-            //                                 MeasureMode::Exactly
-            //                             };
-            //                             let childHeightMeasureMode = if childHeight.is_nan() {
-            //                                 MeasureMode::Undefined
-            //                             } else {
-            //                                 MeasureMode::Exactly
-            //                             };
+                                let mut child_cross_size =
+                                    if let Some(ar) = self.child(i).style().aspect_ratio {
+                                        self.child(i)
+                                            .style()
+                                            .margin
+                                            .for_axis(cross_axis, available_inner_width)
+                                            + (if is_main_axis_row {
+                                                child_main_size / ar
+                                            } else {
+                                                child_main_size * ar
+                                            })
+                                    } else {
+                                        cross_dim
+                                    };
 
-            //                             YGLayoutNodeInternal(
-            //                                 child,
-            //                                 childWidth,
-            //                                 childHeight,
-            //                                 direction,
-            //                                 childWidthMeasureMode,
-            //                                 childHeightMeasureMode,
-            //                                 availableInnerWidth,
-            //                                 availableInnerHeight,
-            //                                 true,
-            //                                 "stretch",
-            //                                 config,
-            //                             );
-            //                         }
-            //                     } else {
-            //                         let remainingCrossDim = containerCrossAxis
-            //                             - DimWithMargin(child, crossAxis, availableInnerWidth);
+                                // this is dumb
+                                child_main_size += self
+                                    .child(i)
+                                    .style()
+                                    .margin
+                                    .for_axis(main_axis, available_inner_width);
 
-            //                         if (*YGMarginLeadingValue(child, crossAxis)) == Value::Auto
-            //                             && (*YGMarginTrailingValue(child, crossAxis)) == Value::Auto
-            //                         {
-            //                             leadingCrossDim += (remainingCrossDim / 2.0).max(0.0);
-            //                         } else if (*YGMarginTrailingValue(child, crossAxis)) == Value::Auto
-            //                         {
-            //                             // No-Op
-            //                         } else if (*YGMarginLeadingValue(child, crossAxis)) == Value::Auto {
-            //                             leadingCrossDim += 0.0f32.max(remainingCrossDim);
-            //                         } else if alignItem == Align::FlexStart {
-            //                             // No-Op
-            //                         } else if alignItem == Align::Center {
-            //                             leadingCrossDim += remainingCrossDim / 2.0;
-            //                         } else {
-            //                             leadingCrossDim += remainingCrossDim;
-            //                         }
-            //                     }
-            //                     // And we apply the position
-            //                     child.layout.position[pos[crossAxis as usize] as usize] +=
-            //                         totalLineCrossDim + leadingCrossDim;
-            //                 }
-            //             }
+                                let mut child_main_measure_mode = Some(MeasureMode::Exactly);
+                                let mut child_cross_measure_mode = Some(MeasureMode::Exactly);
 
-            // total_line_cross_dim += cross_dim;
-            // max_line_main_dim = max_line_main_dim.max(main_dim);
+                                let (
+                                    (child_main_size, child_main_measure_mode),
+                                    (child_cross_size, child_cross_measure_mode),
+                                ) = (
+                                    self.child(i).constrained_max_size_for_mode(
+                                        main_axis,
+                                        available_inner_main_dim,
+                                        available_inner_width,
+                                        child_main_measure_mode,
+                                        child_main_size,
+                                    ),
+                                    self.child(i).constrained_max_size_for_mode(
+                                        cross_axis,
+                                        available_inner_cross_dim,
+                                        available_inner_width,
+                                        child_cross_measure_mode,
+                                        child_cross_size,
+                                    ),
+                                );
 
-            //        lineCount++, startOfLineIndex = endOfLineIndex) {
+                                let child_width = if is_main_axis_row {
+                                    child_main_size
+                                } else {
+                                    child_cross_size
+                                };
+                                let child_height = if !is_main_axis_row {
+                                    child_main_size
+                                } else {
+                                    child_cross_size
+                                };
+
+                                let child_width_measure_mode = if child_width.is_nan() {
+                                    None
+                                } else {
+                                    Some(MeasureMode::Exactly)
+                                };
+                                let child_height_measure_mode = if child_height.is_nan() {
+                                    None
+                                } else {
+                                    Some(MeasureMode::Exactly)
+                                };
+
+                                self.child_mut(i).layout_node_internal(
+                                    child_width,
+                                    child_height,
+                                    direction,
+                                    child_width_measure_mode,
+                                    child_height_measure_mode,
+                                    available_inner_width,
+                                    available_inner_height,
+                                    r32(Self::POINT_SCALE_FACTOR),
+                                    true,
+                                    "stretch",
+                                );
+                            }
+                        } else {
+                            let remaining_cross_dim = container_cross_axis
+                                - self
+                                    .child(i)
+                                    .dim_with_margin(cross_axis, available_inner_width);
+
+                            let child_leading_margin =
+                                self.child(i).style().margin.leading_value(cross_axis);
+                            let child_trailing_margin =
+                                self.child(i).style().margin.trailing_value(cross_axis);
+
+                            leading_cross_dim +=
+                                match (child_leading_margin, child_trailing_margin, align_item) {
+                                    (Some(Auto), Some(Auto), _) => {
+                                        (remaining_cross_dim / 2.0).max(r32(0.0))
+                                    }
+                                    (_, Some(Auto), _) => r32(0.0),
+                                    (Some(Auto), _, _) => r32(0.0).max(remaining_cross_dim),
+                                    (_, _, Align::FlexStart) => r32(0.0),
+                                    (_, _, Align::Center) => remaining_cross_dim / 2.0,
+                                    _ => remaining_cross_dim,
+                                };
+                        }
+                        // And we apply the position
+                        self.child_mut(i).layout_mut().position.set(
+                            cross_axis.leading_edge(),
+                            total_line_cross_dim + leading_cross_dim,
+                        );
+                    }
+                }
+            }
+
+            total_line_cross_dim += cross_dim;
+            max_line_main_dim = max_line_main_dim.max(main_dim);
+
             line_count += 1;
             start_of_line_index = end_of_line_index;
         }
