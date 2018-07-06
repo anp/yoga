@@ -7,10 +7,11 @@ const MAX_CACHED_RESULTS: usize = 16;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Layout {
-    pub left: R32,
-    pub right: R32,
-    pub top: R32,
-    pub bottom: R32,
+    pub position: PositionResolved,
+    // pub left: R32,
+    // pub right: R32,
+    // pub top: R32,
+    // pub bottom: R32,
     pub dimensions: Option<Dimensions>,
     pub direction: Direction,
     pub margin: MarginResolved,
@@ -31,37 +32,20 @@ pub struct Layout {
 }
 
 impl ::std::ops::Index<Edge> for Layout {
-    type Output = R32;
+    type Output = Option<R32>;
     fn index(&self, edge: Edge) -> &Self::Output {
-        match edge {
-            Edge::Left => &self.left,
-            Edge::Right => &self.right,
-            Edge::Top => &self.top,
-            Edge::Bottom => &self.bottom,
-            _ => panic!("passed an invalid edge to index into the layout struct"),
-        }
-    }
-}
-
-impl ::std::ops::IndexMut<Edge> for Layout {
-    fn index_mut(&mut self, edge: Edge) -> &mut Self::Output {
-        match edge {
-            Edge::Left => &mut self.left,
-            Edge::Right => &mut self.right,
-            Edge::Top => &mut self.top,
-            Edge::Bottom => &mut self.bottom,
-            _ => panic!("passed an invalid edge to index into the layout struct"),
-        }
+        self.position.index(edge)
     }
 }
 
 default!(
     Layout,
     Layout {
-        left: r32(0.0),
-        right: r32(0.0),
-        top: r32(0.0),
-        bottom: r32(0.0),
+        position: PositionResolved::default(),
+        // left: r32(0.0),
+        // right: r32(0.0),
+        // top: r32(0.0),
+        // bottom: r32(0.0),
         dimensions: None,
         margin: MarginResolved::default(),
         border: BorderResolved::default(),
@@ -81,11 +65,73 @@ default!(
 );
 
 impl Layout {
-    // fn DimWithMargin(&mut self, axis: FlexDirection, widthSize: R32) -> R32 {
-    //     return self.layout().measured_dimensions[DIM[axis as usize]]
-    //         + LeadingMargin(node, axis, widthSize)
-    //         + TrailingMargin(node, axis, widthSize);
-    // }
+    pub fn set_position(
+        &mut self,
+        style: Style,
+        direction: Direction,
+        main_size: R32,
+        cross_size: R32,
+        parent_width: R32,
+        has_parent: bool,
+    ) {
+        // Root nodes should be always layouted as LTR, so we don't return negative values.
+        let direction_respecting_root: Direction = if has_parent {
+            direction
+        } else {
+            Direction::LTR
+        };
+
+        let main_axis: FlexDirection = style
+            .flex_direction
+            .resolve_direction(direction_respecting_root);
+
+        let cross_axis: FlexDirection = main_axis.cross(direction_respecting_root);
+        let relative_position_main = style
+            .position
+            .relative(main_axis, main_size)
+            .unwrap_or(r32(0.0));
+        let relative_position_cross = style
+            .position
+            .relative(cross_axis, cross_size)
+            .unwrap_or(r32(0.0));
+
+        let mut position = PositionResolved::default();
+
+        position.set(
+            main_axis.leading_edge(),
+            style
+                .margin
+                .leading(main_axis, parent_width)
+                .unwrap_or(r32(0.0)) + relative_position_main,
+        );
+
+        position.set(
+            main_axis.trailing_edge(),
+            style
+                .margin
+                .trailing(main_axis, parent_width)
+                .unwrap_or(r32(0.0)) + relative_position_main,
+        );
+
+        position.set(
+            cross_axis.leading_edge(),
+            style
+                .margin
+                .leading(cross_axis, parent_width)
+                .unwrap_or(r32(0.0)) + relative_position_cross,
+        );
+
+        // FIXME(anp): this looks like a bug
+        position.set(
+            cross_axis.trailing_edge(),
+            style
+                .margin
+                .trailing(cross_axis, parent_width)
+                .unwrap_or(r32(0.0)),
+        );
+
+        self.position = position;
+    }
 
     // fn IsLayoutDimDefined(&mut self, axis: FlexDirection) -> bool {
     //     let value: R32 = self.layout().measured_dimensions[DIM[axis as usize]];

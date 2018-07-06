@@ -225,7 +225,16 @@ where
 
         if did_something_wat {
             let dir = self.layout().direction;
-            self.set_position(dir, parent_width, parent_height, parent_width);
+            let has_parent = self.parent().is_some();
+            let style = *self.style();
+            self.layout_mut().set_position(
+                style,
+                dir,
+                parent_width,
+                parent_height,
+                parent_width,
+                has_parent,
+            );
 
             // FIXME(anp): uncomment
             // YGRoundToPixelGrid(node, (*self.config).pointScaleFactor, 0.0f32, 0.0f32);
@@ -416,63 +425,6 @@ where
         if Updated::Dirty == new_style.apply(self.style_mut()) {
             self.mark_dirty();
         }
-    }
-
-    fn set_position(
-        &mut self,
-        direction: Direction,
-        main_size: R32,
-        cross_size: R32,
-        parent_width: R32,
-    ) {
-        // Root nodes should be always layouted as LTR, so we don't return negative values.
-        let direction_respecting_root: Direction = if self.parent().is_some() {
-            direction
-        } else {
-            Direction::LTR
-        };
-
-        let main_axis: FlexDirection = self
-            .style()
-            .flex_direction
-            .resolve_direction(direction_respecting_root);
-
-        let cross_axis: FlexDirection = main_axis.cross(direction_respecting_root);
-        let relative_position_main = self
-            .style()
-            .position
-            .relative(main_axis, main_size)
-            .unwrap_or(r32(0.0));
-        let relative_position_cross = self
-            .style()
-            .position
-            .relative(cross_axis, cross_size)
-            .unwrap_or(r32(0.0));
-
-        *self.layout_mut().index_mut(main_axis.leading_edge()) =
-            self.style()
-                .margin
-                .leading(main_axis, parent_width)
-                .unwrap_or(r32(0.0)) + relative_position_main;
-
-        *self.layout_mut().index_mut(main_axis.trailing_edge()) =
-            self.style()
-                .margin
-                .trailing(main_axis, parent_width)
-                .unwrap_or(r32(0.0)) + relative_position_main;
-
-        *self.layout_mut().index_mut(cross_axis.leading_edge()) =
-            self.style()
-                .margin
-                .leading(cross_axis, parent_width)
-                .unwrap_or(r32(0.0)) + relative_position_cross;
-
-        // FIXME(anp): this looks like a bug
-        *self.layout_mut().index_mut(cross_axis.trailing_edge()) = self
-            .style()
-            .margin
-            .trailing(cross_axis, parent_width)
-            .unwrap_or(r32(0.0));
     }
 
     fn with_measure_func_set_measured_dimensions(
@@ -775,6 +727,23 @@ where
         for child in self.children_mut() {
             child.zero_layout_recursively();
         }
+    }
+
+    fn dim_with_margin(&self, axis: FlexDirection, width_size: R32) -> R32 {
+        self.layout()
+            .measured_dimensions
+            .map(|m| m[axis.dimension()])
+            .unwrap_or(r32(0.0))
+            + self
+                .style()
+                .margin
+                .leading(axis, width_size)
+                .unwrap_or(r32(0.0))
+            + self
+                .style()
+                .margin
+                .trailing(axis, width_size)
+                .unwrap_or(r32(0.0))
     }
 
     // This is the main routine that implements a subset of the flexbox layout
@@ -1132,11 +1101,14 @@ where
             if perform_layout {
                 // Set the initial position (relative to the parent).
                 let child_direction = child.style().direction.resolve(direction);
-                child.set_position(
+                let child_style = *child.style();
+                child.layout_mut().set_position(
+                    child_style,
                     child_direction,
                     available_inner_main_dim,
                     available_inner_cross_dim,
                     available_inner_width,
+                    true,
                 );
             }
 
@@ -1189,11 +1161,17 @@ where
 
         // STEP 4: COLLECT FLEX ITEMS INTO FLEX LINES
 
-        // Indexes of children that represent the first and last items in the line.
-        let mut end_of_line_index = 0;
+        struct FlexLine {
+            /// Index of child that represents the first item in the line.
+            begin_idx: usize,
+            /// Index of child that represents the last item in the line.
+            end_idx: usize,
+            /// Number of items on the currently line. May be different than the difference between
+            /// start and end indicates because we skip over absolute-positioned items.
+            n_items: usize,
+        }
 
-        // Number of lines.
-        let line_count = 0;
+        let mut lines: Vec<FlexLine> = Vec::new();
 
         // Accumulated cross dimensions of all lines so far.
         let total_line_cross_dim = r32(0.0);
@@ -1201,13 +1179,19 @@ where
         // Max main dimension of all the lines.
         let max_line_main_dim = r32(0.0);
 
-        while end_of_line_index < self.children().len() {
-            // Number of items on the currently line. May be different than the
-            // difference
-            // between start and end indicates because we skip over absolute-positioned
-            // items.
-            let mut items_on_line = 0;
+        // reset this and push onto lines vec when a line is full
+        let mut current_line = FlexLine {
+            begin_idx: 0,
+            end_idx: 0,
+            n_items: 0,
+        };
 
+        let mut start_of_line_index = 0;
+        let mut end_of_line_index = 0;
+        let mut line_count = 0;
+
+        while end_of_line_index < self.children().len() {
+            let mut items_on_line = 0;
             // sizeConsumedOnCurrentLine is accumulation of the dimensions and margin
             // of all the children on the current line. This will be used in order to
             // either set the dimensions of the node if none already exist or to compute
@@ -1219,12 +1203,12 @@ where
             let mut total_flex_shrink_scaled_factors = r32(0.0);
 
             // Add items to the current line until it's full or we run out of items.
-            for child in self.children_mut() {
+            for child in &mut self.children_mut()[start_of_line_index..] {
                 if child.style().display == Display::None {
                     continue;
                 }
 
-                *child.line() = line_count;
+                *child.line() = lines.len();
 
                 if child.style().position_type != PositionType::Absolute {
                     let child_margin_main_axis = child
@@ -1242,14 +1226,13 @@ where
                         .resolve(main_axis_parent_size)
                         .max(flex_basis_with_max_constraints);
 
-                    // If this is a multi-line flow and this item pushes us over the
-                    // available size, we've
-                    // hit the end of the current line. Break out of the loop and lay out
-                    // the current line.
+                    // If this is a multi-line flow and this item pushes us over the available size,
+                    // we've hit the end of the current line. Break out of the loop and lay out the
+                    // current line.
                     if size_consumed_on_current_line_including_min_constraint
                         + flex_basis_with_min_and_max_constraints.unwrap()
                         + child_margin_main_axis > available_inner_main_dim
-                        && is_node_flex_wrap && items_on_line > 0
+                        && is_node_flex_wrap && lines.len() > 0
                     {
                         break;
                     }
@@ -1258,7 +1241,7 @@ where
                         flex_basis_with_min_and_max_constraints.unwrap() + child_margin_main_axis;
                     size_consumed_on_current_line +=
                         flex_basis_with_min_and_max_constraints.unwrap() + child_margin_main_axis;
-                    items_on_line += 1;
+                    current_line.n_items += 1;
 
                     if child.is_flex() {
                         total_flex_grow_factors += child.resolve_flex_grow();
@@ -1267,20 +1250,7 @@ where
                         total_flex_shrink_scaled_factors += -child.resolve_flex_shrink()
                             * child.layout().computed_flex_basis.unwrap();
                     }
-
-                    // FIXME(anp): see above in the commented-out decalarations of these vars
-                    // // Store a private linked list of children that need to be layed out.
-                    // if first_relative_child.is_none() {
-                    //     first_relative_child = Some(child);
-                    // }
-                    // if curr_rel_child.is_none() {
-                    //     (*curr_rel_child).next_child = Some(child);
-                    // }
-                    // curr_rel_child = Some(child);
-                    // child.next_child = None;
                 }
-                // FIXME(anp): totally unsure if i broke this loop by  not having  the local linked
-                // list
                 end_of_line_index += 1;
             }
 
@@ -1651,170 +1621,186 @@ where
 
                 remaining_free_space = original_remaining_free_space + delta_free_space;
                 self.layout_mut().had_overflow |= remaining_free_space < 0.0;
-            } //FIXME(anp): don't think this should be here
+            }
 
-            //         // STEP 6: MAIN-AXIS JUSTIFICATION & CROSS-AXIS SIZE DETERMINATION
+            // STEP 6: MAIN-AXIS JUSTIFICATION & CROSS-AXIS SIZE DETERMINATION
 
-            //         // At this point, all the children have their dimensions set in the main
-            //         // axis.
-            //         // Their dimensions are also set in the cross axis with the exception of
-            //         // items
-            //         // that are aligned "stretch". We need to compute these stretch values and
-            //         // set the final positions.
+            // At this point, all the children have their dimensions set in the main
+            // axis.
+            // Their dimensions are also set in the cross axis with the exception of
+            // items
+            // that are aligned "stretch". We need to compute these stretch values and
+            // set the final positions.
 
-            //         // If we are using "at most" rules in the main axis. Calculate the remaining space when
-            //         // constraint by the min size defined for the main axis.
+            // If we are using "at most" rules in the main axis. Calculate the remaining space when
+            // constraint by the min size defined for the main axis.
 
-            //         if measureModeMainDim == MeasureMode::AtMost && remainingFreeSpace > 0.0 {
-            //             if self.style().min_dimensions[DIM[mainAxis as usize]] != None
-            //                 && YGResolveValue(
-            //                     &self.style().min_dimensions[DIM[mainAxis as usize]],
-            //                     mainAxisParentSize,
-            //                 ) >= 0.0
-            //             {
-            //                 remainingFreeSpace = (0.0f32).max(
-            //                     YGResolveValue(
-            //                         &self.style().min_dimensions[DIM[mainAxis as usize]],
-            //                         mainAxisParentSize,
-            //                     )
-            //                         - (availableInnerMainDim - remainingFreeSpace),
-            //                 );
-            //             } else {
-            //                 remainingFreeSpace = 0.0;
-            //             }
-            //         }
+            if measure_mode_main_dim == Some(MeasureMode::AtMost) && remaining_free_space > 0.0 {
+                remaining_free_space = match self.style().min_dimensions[main_axis.dimension()]
+                    .resolve(main_axis_parent_size)
+                {
+                    Some(remaining) if remaining >= 0.0 => {
+                        r32(0.0).max(remaining - (available_inner_main_dim - remaining_free_space))
+                    }
+                    _ => r32(0.0),
+                };
+            }
 
-            //         let mut numberOfAutoMarginsOnCurrentLine = 0;
-            //         for i in startOfLineIndex..endOfLineIndex {
-            //             let child = ListGet(self.children, i);
-            //             if child.style().position_type == PositionType::Relative {
-            //                 if (*YGMarginLeadingValue(child, mainAxis)) == Value::Auto {
-            //                     numberOfAutoMarginsOnCurrentLine += 1;
-            //                 }
-            //                 if (*YGMarginTrailingValue(child, mainAxis)) == Value::Auto {
-            //                     numberOfAutoMarginsOnCurrentLine += 1;
-            //                 }
-            //             }
-            //         }
+            let mut number_of_auto_margins_on_current_line = 0;
+            for child in &self.children()[start_of_line_index..end_of_line_index] {
+                if child.style().position_type == PositionType::Relative {
+                    if child.style().margin.leading_value(main_axis) == Some(Value::Auto) {
+                        number_of_auto_margins_on_current_line += 1;
+                    }
+                    if child.style().margin.trailing_value(main_axis) == Some(Value::Auto) {
+                        number_of_auto_margins_on_current_line += 1;
+                    }
+                }
+            }
 
-            //         if numberOfAutoMarginsOnCurrentLine == 0 {
-            //             match justify_content {
-            //                 Justify::Center => leadingMainDim = remainingFreeSpace / 2.0,
-            //                 Justify::FlexEnd => leadingMainDim = remainingFreeSpace,
-            //                 Justify::SpaceBetween => {
-            //                     if itemsOnLine > 1 {
-            //                         betweenMainDim =
-            //                             remainingFreeSpace.max(0.0) / (itemsOnLine - 1) as f32;
-            //                     } else {
-            //                         betweenMainDim = 0.0;
-            //                     }
-            //                 }
-            //                 Justify::SpaceAround => {
-            //                     // Space on the edges is half of the space between elements
-            //                     betweenMainDim = remainingFreeSpace / itemsOnLine as f32;
-            //                     leadingMainDim = betweenMainDim / 2.0;
-            //                 }
-            //                 _ => (),
-            //             }
-            //         }
+            if number_of_auto_margins_on_current_line == 0 {
+                match justify_content {
+                    Justify::Center => leading_main_dim = remaining_free_space / 2.0,
+                    Justify::FlexEnd => leading_main_dim = remaining_free_space,
+                    Justify::SpaceBetween => {
+                        if items_on_line > 1 {
+                            between_main_dim =
+                                remaining_free_space.max(r32(0.0)) / (items_on_line - 1) as f32;
+                        } else {
+                            between_main_dim = r32(0.0);
+                        }
+                    }
+                    Justify::SpaceAround => {
+                        // Space on the edges is half of the space between elements
+                        between_main_dim = remaining_free_space / items_on_line as f32;
+                        leading_main_dim = between_main_dim / 2.0;
+                    }
+                    _ => (),
+                }
+            }
 
-            //         let mut mainDim = leadingPaddingAndBorderMain + leadingMainDim;
-            //         let mut crossDim = 0.0;
+            let mut main_dim = leading_padding_and_border_main + leading_main_dim;
+            let mut cross_dim = r32(0.0);
 
-            //         for i in startOfLineIndex..endOfLineIndex {
-            //             let child = ListGet(self.children, i);
-            //             if child.style().display == Display::None {
-            //                 continue;
-            //             }
-            //             if child.style().position_type == PositionType::Absolute
-            //                 && IsLeadingPosDefined(child, mainAxis)
-            //             {
-            //                 if performLayout {
-            //                     // In case the child is position absolute and has left/top being
-            //                     // defined, we override the position to whatever the user said
-            //                     // (and margin/border).
-            //                     child.layout.position[pos[mainAxis as usize] as usize] =
-            //                         LeadingPosition(child, mainAxis, availableInnerMainDim)
-            //                             + LeadingBorder(node, mainAxis)
-            //                             + LeadingMargin(child, mainAxis, availableInnerWidth);
-            //                 }
-            //             } else {
-            //                 // Now that we placed the element, we need to update the variables.
-            //                 // We need to do that only for relative elements. Absolute elements
-            //                 // do not take part in that phase.
-            //                 if child.style().position_type == PositionType::Relative {
-            //                     if (*YGMarginLeadingValue(child, mainAxis)) == Value::Auto {
-            //                         mainDim +=
-            //                             remainingFreeSpace / numberOfAutoMarginsOnCurrentLine as f32;
-            //                     }
+            for i in start_of_line_index..end_of_line_index {
+                if self.child(i).style().display == Display::None {
+                    continue;
+                }
 
-            //                     if performLayout {
-            //                         child.layout.position[pos[mainAxis as usize] as usize] +=
-            //                             mainDim;
-            //                     }
+                if let (PositionType::Absolute, Some(leading_pos), true) = (
+                    self.child(i).style().position_type,
+                    self.child(i)
+                        .style()
+                        .position
+                        .leading(main_axis, available_inner_width),
+                    perform_layout,
+                ) {
+                    // In case the child is position absolute and has left/top being
+                    // defined, we override the position to whatever the user said
+                    // (and margin/border).
+                    let own_leading_border = self.style().border.leading(main_axis);
+                    let child_leading_margin = self
+                        .child(i)
+                        .style()
+                        .margin
+                        .leading(main_axis, available_inner_width)
+                        .unwrap_or(r32(0.0));
+                    self.child_mut(i).layout_mut().position.set(
+                        main_axis.leading_edge(),
+                        leading_pos + own_leading_border + child_leading_margin,
+                    );
+                } else {
+                    // Now that we placed the element, we need to update the variables.
+                    // We need to do that only for relative elements. Absolute elements
+                    // do not take part in that phase.
+                    if self.child(i).style().position_type == PositionType::Relative {
+                        if self.child(i).style().margin.leading_value(main_axis)
+                            == Some(Value::Auto)
+                        {
+                            main_dim += remaining_free_space
+                                / number_of_auto_margins_on_current_line as f32;
+                        }
 
-            //                     if (*YGMarginTrailingValue(child, mainAxis)) == Value::Auto {
-            //                         mainDim +=
-            //                             remainingFreeSpace / numberOfAutoMarginsOnCurrentLine as f32;
-            //                     }
+                        if perform_layout {
+                            self.child_mut(i)
+                                .layout_mut()
+                                .position
+                                .add(main_axis.leading_edge(), main_dim);
+                        }
 
-            //                     if canSkipFlex {
-            //                         // If we skipped the flex step, then we can't rely on the
-            //                         // measuredDims because
-            //                         // they weren't computed. This means we can't call DimWithMargin.
-            //                         mainDim += betweenMainDim
-            //                             + MarginForAxis(child, mainAxis, availableInnerWidth)
-            //                             + child.layout.computed_flex_basis;
-            //                         crossDim = availableInnerCrossDim;
-            //                     } else {
-            //                         // The main dimension is the sum of all the elements dimension plus the spacing.
-            //                         mainDim += betweenMainDim
-            //                             + DimWithMargin(child, mainAxis, availableInnerWidth);
+                        if self.child(i).style().margin.trailing_value(main_axis)
+                            == Some(Value::Auto)
+                        {
+                            main_dim += remaining_free_space
+                                / number_of_auto_margins_on_current_line as f32;
+                        }
 
-            //                         // The cross dimension is the max of the elements dimension since
-            //                         // there can only be one element in that cross dimension.
-            //                         crossDim = crossDim.max(DimWithMargin(
-            //                             child,
-            //                             crossAxis,
-            //                             availableInnerWidth,
-            //                         ));
-            //                     }
-            //                 } else if performLayout {
-            //                     child.layout.position[pos[mainAxis as usize] as usize] +=
-            //                         LeadingBorder(node, mainAxis) + leadingMainDim;
-            //                 }
-            //             }
-            //         }
+                        if can_skip_flex {
+                            // If we skipped the flex step, then we can't rely on the
+                            // measuredDims because
+                            // they weren't computed. This means we can't call DimWithMargin.
+                            main_dim += between_main_dim
+                                + self
+                                    .child(i)
+                                    .style()
+                                    .margin
+                                    .for_axis(main_axis, available_inner_width)
+                                + self
+                                    .child(i)
+                                    .layout()
+                                    .computed_flex_basis
+                                    .unwrap_or(r32(0.0));
+                            cross_dim = available_inner_cross_dim;
+                        } else {
+                            // The main dimension is the sum of all the elements dimension plus the spacing.
+                            main_dim += between_main_dim
+                                + self
+                                    .child(i)
+                                    .dim_with_margin(main_axis, available_inner_width);
 
-            //         mainDim += trailingPaddingAndBorderMain;
+                            // The cross dimension is the max of the elements dimension since
+                            // there can only be one element in that cross dimension.
+                            cross_dim = cross_dim.max(
+                                self.child(i)
+                                    .dim_with_margin(cross_axis, available_inner_width),
+                            );
+                        }
+                    } else if perform_layout {
+                        let own_leading_border = self.style().border.leading(main_axis);
+                        self.child_mut(i).layout_mut().position.set(
+                            main_axis.leading_edge(),
+                            own_leading_border + leading_main_dim,
+                        );
+                    }
+                }
+            }
 
-            //         let mut containerCrossAxis = availableInnerCrossDim;
-            //         if measureModeCrossDim == MeasureMode::Undefined
-            //             || measureModeCrossDim == MeasureMode::AtMost
-            //         {
-            //             // Compute the cross axis from the max cross dimension of the children.
-            //             containerCrossAxis = bound_axis(
-            //                 node,
-            //                 crossAxis,
-            //                 crossDim + paddingAndBorderAxisCross,
-            //                 crossAxisParentSize,
-            //                 parentWidth,
-            //             ) - paddingAndBorderAxisCross;
-            //         }
+            main_dim += trailing_padding_and_border_main;
 
-            //         // If there's no flex wrap, the cross dimension is defined by the container.
-            //         if !isNodeFlexWrap && measureModeCrossDim == MeasureMode::Exactly {
-            //             crossDim = availableInnerCrossDim;
-            //         }
+            let mut container_cross_axis = available_inner_cross_dim;
+            if measure_mode_cross_dim == None || measure_mode_cross_dim == Some(MeasureMode::AtMost)
+            {
+                // Compute the cross axis from the max cross dimension of the children.
+                container_cross_axis = self.bound_axis(
+                    cross_axis,
+                    cross_dim + padding_and_border_axis_cross,
+                    cross_axis_parent_size,
+                    parent_width,
+                ) - padding_and_border_axis_cross;
+            }
 
-            //         // Clamp to the min/max size specified on the container.
-            //         crossDim = bound_axis(
-            //             node,
-            //             crossAxis,
-            //             crossDim + paddingAndBorderAxisCross,
-            //             crossAxisParentSize,
-            //             parentWidth,
-            //         ) - paddingAndBorderAxisCross;
+            // If there's no flex wrap, the cross dimension is defined by the container.
+            if !is_node_flex_wrap && measure_mode_cross_dim == Some(MeasureMode::Exactly) {
+                cross_dim = available_inner_cross_dim;
+            }
+
+            // Clamp to the min/max size specified on the container.
+            cross_dim = self.bound_axis(
+                cross_axis,
+                cross_dim + padding_and_border_axis_cross,
+                cross_axis_parent_size,
+                parent_width,
+            ) - padding_and_border_axis_cross;
 
             //         // STEP 7: CROSS-AXIS ALIGNMENT
             //         // We can skip child alignment if we're just measuring the container.
@@ -1978,12 +1964,14 @@ where
             //                         totalLineCrossDim + leadingCrossDim;
             //                 }
             //             }
-        }
 
-        // total_line_cross_dim += cross_dim;
-        // max_line_main_dim = max_line_main_dim.max(main_dim);
-        // line_count += 1;
-        // start_of_line_index = end_of_line_index;
+            // total_line_cross_dim += cross_dim;
+            // max_line_main_dim = max_line_main_dim.max(main_dim);
+
+            //        lineCount++, startOfLineIndex = endOfLineIndex) {
+            line_count += 1;
+            start_of_line_index = end_of_line_index;
+        }
 
         //     // STEP 8: MULTI-LINE CONTENT ALIGNMENT
         //     if performLayout

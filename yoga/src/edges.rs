@@ -90,10 +90,32 @@ macro_rules! edges {
                 self[edge]
             }
 
+            pub(crate) fn add(&mut self, edge: Edge, new: $resolvedty) -> Updated {
+                use Edge::*;
+
+
+                let mut field = match edge {
+                    Top => &mut self.top,
+                    Bottom => &mut self.bottom,
+                    Left => &mut self.left,
+                    Right => &mut self.right,
+                    Start => &mut self.start,
+                    End => &mut self.end,
+                    Vertical => &mut self.vertical,
+                    Horizontal => &mut self.horizontal,
+                    All => &mut self.all,
+                };
+
+                *field = Some(field.unwrap_or(r32(0.0)) + new);
+
+                Updated::Dirty
+            }
+
             $(
                 pub fn $set_fn(&mut self, new: $resolvedty) {
                     self.$field = Some(new);
                 }
+
             )*
         }
     };
@@ -124,6 +146,7 @@ macro_rules! edges {
                     Updated::Dirty
                 }
             }
+
         }
 
         impl ::std::ops::Index<Edge> for $struct {
@@ -195,21 +218,19 @@ impl Border {
 }
 
 impl Margin {
-    // fn YGMarginLeadingValue(&mut self, axis: FlexDirection) -> *mut Value {
-    //     if axis.is_row() && self.style().margin[Edge::Start].is_some() {
-    //         return &mut self.style().margin[Edge::Start as usize] as *mut Value;
-    //     } else {
-    //         return &mut self.style().margin[leading[axis as usize] as usize] as *mut Value;
-    //     };
-    // }
+    pub fn leading_value(&self, axis: FlexDirection) -> Option<Value> {
+        match (axis.is_row(), self[Edge::Start], self[axis.leading_edge()]) {
+            (true, Some(m), _) | (_, _, Some(m)) => Some(m),
+            _ => None,
+        }
+    }
 
-    // fn YGMarginTrailingValue(&mut self, axis: FlexDirection) -> *mut Value {
-    //     if axis.is_row() && self.style().margin[Edge::End].is_some() {
-    //         return &mut self.style().margin[Edge::End as usize] as *mut Value;
-    //     } else {
-    //         return &mut self.style().margin[trailing[axis as usize] as usize] as *mut Value;
-    //     };
-    // }
+    pub fn trailing_value(&self, axis: FlexDirection) -> Option<Value> {
+        match (axis.is_row(), self[Edge::End], self[axis.trailing_edge()]) {
+            (true, Some(m), _) | (_, _, Some(m)) => Some(m),
+            _ => None,
+        }
+    }
 
     pub fn trailing(&self, axis: FlexDirection, width_size: R32) -> Option<R32> {
         match (axis.is_row(), self[Edge::End]) {
