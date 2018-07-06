@@ -1125,529 +1125,527 @@ where
 
         // STEP 3: DETERMINE FLEX BASIS FOR EACH ITEM
         for (mut child, parent_align) in self.children_mut().into_iter().zip(aligns) {
-            {
+            if child.style().display == Display::None {
+                child.zero_layout_recursively();
+                *child.new_layout() = true;
+                child.mark_dirty();
+                continue;
+            }
+            child.resolve_dimensions();
+            if perform_layout {
+                // Set the initial position (relative to the parent).
+                let child_direction = child.style().direction.resolve(direction);
+                child.set_position(
+                    child_direction,
+                    available_inner_main_dim,
+                    available_inner_cross_dim,
+                    available_inner_width,
+                );
+            }
+
+            // Absolute-positioned children don't participate in flex layout. Add them
+            // to a list that we can process later.
+            if child.style().position_type == PositionType::Absolute {
+                // Store a private linked list of absolutely positioned children
+                // so that we can efficiently traverse them later.
+                Y::add_absolute_child(&*child);
+            // FIXME(anp): figure out the borrowing bs here (look for similar comment above)
+            // } else if Some(&*child) == single_flex_child {
+            //     child.layout_mut().computed_flex_basis_generation = current_generation;
+            //     child.layout_mut().computed_flex_basis = Some(r32(0.0));
+            } else {
+                child.compute_flex_basis_from_parent(
+                    available_inner_width,
+                    width_measure_mode,
+                    available_inner_height,
+                    available_inner_width,
+                    available_inner_height,
+                    height_measure_mode,
+                    direction,
+                    self_flex_direction,
+                    self_overflow,
+                    parent_align,
+                );
+            }
+
+            if let Some(basis) = child.layout().computed_flex_basis {
+                total_outer_flex_basis += basis;
+            }
+
+            // FIXME(anp): pretty sure this should have been operating on layout, but i impld
+            // it on the margin that style gets
+            total_outer_flex_basis += child
+                .style()
+                .margin
+                .for_axis(main_axis, available_inner_width);
+        }
+
+        let flex_basis_overflows = measure_mode_main_dim
+            .map(|_| total_outer_flex_basis > available_inner_main_dim)
+            .unwrap_or(false);
+        if is_node_flex_wrap
+            && flex_basis_overflows
+            && measure_mode_main_dim == Some(MeasureMode::AtMost)
+        {
+            measure_mode_main_dim = Some(MeasureMode::Exactly);
+        }
+
+        // STEP 4: COLLECT FLEX ITEMS INTO FLEX LINES
+
+        // Indexes of children that represent the first and last items in the line.
+        let mut end_of_line_index = 0;
+
+        // Number of lines.
+        let line_count = 0;
+
+        // Accumulated cross dimensions of all lines so far.
+        let total_line_cross_dim = r32(0.0);
+
+        // Max main dimension of all the lines.
+        let max_line_main_dim = r32(0.0);
+
+        while end_of_line_index < self.children().len() {
+            // Number of items on the currently line. May be different than the
+            // difference
+            // between start and end indicates because we skip over absolute-positioned
+            // items.
+            let mut items_on_line = 0;
+
+            // sizeConsumedOnCurrentLine is accumulation of the dimensions and margin
+            // of all the children on the current line. This will be used in order to
+            // either set the dimensions of the node if none already exist or to compute
+            // the remaining space left for the flexible children.
+            let mut size_consumed_on_current_line = r32(0.0);
+            let mut size_consumed_on_current_line_including_min_constraint = r32(0.0);
+
+            let mut total_flex_grow_factors = r32(0.0);
+            let mut total_flex_shrink_scaled_factors = r32(0.0);
+
+            // FIXME(anp): this is incompatible with rust borrow stuff, but may not be necessary
+            // Maintain a linked list of the child nodes that can shrink and/or grow.
+            // let first_relative_child = None;
+            // let current_relative_child = None;
+
+            // Add items to the current line until it's full or we run out of items.
+            for child in self.children_mut() {
                 if child.style().display == Display::None {
-                    child.zero_layout_recursively();
-                    *child.new_layout() = true;
-                    child.mark_dirty();
                     continue;
                 }
-                child.resolve_dimensions();
-                if perform_layout {
-                    // Set the initial position (relative to the parent).
-                    let child_direction = child.style().direction.resolve(direction);
-                    child.set_position(
-                        child_direction,
-                        available_inner_main_dim,
-                        available_inner_cross_dim,
-                        available_inner_width,
-                    );
-                }
 
-                // Absolute-positioned children don't participate in flex layout. Add them
-                // to a list that we can process later.
-                if child.style().position_type == PositionType::Absolute {
-                    // Store a private linked list of absolutely positioned children
-                    // so that we can efficiently traverse them later.
-                    Y::add_absolute_child(&*child);
-                // FIXME(anp): figure out the borrowing bs here (look for similar comment above)
-                // } else if Some(&*child) == single_flex_child {
-                //     child.layout_mut().computed_flex_basis_generation = current_generation;
-                //     child.layout_mut().computed_flex_basis = Some(r32(0.0));
-                } else {
-                    child.compute_flex_basis_from_parent(
-                        available_inner_width,
-                        width_measure_mode,
-                        available_inner_height,
-                        available_inner_width,
-                        available_inner_height,
-                        height_measure_mode,
-                        direction,
-                        self_flex_direction,
-                        self_overflow,
-                        parent_align,
-                    );
-                }
+                *child.line() = line_count;
 
-                if let Some(basis) = child.layout().computed_flex_basis {
-                    total_outer_flex_basis += basis;
-                }
+                if child.style().position_type != PositionType::Absolute {
+                    let child_margin_main_axis = child
+                        .style()
+                        .margin
+                        .for_axis(main_axis, available_inner_width);
 
-                // FIXME(anp): pretty sure this should have been operating on layout, but i impld
-                // it on the margin that style gets
-                total_outer_flex_basis += child
-                    .style()
-                    .margin
-                    .for_axis(main_axis, available_inner_width);
+                    let flex_basis_with_max_constraints = child.style().max_dimensions
+                        [main_axis.dimension()]
+                        .resolve(main_axis_parent_size)
+                        .min(child.layout().computed_flex_basis);
+
+                    let flex_basis_with_min_and_max_constraints = child.style().min_dimensions
+                        [main_axis.dimension()]
+                        .resolve(main_axis_parent_size)
+                        .max(flex_basis_with_max_constraints);
+
+                    // If this is a multi-line flow and this item pushes us over the
+                    // available size, we've
+                    // hit the end of the current line. Break out of the loop and lay out
+                    // the current line.
+                    if size_consumed_on_current_line_including_min_constraint
+                        + flex_basis_with_min_and_max_constraints.unwrap()
+                        + child_margin_main_axis > available_inner_main_dim
+                        && is_node_flex_wrap && items_on_line > 0
+                    {
+                        break;
+                    }
+
+                    size_consumed_on_current_line_including_min_constraint +=
+                        flex_basis_with_min_and_max_constraints.unwrap() + child_margin_main_axis;
+                    size_consumed_on_current_line +=
+                        flex_basis_with_min_and_max_constraints.unwrap() + child_margin_main_axis;
+                    items_on_line += 1;
+
+                    if child.is_flex() {
+                        total_flex_grow_factors += child.resolve_flex_grow();
+
+                        // Unlike the grow factor, the shrink factor is scaled relative to the child dimension.
+                        total_flex_shrink_scaled_factors += -child.resolve_flex_shrink()
+                            * child.layout().computed_flex_basis.unwrap();
+                    }
+
+                    // FIXME(anp): see above in the commented-out decalarations of these vars
+                    // // Store a private linked list of children that need to be layed out.
+                    // if first_relative_child.is_none() {
+                    //     first_relative_child = Some(child);
+                    // }
+                    // if current_relative_child.is_none() {
+                    //     (*current_relative_child).next_child = Some(child);
+                    // }
+                    // current_relative_child = Some(child);
+                    // child.next_child = None;
+                }
+                // FIXME(anp): totally unsure if i broke this loop by  not having  the local linked
+                // list
+                end_of_line_index += 1;
             }
 
-            let flex_basis_overflows = measure_mode_main_dim
-                .map(|_| total_outer_flex_basis > available_inner_main_dim)
-                .unwrap_or(false);
-            if is_node_flex_wrap
-                && flex_basis_overflows
-                && measure_mode_main_dim == Some(MeasureMode::AtMost)
-            {
-                measure_mode_main_dim = Some(MeasureMode::Exactly);
+            // The total flex factor needs to be floored to 1.
+            if total_flex_grow_factors > 0.0 && total_flex_grow_factors < 1.0 {
+                total_flex_grow_factors = r32(1.0);
             }
 
-            //     // STEP 4: COLLECT FLEX ITEMS INTO FLEX LINES
+            // The total flex shrink factor needs to be floored to 1.
+            if total_flex_shrink_scaled_factors > 0.0 && total_flex_shrink_scaled_factors < 1.0 {
+                total_flex_shrink_scaled_factors = r32(1.0);
+            }
 
-            //     // Indexes of children that represent the first and last items in the line.
-            //     let mut startOfLineIndex = 0;
-            //     let mut endOfLineIndex = 0;
+            // If we don't need to measure the cross axis, we can skip the entire flex
+            // step.
+            let can_skip_flex =
+                !perform_layout && measure_mode_cross_dim == Some(MeasureMode::Exactly);
 
-            //     // Number of lines.
-            //     let mut lineCount = 0;
+            // In order to position the elements in the main axis, we have two
+            // controls. The space between the beginning and the first element
+            // and the space between each two elements.
+            let mut leading_main_dim = 0.0;
+            let mut between_main_dim = 0.0;
 
-            //     // Accumulated cross dimensions of all lines so far.
-            //     let mut totalLineCrossDim = 0.0f32;
+            // STEP 5: RESOLVING FLEXIBLE LENGTHS ON MAIN AXIS
+            // Calculate the remaining available space that needs to be allocated.
+            // If the main dimension size isn't known, it is computed based on
+            // the line length, so there's no more space left to distribute.
 
-            //     // Max main dimension of all the lines.
-            //     let mut maxLineMainDim = 0.0f32;
+            // If we don't measure with exact main dimension we want to ensure we don't violate min and max
+            // if measureModeMainDim != MeasureMode::Exactly {
+            //     if !minInnerMainDim.is_nan() && sizeConsumedOnCurrentLine < minInnerMainDim {
+            //         availableInnerMainDim = minInnerMainDim;
+            //     } else if !maxInnerMainDim.is_nan()
+            //         && sizeConsumedOnCurrentLine > maxInnerMainDim
+            //     {
+            //         availableInnerMainDim = maxInnerMainDim;
+            //     } else if !(*self.config).useLegacyStretchBehaviour
+            //         && (totalFlexGrowFactors == 0.0 || YGResolveFlexGrow(node) == 0.0)
+            //     {
+            //         // If we don't have any children to flex or we can't flex the node itself,
+            //         // space we've used is all space we need. Root node also should be shrunk to minimum
+            //         availableInnerMainDim = sizeConsumedOnCurrentLine;
+            //     }
+            // }
 
-            //     while endOfLineIndex < childCount {
-            //         // Number of items on the currently line. May be different than the
-            //         // difference
-            //         // between start and end indicates because we skip over absolute-positioned
-            //         // items.
-            //         let mut itemsOnLine = 0;
+            // let mut remainingFreeSpace = 0.0;
+            // if !availableInnerMainDim.is_nan() {
+            //     remainingFreeSpace = availableInnerMainDim - sizeConsumedOnCurrentLine;
+            // } else if sizeConsumedOnCurrentLine < 0.0 {
+            //     // availableInnerMainDim is indefinite which means the node is being sized based on its
+            //     // content.
+            //     // sizeConsumedOnCurrentLine is negative which means the node will allocate 0 points for
+            //     // its content. Consequently, remainingFreeSpace is 0 - sizeConsumedOnCurrentLine.
+            //     remainingFreeSpace = -sizeConsumedOnCurrentLine;
+            // }
 
-            //         // sizeConsumedOnCurrentLine is accumulation of the dimensions and margin
-            //         // of all the children on the current line. This will be used in order to
-            //         // either set the dimensions of the node if none already exist or to compute
-            //         // the remaining space left for the flexible children.
-            //         let mut sizeConsumedOnCurrentLine = 0.0f32;
-            //         let mut sizeConsumedOnCurrentLineIncludingMinConstraint = 0.0f32;
+            // let mut originalRemainingFreeSpace = remainingFreeSpace;
+            // let mut deltaFreeSpace = 0.0;
 
-            //         let mut totalFlexGrowFactors = 0.0f32;
-            //         let mut totalFlexShrinkScaledFactors = 0.0f32;
+            // if !canSkipFlex {
+            //     let mut childFlexBasis: f32;
+            //     let mut flexShrinkScaledFactor: f32;
+            //     let mut flexGrowFactor: f32;
+            //     let mut baseMainSize: f32;
+            //     let mut boundMainSize: f32;
 
-            //         // Maintain a linked list of the child nodes that can shrink and/or grow.
-            //         let mut firstRelativeChild: Node = ::std::ptr::null_mut();
-            //         let mut currentRelativeChild: Node = ::std::ptr::null_mut();
+            //     // Do two passes over the flex items to figure out how to distribute the
+            //     // remaining space.
+            //     // The first pass finds the items whose min/max constraints trigger,
+            //     // freezes them at those
+            //     // sizes, and excludes those sizes from the remaining space. The second
+            //     // pass sets the size
+            //     // of each flexible item. It distributes the remaining space amongst the
+            //     // items whose min/max
+            //     // constraints didn't trigger in pass 1. For the other items, it sets
+            //     // their sizes by forcing
+            //     // their min/max constraints to trigger again.
+            //     //
+            //     // This two pass approach for resolving min/max constraints deviates from
+            //     // the spec. The
+            //     // spec (https://www.w3.org/TR/YG-flexbox-1/#resolve-flexible-lengths)
+            //     // describes a process
+            //     // that needs to be repeated a variable number of times. The algorithm
+            //     // implemented here
+            //     // won't handle all cases but it was simpler to implement and it mitigates
+            //     // performance
+            //     // concerns because we know exactly how many passes it'll do.
 
-            //         // Add items to the current line until it's full or we run out of items.
-            //         let mut i = startOfLineIndex;
-            //         while i < childCount {
-            //             let child = ListGet(self.children, i);
-            //             if child.style().display == Display::None {
-            //                 continue;
-            //             }
-            //             child.lineIndex = lineCount;
+            //     // First pass: detect the flex items whose min/max constraints trigger
+            //     let mut deltaFlexShrinkScaledFactors = 0.0;
+            //     let mut deltaFlexGrowFactors = 0.0;
+            //     currentRelativeChild = firstRelativeChild;
+            //     while !currentRelativeChild.is_null() {
+            //         childFlexBasis = YGResolveValue(
+            //             &(*currentRelativeChild).style.max_dimensions[DIM[mainAxis as usize]],
+            //             mainAxisParentSize,
+            //         ).min(
+            //             YGResolveValue(
+            //                 &(*currentRelativeChild).style.min_dimensions
+            //                     [DIM[mainAxis as usize]],
+            //                 mainAxisParentSize,
+            //             ).max((*currentRelativeChild).layout.computed_flex_basis),
+            //         );
 
-            //             if child.style().position_type != PositionType::Absolute {
-            //                 let childMarginMainAxis =
-            //                     MarginForAxis(child, mainAxis, availableInnerWidth);
-            //                 let flexBasisWithMaxConstraints =
-            //                     YGResolveValue(
-            //                         &child.style().max_dimensions[DIM[mainAxis as usize]],
-            //                         mainAxisParentSize,
-            //                     ).min(child.layout.computed_flex_basis);
-            //                 let flexBasisWithMinAndMaxConstraints = YGResolveValue(
-            //                     &child.style().min_dimensions[DIM[mainAxis as usize]],
-            //                     mainAxisParentSize,
-            //                 ).max(flexBasisWithMaxConstraints);
+            //         if remainingFreeSpace < 0.0 {
+            //             flexShrinkScaledFactor =
+            //                 -ResolveFlexShrink(currentRelativeChild) * childFlexBasis;
 
-            //                 // If this is a multi-line flow and this item pushes us over the
-            //                 // available size, we've
-            //                 // hit the end of the current line. Break out of the loop and lay out
-            //                 // the current line.
-            //                 if sizeConsumedOnCurrentLineIncludingMinConstraint
-            //                     + flexBasisWithMinAndMaxConstraints
-            //                     + childMarginMainAxis > availableInnerMainDim
-            //                     && isNodeFlexWrap && itemsOnLine > 0
-            //                 {
-            //                     break;
-            //                 }
-
-            //                 sizeConsumedOnCurrentLineIncludingMinConstraint +=
-            //                     flexBasisWithMinAndMaxConstraints + childMarginMainAxis;
-            //                 sizeConsumedOnCurrentLine +=
-            //                     flexBasisWithMinAndMaxConstraints + childMarginMainAxis;
-            //                 itemsOnLine += 1;
-
-            //                 if IsFlex(child) {
-            //                     totalFlexGrowFactors += YGResolveFlexGrow(child);
-
-            //                     // Unlike the grow factor, the shrink factor is scaled relative to the child dimension.
-            //                     totalFlexShrinkScaledFactors += -ResolveFlexShrink(child)
-            //                         * child.layout.computed_flex_basis;
-            //                 }
-
-            //                 // Store a private linked list of children that need to be layed out.
-            //                 if firstRelativeChild.is_null() {
-            //                     firstRelativeChild = child;
-            //                 }
-            //                 if currentRelativeChild.is_null() {
-            //                     (*currentRelativeChild).nextChild = child;
-            //                 }
-            //                 currentRelativeChild = child;
-            //                 child.nextChild = ::std::ptr::null_mut();
-            //             }
-            //             i += 1;
-            //             endOfLineIndex += 1;
-            //         }
-
-            //         // The total flex factor needs to be floored to 1.
-            //         if totalFlexGrowFactors > 0.0 && totalFlexGrowFactors < 1.0 {
-            //             totalFlexGrowFactors = 1.0;
-            //         }
-
-            //         // The total flex shrink factor needs to be floored to 1.
-            //         if totalFlexShrinkScaledFactors > 0.0 && totalFlexShrinkScaledFactors < 1.0 {
-            //             totalFlexShrinkScaledFactors = 1.0;
-            //         }
-
-            //         // If we don't need to measure the cross axis, we can skip the entire flex
-            //         // step.
-            //         let canSkipFlex = !performLayout && measureModeCrossDim == MeasureMode::Exactly;
-
-            //         // In order to position the elements in the main axis, we have two
-            //         // controls. The space between the beginning and the first element
-            //         // and the space between each two elements.
-            //         let mut leadingMainDim = 0.0;
-            //         let mut betweenMainDim = 0.0;
-
-            //         // STEP 5: RESOLVING FLEXIBLE LENGTHS ON MAIN AXIS
-            //         // Calculate the remaining available space that needs to be allocated.
-            //         // If the main dimension size isn't known, it is computed based on
-            //         // the line length, so there's no more space left to distribute.
-
-            //         // If we don't measure with exact main dimension we want to ensure we don't violate min and max
-            //         if measureModeMainDim != MeasureMode::Exactly {
-            //             if !minInnerMainDim.is_nan() && sizeConsumedOnCurrentLine < minInnerMainDim {
-            //                 availableInnerMainDim = minInnerMainDim;
-            //             } else if !maxInnerMainDim.is_nan()
-            //                 && sizeConsumedOnCurrentLine > maxInnerMainDim
-            //             {
-            //                 availableInnerMainDim = maxInnerMainDim;
-            //             } else if !(*self.config).useLegacyStretchBehaviour
-            //                 && (totalFlexGrowFactors == 0.0 || YGResolveFlexGrow(node) == 0.0)
-            //             {
-            //                 // If we don't have any children to flex or we can't flex the node itself,
-            //                 // space we've used is all space we need. Root node also should be shrunk to minimum
-            //                 availableInnerMainDim = sizeConsumedOnCurrentLine;
-            //             }
-            //         }
-
-            //         let mut remainingFreeSpace = 0.0;
-            //         if !availableInnerMainDim.is_nan() {
-            //             remainingFreeSpace = availableInnerMainDim - sizeConsumedOnCurrentLine;
-            //         } else if sizeConsumedOnCurrentLine < 0.0 {
-            //             // availableInnerMainDim is indefinite which means the node is being sized based on its
-            //             // content.
-            //             // sizeConsumedOnCurrentLine is negative which means the node will allocate 0 points for
-            //             // its content. Consequently, remainingFreeSpace is 0 - sizeConsumedOnCurrentLine.
-            //             remainingFreeSpace = -sizeConsumedOnCurrentLine;
-            //         }
-
-            //         let mut originalRemainingFreeSpace = remainingFreeSpace;
-            //         let mut deltaFreeSpace = 0.0;
-
-            //         if !canSkipFlex {
-            //             let mut childFlexBasis: f32;
-            //             let mut flexShrinkScaledFactor: f32;
-            //             let mut flexGrowFactor: f32;
-            //             let mut baseMainSize: f32;
-            //             let mut boundMainSize: f32;
-
-            //             // Do two passes over the flex items to figure out how to distribute the
-            //             // remaining space.
-            //             // The first pass finds the items whose min/max constraints trigger,
-            //             // freezes them at those
-            //             // sizes, and excludes those sizes from the remaining space. The second
-            //             // pass sets the size
-            //             // of each flexible item. It distributes the remaining space amongst the
-            //             // items whose min/max
-            //             // constraints didn't trigger in pass 1. For the other items, it sets
-            //             // their sizes by forcing
-            //             // their min/max constraints to trigger again.
-            //             //
-            //             // This two pass approach for resolving min/max constraints deviates from
-            //             // the spec. The
-            //             // spec (https://www.w3.org/TR/YG-flexbox-1/#resolve-flexible-lengths)
-            //             // describes a process
-            //             // that needs to be repeated a variable number of times. The algorithm
-            //             // implemented here
-            //             // won't handle all cases but it was simpler to implement and it mitigates
-            //             // performance
-            //             // concerns because we know exactly how many passes it'll do.
-
-            //             // First pass: detect the flex items whose min/max constraints trigger
-            //             let mut deltaFlexShrinkScaledFactors = 0.0;
-            //             let mut deltaFlexGrowFactors = 0.0;
-            //             currentRelativeChild = firstRelativeChild;
-            //             while !currentRelativeChild.is_null() {
-            //                 childFlexBasis = YGResolveValue(
-            //                     &(*currentRelativeChild).style.max_dimensions[DIM[mainAxis as usize]],
-            //                     mainAxisParentSize,
-            //                 ).min(
-            //                     YGResolveValue(
-            //                         &(*currentRelativeChild).style.min_dimensions
-            //                             [DIM[mainAxis as usize]],
-            //                         mainAxisParentSize,
-            //                     ).max((*currentRelativeChild).layout.computed_flex_basis),
-            //                 );
-
-            //                 if remainingFreeSpace < 0.0 {
-            //                     flexShrinkScaledFactor =
-            //                         -ResolveFlexShrink(currentRelativeChild) * childFlexBasis;
-
-            //                     // Is this child able to shrink?
-            //                     if flexShrinkScaledFactor != 0.0 {
-            //                         baseMainSize = childFlexBasis
-            //                             + remainingFreeSpace / totalFlexShrinkScaledFactors
-            //                                 * flexShrinkScaledFactor;
-            //                         boundMainSize = bound_axis(
-            //                             currentRelativeChild,
-            //                             mainAxis,
-            //                             baseMainSize,
-            //                             availableInnerMainDim,
-            //                             availableInnerWidth,
-            //                         );
-            //                         if baseMainSize != boundMainSize {
-            //                             // By excluding this item's size and flex factor from remaining,
-            //                             // this item's
-            //                             // min/max constraints should also trigger in the second pass
-            //                             // resulting in the
-            //                             // item's size calculation being identical in the first and second
-            //                             // passes.
-            //                             deltaFreeSpace -= boundMainSize - childFlexBasis;
-            //                             deltaFlexShrinkScaledFactors -= flexShrinkScaledFactor;
-            //                         }
-            //                     }
-            //                 } else if remainingFreeSpace > 0.0 {
-            //                     flexGrowFactor = YGResolveFlexGrow(currentRelativeChild);
-
-            //                     // Is this child able to grow?
-            //                     if flexGrowFactor != 0.0 {
-            //                         baseMainSize = childFlexBasis
-            //                             + remainingFreeSpace / totalFlexGrowFactors * flexGrowFactor;
-            //                         boundMainSize = bound_axis(
-            //                             currentRelativeChild,
-            //                             mainAxis,
-            //                             baseMainSize,
-            //                             availableInnerMainDim,
-            //                             availableInnerWidth,
-            //                         );
-
-            //                         if baseMainSize != boundMainSize {
-            //                             // By excluding this item's size and flex factor from remaining,
-            //                             // this item's
-            //                             // min/max constraints should also trigger in the second pass
-            //                             // resulting in the
-            //                             // item's size calculation being identical in the first and second
-            //                             // passes.
-            //                             deltaFreeSpace -= boundMainSize - childFlexBasis;
-            //                             deltaFlexGrowFactors -= flexGrowFactor;
-            //                         }
-            //                     }
-            //                 }
-
-            //                 currentRelativeChild = (*currentRelativeChild).nextChild;
-            //             }
-
-            //             totalFlexShrinkScaledFactors += deltaFlexShrinkScaledFactors;
-            //             totalFlexGrowFactors += deltaFlexGrowFactors;
-            //             remainingFreeSpace += deltaFreeSpace;
-
-            //             // Second pass: resolve the sizes of the flexible items
-            //             deltaFreeSpace = 0.0;
-            //             currentRelativeChild = firstRelativeChild;
-            //             while !currentRelativeChild.is_null() {
-            //                 childFlexBasis = YGResolveValue(
-            //                     &(*currentRelativeChild).style.max_dimensions[DIM[mainAxis as usize]],
-            //                     mainAxisParentSize,
-            //                 ).min(
-            //                     YGResolveValue(
-            //                         &(*currentRelativeChild).style.min_dimensions
-            //                             [DIM[mainAxis as usize]],
-            //                         mainAxisParentSize,
-            //                     ).max((*currentRelativeChild).layout.computed_flex_basis),
-            //                 );
-            //                 let mut updatedMainSize = childFlexBasis;
-
-            //                 if remainingFreeSpace < 0.0 {
-            //                     flexShrinkScaledFactor =
-            //                         -ResolveFlexShrink(currentRelativeChild) * childFlexBasis;
-            //                     // Is this child able to shrink?
-            //                     if flexShrinkScaledFactor != 0.0 {
-            //                         let mut childSize: f32;
-
-            //                         if totalFlexShrinkScaledFactors == 0.0 {
-            //                             childSize = childFlexBasis + flexShrinkScaledFactor;
-            //                         } else {
-            //                             childSize = childFlexBasis
-            //                                 + (remainingFreeSpace / totalFlexShrinkScaledFactors)
-            //                                     * flexShrinkScaledFactor;
-            //                         }
-
-            //                         updatedMainSize = bound_axis(
-            //                             currentRelativeChild,
-            //                             mainAxis,
-            //                             childSize,
-            //                             availableInnerMainDim,
-            //                             availableInnerWidth,
-            //                         );
-            //                     }
-            //                 } else if remainingFreeSpace > 0.0 {
-            //                     flexGrowFactor = YGResolveFlexGrow(currentRelativeChild);
-
-            //                     // Is this child able to grow?
-            //                     if flexGrowFactor != 0.0 {
-            //                         updatedMainSize = bound_axis(
-            //                             currentRelativeChild,
-            //                             mainAxis,
-            //                             childFlexBasis
-            //                                 + remainingFreeSpace / totalFlexGrowFactors
-            //                                     * flexGrowFactor,
-            //                             availableInnerMainDim,
-            //                             availableInnerWidth,
-            //                         );
-            //                     }
-            //                 }
-
-            //                 deltaFreeSpace -= updatedMainSize - childFlexBasis;
-
-            //                 let marginMain = MarginForAxis(
+            //             // Is this child able to shrink?
+            //             if flexShrinkScaledFactor != 0.0 {
+            //                 baseMainSize = childFlexBasis
+            //                     + remainingFreeSpace / totalFlexShrinkScaledFactors
+            //                         * flexShrinkScaledFactor;
+            //                 boundMainSize = bound_axis(
             //                     currentRelativeChild,
             //                     mainAxis,
-            //                     availableInnerWidth,
-            //                 );
-            //                 let marginCross = MarginForAxis(
-            //                     currentRelativeChild,
-            //                     crossAxis,
-            //                     availableInnerWidth,
-            //                 );
-
-            //                 let mut childCrossSize: f32;
-            //                 let mut childMainSize = updatedMainSize + marginMain;
-            //                 let mut childCrossMeasureMode: MeasureMode;
-            //                 let mut childMainMeasureMode: MeasureMode = MeasureMode::Exactly;
-
-            //                 // TODO(anp) check for bug on the C side -- this was an != NULL check
-            //                 if !(*currentRelativeChild).style.aspect_ratio.is_nan() {
-            //                     childCrossSize = if isMainAxisRow {
-            //                         (childMainSize - marginMain)
-            //                             / (*currentRelativeChild).style.aspect_ratio
-            //                     } else {
-            //                         (childMainSize - marginMain)
-            //                             * (*currentRelativeChild).style.aspect_ratio
-            //                     };
-            //                     childCrossMeasureMode = MeasureMode::Exactly;
-
-            //                     childCrossSize += marginCross;
-            //                 } else if !availableInnerCrossDim.is_nan()
-            //                     && !IsStyleDimDefined(
-            //                         currentRelativeChild,
-            //                         crossAxis,
-            //                         availableInnerCrossDim,
-            //                     )
-            //                     && measureModeCrossDim == MeasureMode::Exactly
-            //                     && !(isNodeFlexWrap && flexBasisOverflows)
-            //                     && align_item(node, currentRelativeChild) == Align::Stretch
-            //                 {
-            //                     childCrossSize = availableInnerCrossDim;
-            //                     childCrossMeasureMode = MeasureMode::Exactly;
-            //                 } else if !IsStyleDimDefined(
-            //                     currentRelativeChild,
-            //                     crossAxis,
-            //                     availableInnerCrossDim,
-            //                 ) {
-            //                     childCrossSize = availableInnerCrossDim;
-            //                     childCrossMeasureMode = if childCrossSize.is_nan() {
-            //                         MeasureMode::Undefined
-            //                     } else {
-            //                         MeasureMode::AtMost
-            //                     };
-            //                 } else {
-            //                     childCrossSize = YGResolveValue(
-            //                         (*currentRelativeChild).resolvedDimensions[DIM[crossAxis as usize]],
-            //                         availableInnerCrossDim,
-            //                     ) + marginCross;
-            //                     let isLoosePercentageMeasurement = (*(*currentRelativeChild)
-            //                         .resolvedDimensions[DIM[crossAxis as usize]])
-            //                         .unit
-            //                         == UnitType::Percent
-            //                         && measureModeCrossDim != MeasureMode::Exactly;
-            //                     childCrossMeasureMode =
-            //                         if childCrossSize.is_nan() || isLoosePercentageMeasurement {
-            //                             MeasureMode::Undefined
-            //                         } else {
-            //                             MeasureMode::Exactly
-            //                         };
-            //                 }
-
-            //                 YGConstrainMaxSizeForMode(
-            //                     currentRelativeChild,
-            //                     mainAxis,
+            //                     baseMainSize,
             //                     availableInnerMainDim,
             //                     availableInnerWidth,
-            //                     &mut childMainMeasureMode,
-            //                     &mut childMainSize,
             //                 );
-            //                 YGConstrainMaxSizeForMode(
+            //                 if baseMainSize != boundMainSize {
+            //                     // By excluding this item's size and flex factor from remaining,
+            //                     // this item's
+            //                     // min/max constraints should also trigger in the second pass
+            //                     // resulting in the
+            //                     // item's size calculation being identical in the first and second
+            //                     // passes.
+            //                     deltaFreeSpace -= boundMainSize - childFlexBasis;
+            //                     deltaFlexShrinkScaledFactors -= flexShrinkScaledFactor;
+            //                 }
+            //             }
+            //         } else if remainingFreeSpace > 0.0 {
+            //             flexGrowFactor = YGResolveFlexGrow(currentRelativeChild);
+
+            //             // Is this child able to grow?
+            //             if flexGrowFactor != 0.0 {
+            //                 baseMainSize = childFlexBasis
+            //                     + remainingFreeSpace / totalFlexGrowFactors * flexGrowFactor;
+            //                 boundMainSize = bound_axis(
             //                     currentRelativeChild,
-            //                     crossAxis,
-            //                     availableInnerCrossDim,
+            //                     mainAxis,
+            //                     baseMainSize,
+            //                     availableInnerMainDim,
             //                     availableInnerWidth,
-            //                     &mut childCrossMeasureMode,
-            //                     &mut childCrossSize,
             //                 );
 
-            //                 let requiresStretchLayout = !IsStyleDimDefined(
-            //                     currentRelativeChild,
-            //                     crossAxis,
-            //                     availableInnerCrossDim,
-            //                 )
-            //                     && align_item(node, currentRelativeChild) == Align::Stretch;
-
-            //                 let childWidth = if isMainAxisRow {
-            //                     childMainSize
-            //                 } else {
-            //                     childCrossSize
-            //                 };
-            //                 let childHeight = if !isMainAxisRow {
-            //                     childMainSize
-            //                 } else {
-            //                     childCrossSize
-            //                 };
-
-            //                 let childWidthMeasureMode = if isMainAxisRow {
-            //                     childMainMeasureMode
-            //                 } else {
-            //                     childCrossMeasureMode
-            //                 };
-            //                 let childHeightMeasureMode = if !isMainAxisRow {
-            //                     childMainMeasureMode
-            //                 } else {
-            //                     childCrossMeasureMode
-            //                 };
-
-            //                 // Recursively call the layout algorithm for this child with the updated
-            //                 // main size.
-            //                 YGLayoutNodeInternal(
-            //                     currentRelativeChild,
-            //                     childWidth,
-            //                     childHeight,
-            //                     direction,
-            //                     childWidthMeasureMode,
-            //                     childHeightMeasureMode,
-            //                     availableInnerWidth,
-            //                     availableInnerHeight,
-            //                     performLayout && !requiresStretchLayout,
-            //                     "flex",
-            //                     config,
-            //                 );
-            //                 self.layout().had_overflow |= (*currentRelativeChild).layout.had_overflow;
-
-            //                 currentRelativeChild = (*currentRelativeChild).nextChild;
+            //                 if baseMainSize != boundMainSize {
+            //                     // By excluding this item's size and flex factor from remaining,
+            //                     // this item's
+            //                     // min/max constraints should also trigger in the second pass
+            //                     // resulting in the
+            //                     // item's size calculation being identical in the first and second
+            //                     // passes.
+            //                     deltaFreeSpace -= boundMainSize - childFlexBasis;
+            //                     deltaFlexGrowFactors -= flexGrowFactor;
+            //                 }
             //             }
             //         }
 
-            //         remainingFreeSpace = originalRemainingFreeSpace + deltaFreeSpace;
-            //         self.layout().had_overflow |= remainingFreeSpace < 0.0;
+            //         currentRelativeChild = (*currentRelativeChild).nextChild;
+            //     }
+
+            //     totalFlexShrinkScaledFactors += deltaFlexShrinkScaledFactors;
+            //     totalFlexGrowFactors += deltaFlexGrowFactors;
+            //     remainingFreeSpace += deltaFreeSpace;
+
+            //     // Second pass: resolve the sizes of the flexible items
+            //     deltaFreeSpace = 0.0;
+            //     currentRelativeChild = firstRelativeChild;
+            //     while !currentRelativeChild.is_null() {
+            //         childFlexBasis = YGResolveValue(
+            //             &(*currentRelativeChild).style.max_dimensions[DIM[mainAxis as usize]],
+            //             mainAxisParentSize,
+            //         ).min(
+            //             YGResolveValue(
+            //                 &(*currentRelativeChild).style.min_dimensions
+            //                     [DIM[mainAxis as usize]],
+            //                 mainAxisParentSize,
+            //             ).max((*currentRelativeChild).layout.computed_flex_basis),
+            //         );
+            //         let mut updatedMainSize = childFlexBasis;
+
+            //         if remainingFreeSpace < 0.0 {
+            //             flexShrinkScaledFactor =
+            //                 -ResolveFlexShrink(currentRelativeChild) * childFlexBasis;
+            //             // Is this child able to shrink?
+            //             if flexShrinkScaledFactor != 0.0 {
+            //                 let mut childSize: f32;
+
+            //                 if totalFlexShrinkScaledFactors == 0.0 {
+            //                     childSize = childFlexBasis + flexShrinkScaledFactor;
+            //                 } else {
+            //                     childSize = childFlexBasis
+            //                         + (remainingFreeSpace / totalFlexShrinkScaledFactors)
+            //                             * flexShrinkScaledFactor;
+            //                 }
+
+            //                 updatedMainSize = bound_axis(
+            //                     currentRelativeChild,
+            //                     mainAxis,
+            //                     childSize,
+            //                     availableInnerMainDim,
+            //                     availableInnerWidth,
+            //                 );
+            //             }
+            //         } else if remainingFreeSpace > 0.0 {
+            //             flexGrowFactor = YGResolveFlexGrow(currentRelativeChild);
+
+            //             // Is this child able to grow?
+            //             if flexGrowFactor != 0.0 {
+            //                 updatedMainSize = bound_axis(
+            //                     currentRelativeChild,
+            //                     mainAxis,
+            //                     childFlexBasis
+            //                         + remainingFreeSpace / totalFlexGrowFactors
+            //                             * flexGrowFactor,
+            //                     availableInnerMainDim,
+            //                     availableInnerWidth,
+            //                 );
+            //             }
+            //         }
+
+            //         deltaFreeSpace -= updatedMainSize - childFlexBasis;
+
+            //         let marginMain =
+            //             MarginForAxis(currentRelativeChild, mainAxis, availableInnerWidth);
+            //         let marginCross =
+            //             MarginForAxis(currentRelativeChild, crossAxis, availableInnerWidth);
+
+            //         let mut childCrossSize: f32;
+            //         let mut childMainSize = updatedMainSize + marginMain;
+            //         let mut childCrossMeasureMode: MeasureMode;
+            //         let mut childMainMeasureMode: MeasureMode = MeasureMode::Exactly;
+
+            //         // TODO(anp) check for bug on the C side -- this was an != NULL check
+            //         if !(*currentRelativeChild).style.aspect_ratio.is_nan() {
+            //             childCrossSize = if isMainAxisRow {
+            //                 (childMainSize - marginMain)
+            //                     / (*currentRelativeChild).style.aspect_ratio
+            //             } else {
+            //                 (childMainSize - marginMain)
+            //                     * (*currentRelativeChild).style.aspect_ratio
+            //             };
+            //             childCrossMeasureMode = MeasureMode::Exactly;
+
+            //             childCrossSize += marginCross;
+            //         } else if !availableInnerCrossDim.is_nan()
+            //             && !IsStyleDimDefined(
+            //                 currentRelativeChild,
+            //                 crossAxis,
+            //                 availableInnerCrossDim,
+            //             )
+            //             && measureModeCrossDim == MeasureMode::Exactly
+            //             && !(isNodeFlexWrap && flexBasisOverflows)
+            //             && align_item(node, currentRelativeChild) == Align::Stretch
+            //         {
+            //             childCrossSize = availableInnerCrossDim;
+            //             childCrossMeasureMode = MeasureMode::Exactly;
+            //         } else if !IsStyleDimDefined(
+            //             currentRelativeChild,
+            //             crossAxis,
+            //             availableInnerCrossDim,
+            //         ) {
+            //             childCrossSize = availableInnerCrossDim;
+            //             childCrossMeasureMode = if childCrossSize.is_nan() {
+            //                 MeasureMode::Undefined
+            //             } else {
+            //                 MeasureMode::AtMost
+            //             };
+            //         } else {
+            //             childCrossSize = YGResolveValue(
+            //                 (*currentRelativeChild).resolvedDimensions[DIM[crossAxis as usize]],
+            //                 availableInnerCrossDim,
+            //             ) + marginCross;
+            //             let isLoosePercentageMeasurement = (*(*currentRelativeChild)
+            //                 .resolvedDimensions[DIM[crossAxis as usize]])
+            //                 .unit
+            //                 == UnitType::Percent
+            //                 && measureModeCrossDim != MeasureMode::Exactly;
+            //             childCrossMeasureMode =
+            //                 if childCrossSize.is_nan() || isLoosePercentageMeasurement {
+            //                     MeasureMode::Undefined
+            //                 } else {
+            //                     MeasureMode::Exactly
+            //                 };
+            //         }
+
+            //         YGConstrainMaxSizeForMode(
+            //             currentRelativeChild,
+            //             mainAxis,
+            //             availableInnerMainDim,
+            //             availableInnerWidth,
+            //             &mut childMainMeasureMode,
+            //             &mut childMainSize,
+            //         );
+            //         YGConstrainMaxSizeForMode(
+            //             currentRelativeChild,
+            //             crossAxis,
+            //             availableInnerCrossDim,
+            //             availableInnerWidth,
+            //             &mut childCrossMeasureMode,
+            //             &mut childCrossSize,
+            //         );
+
+            //         let requiresStretchLayout = !IsStyleDimDefined(
+            //             currentRelativeChild,
+            //             crossAxis,
+            //             availableInnerCrossDim,
+            //         )
+            //             && align_item(node, currentRelativeChild) == Align::Stretch;
+
+            //         let childWidth = if isMainAxisRow {
+            //             childMainSize
+            //         } else {
+            //             childCrossSize
+            //         };
+            //         let childHeight = if !isMainAxisRow {
+            //             childMainSize
+            //         } else {
+            //             childCrossSize
+            //         };
+
+            //         let childWidthMeasureMode = if isMainAxisRow {
+            //             childMainMeasureMode
+            //         } else {
+            //             childCrossMeasureMode
+            //         };
+            //         let childHeightMeasureMode = if !isMainAxisRow {
+            //             childMainMeasureMode
+            //         } else {
+            //             childCrossMeasureMode
+            //         };
+
+            //         // Recursively call the layout algorithm for this child with the updated
+            //         // main size.
+            //         YGLayoutNodeInternal(
+            //             currentRelativeChild,
+            //             childWidth,
+            //             childHeight,
+            //             direction,
+            //             childWidthMeasureMode,
+            //             childHeightMeasureMode,
+            //             availableInnerWidth,
+            //             availableInnerHeight,
+            //             performLayout && !requiresStretchLayout,
+            //             "flex",
+            //             config,
+            //         );
+            //         self.layout().had_overflow |= (*currentRelativeChild).layout.had_overflow;
+
+            //         currentRelativeChild = (*currentRelativeChild).nextChild;
+            //     }
+            // }
+
+            // remainingFreeSpace = originalRemainingFreeSpace + deltaFreeSpace;
+            // self.layout().had_overflow |= remainingFreeSpace < 0.0;
 
             //         // STEP 6: MAIN-AXIS JUSTIFICATION & CROSS-AXIS SIZE DETERMINATION
 
@@ -1974,13 +1972,12 @@ where
             //                         totalLineCrossDim + leadingCrossDim;
             //                 }
             //             }
-            //         }
-
-            //         totalLineCrossDim += crossDim;
-            //         maxLineMainDim = maxLineMainDim.max(mainDim);
-            //         lineCount += 1;
-            //         startOfLineIndex = endOfLineIndex;
         }
+
+        // total_line_cross_dim += cross_dim;
+        // max_line_main_dim = max_line_main_dim.max(main_dim);
+        // line_count += 1;
+        // start_of_line_index = end_of_line_index;
 
         //     // STEP 8: MULTI-LINE CONTENT ALIGNMENT
         //     if performLayout
@@ -2597,10 +2594,10 @@ where
     //     return false;
     // }
 
-    // fn IsFlex(&mut self) -> bool {
-    //     return self.style().position_type == PositionType::Relative
-    //         && (YGResolveFlexGrow(node) != 0.0 || ResolveFlexShrink(node) != 0.0);
-    // }
+    fn is_flex(&self) -> bool {
+        self.style().position_type == PositionType::Relative
+            && (self.resolve_flex_grow() != 0.0 || self.resolve_flex_shrink() != 0.0)
+    }
 
     fn compute_flex_basis_from_parent(
         &mut self,
