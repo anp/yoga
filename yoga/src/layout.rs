@@ -129,10 +129,9 @@ impl Layout {
         self.position = position;
     }
 
-    // fn IsLayoutDimDefined(&mut self, axis: FlexDirection) -> bool {
-    //     let value: R32 = self.layout().measured_dimensions[DIM[axis as usize]];
-    //     return !value.is_nan() && value >= 0.0f32;
-    // }
+    pub fn is_dim_defined(&self, axis: FlexDirection) -> bool {
+        self.measured_dimensions.map(|d| d[axis.dimension()] >= 0.0) == Some(true)
+    }
 
     fn edge_with_direction(&self, edge: Edge) -> Edge {
         match (edge, self.direction) {

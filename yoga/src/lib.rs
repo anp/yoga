@@ -100,7 +100,8 @@ where
     fn style_mut(&mut self) -> &mut Style;
     fn layout(&self) -> &Layout;
     fn layout_mut(&mut self) -> &mut Layout;
-    fn line(&mut self) -> &mut usize;
+    fn line(&self) -> usize;
+    fn line_mut(&mut self) -> &mut usize;
     // TODO(anp): can this be easly done without dynamic dispatch?
     // thought from later: probably not, it would require dyanamic dispatch of all nodes, much less
     // this specific method
@@ -1184,7 +1185,7 @@ where
                     continue;
                 }
 
-                *child.line() = line_count;
+                *child.line_mut() = line_count;
 
                 if child.style().position_type != PositionType::Absolute {
                     let child_margin_main_axis = child
@@ -1979,206 +1980,242 @@ where
             start_of_line_index = end_of_line_index;
         }
 
-        //     // STEP 8: MULTI-LINE CONTENT ALIGNMENT
-        //     if performLayout
-        //         && (lineCount > 1 || YGIsBaselineLayout(node))
-        //         && !availableInnerCrossDim.is_nan()
-        //     {
-        //         let remainingAlignContentDim = availableInnerCrossDim - totalLineCrossDim;
+        // STEP 8: MULTI-LINE CONTENT ALIGNMENT
+        if perform_layout && (line_count > 1 || self.is_baseline_layout()) {
+            let remaining_align_content_dim = available_inner_cross_dim - total_line_cross_dim;
 
-        //         let mut crossDimLead = 0.0;
-        //         let mut currentLead = leadingPaddingAndBorderCross;
+            let mut cross_dim_lead = r32(0.0);
+            let mut current_lead = leading_padding_and_border_cross;
 
-        //         match self.style().align_content {
-        //             Align::FlexEnd => currentLead += remainingAlignContentDim,
-        //             Align::Center => currentLead += remainingAlignContentDim / 2.0,
-        //             Align::Stretch => if availableInnerCrossDim > totalLineCrossDim {
-        //                 crossDimLead = remainingAlignContentDim / lineCount as f32;
-        //             },
-        //             Align::SpaceAround => if availableInnerCrossDim > totalLineCrossDim {
-        //                 currentLead += remainingAlignContentDim / (2.0 * lineCount as f32);
-        //                 if lineCount > 1 {
-        //                     crossDimLead = remainingAlignContentDim / lineCount as f32;
-        //                 }
-        //             } else {
-        //                 currentLead += remainingAlignContentDim / 2.0;
-        //             },
-        //             Align::SpaceBetween => {
-        //                 if availableInnerCrossDim > totalLineCrossDim && lineCount > 1 {
-        //                     crossDimLead = remainingAlignContentDim / (lineCount as f32 - 1.0);
-        //                 }
-        //             }
-        //             _ => (),
-        //         }
+            match self.style().align_content {
+                Align::FlexEnd => current_lead += remaining_align_content_dim,
+                Align::Center => current_lead += remaining_align_content_dim / 2.0,
+                Align::Stretch => if available_inner_cross_dim > total_line_cross_dim {
+                    cross_dim_lead = remaining_align_content_dim / line_count as f32;
+                },
+                Align::SpaceAround => if available_inner_cross_dim > total_line_cross_dim {
+                    current_lead += remaining_align_content_dim / (2.0 * line_count as f32);
+                    if line_count > 1 {
+                        cross_dim_lead = remaining_align_content_dim / line_count as f32;
+                    }
+                } else {
+                    current_lead += remaining_align_content_dim / 2.0;
+                },
+                Align::SpaceBetween => {
+                    if available_inner_cross_dim > total_line_cross_dim && line_count > 1 {
+                        cross_dim_lead = remaining_align_content_dim / (line_count as f32 - 1.0);
+                    }
+                }
+                _ => (),
+            }
 
-        //         let mut endIndex = 0;
-        //         for i in 0..lineCount {
-        //             let startIndex = endIndex;
+            let mut end_index = 0;
+            for i in 0..line_count {
+                let start_index = end_index;
 
-        //             // compute the line's height and find the endIndex
-        //             let mut lineHeight = 0.0f32;
-        //             let mut maxAscentForCurrentLine = 0.0f32;
-        //             let mut maxDescentForCurrentLine = 0.0f32;
+                // compute the line's height and find the endIndex
+                let mut line_height = r32(0.0);
+                let mut max_ascent_for_current_line = r32(0.0);
+                let mut max_descent_for_current_line = r32(0.0);
 
-        //             for ii in startIndex..childCount {
-        //                 endIndex = ii;
-        //                 let child = ListGet(self.children, ii);
-        //                 if child.style().display == Display::None {
-        //                     continue;
-        //                 }
-        //                 if child.style().position_type == PositionType::Relative {
-        //                     if child.lineIndex != i {
-        //                         break;
-        //                     }
-        //                     if IsLayoutDimDefined(child, crossAxis) {
-        //                         lineHeight = lineHeight.max(
-        //                             child.layout.measured_dimensions[DIM[crossAxis as usize]]
-        //                                 + MarginForAxis(
-        //                                     child,
-        //                                     crossAxis,
-        //                                     availableInnerWidth,
-        //                                 ),
-        //                         );
-        //                     }
-        //                     if align_item(node, child) == Align::Baseline {
-        //                         let ascent = baseline(child)
-        //                             + LeadingMargin(
-        //                                 child,
-        //                                 FlexDirection::Column,
-        //                                 availableInnerWidth,
-        //                             );
-        //                         let descent = child.layout.measured_dimensions.height
-        //                             + MarginForAxis(
-        //                                 child,
-        //                                 FlexDirection::Column,
-        //                                 availableInnerWidth,
-        //                             ) - ascent;
-        //                         maxAscentForCurrentLine = maxAscentForCurrentLine.max(ascent);
-        //                         maxDescentForCurrentLine = maxDescentForCurrentLine.max(descent);
-        //                         lineHeight = lineHeight
-        //                             .max(maxAscentForCurrentLine + maxDescentForCurrentLine);
-        //                     }
-        //                 }
-        //             }
-        //             lineHeight += crossDimLead;
+                for ii in start_index..self.children().len() {
+                    end_index = ii;
 
-        //             if performLayout {
-        //                 for ii in startIndex..endIndex {
-        //                     let child = ListGet(self.children, ii);
-        //                     if child.style().display == Display::None {
-        //                         continue;
-        //                     }
-        //                     if child.style().position_type == PositionType::Relative {
-        //                         match align_item(node, child) {
-        //                             Align::FlexStart => {
-        //                                 child.layout.position
-        //                                     [pos[crossAxis as usize] as usize] = currentLead
-        //                                     + LeadingMargin(
-        //                                         child,
-        //                                         crossAxis,
-        //                                         availableInnerWidth,
-        //                                     );
-        //                             }
-        //                             Align::FlexEnd => {
-        //                                 child.layout.position
-        //                                     [pos[crossAxis as usize] as usize] = currentLead
-        //                                     + lineHeight
-        //                                     - TrailingMargin(
-        //                                         child,
-        //                                         crossAxis,
-        //                                         availableInnerWidth,
-        //                                     )
-        //                                     - child.layout.measured_dimensions
-        //                                         [DIM[crossAxis as usize]];
-        //                             }
-        //                             Align::Center => {
-        //                                 let mut childHeight = child.layout.measured_dimensions
-        //                                     [DIM[crossAxis as usize]];
-        //                                 child.layout.position
-        //                                     [pos[crossAxis as usize] as usize] =
-        //                                     currentLead + (lineHeight - childHeight) / 2.0;
-        //                             }
-        //                             Align::Stretch => {
-        //                                 child.layout.position
-        //                                     [pos[crossAxis as usize] as usize] = currentLead
-        //                                     + LeadingMargin(
-        //                                         child,
-        //                                         crossAxis,
-        //                                         availableInnerWidth,
-        //                                     );
+                    if self.child(ii).style().display == Display::None {
+                        continue;
+                    }
 
-        //                                 // Remeasure child with the line height as it as been only measured with the
-        //                                 // parents height yet.
-        //                                 if !IsStyleDimDefined(
-        //                                     child,
-        //                                     crossAxis,
-        //                                     availableInnerCrossDim,
-        //                                 ) {
-        //                                     let childWidth = if isMainAxisRow {
-        //                                         (child.layout.measured_dimensions.width
-        //                                             + MarginForAxis(
-        //                                                 child,
-        //                                                 mainAxis,
-        //                                                 availableInnerWidth,
-        //                                             ))
-        //                                     } else {
-        //                                         lineHeight
-        //                                     };
+                    if self.child(ii).style().position_type == PositionType::Relative {
+                        if self.child_mut(ii).line() != i {
+                            break;
+                        }
 
-        //                                     let childHeight = if !isMainAxisRow {
-        //                                         (child.layout.measured_dimensions.height
-        //                                             + MarginForAxis(
-        //                                                 child,
-        //                                                 crossAxis,
-        //                                                 availableInnerWidth,
-        //                                             ))
-        //                                     } else {
-        //                                         lineHeight
-        //                                     };
+                        if self.child(ii).layout().is_dim_defined(cross_axis) {
+                            line_height = line_height.max(
+                                self.child(ii).layout().measured_dimensions.unwrap()
+                                    [cross_axis.dimension()]
+                                    + self
+                                        .child(ii)
+                                        .style()
+                                        .margin
+                                        .for_axis(cross_axis, available_inner_width),
+                            );
+                        }
+                        if self.align_item(self.child(ii)) == Align::Baseline {
+                            let ascent = self.child_mut(ii).baseline()
+                                + self
+                                    .child(ii)
+                                    .style()
+                                    .margin
+                                    .leading(FlexDirection::Column, available_inner_width)
+                                    .unwrap_or(r32(0.0));
+                            let descent =
+                                self.child(ii).layout().measured_dimensions.unwrap().height
+                                    + self
+                                        .child(ii)
+                                        .style()
+                                        .margin
+                                        .for_axis(FlexDirection::Column, available_inner_width)
+                                    - ascent;
+                            max_ascent_for_current_line = max_ascent_for_current_line.max(ascent);
+                            max_descent_for_current_line =
+                                max_descent_for_current_line.max(descent);
+                            line_height = line_height
+                                .max(max_ascent_for_current_line + max_descent_for_current_line);
+                        }
+                    }
+                }
+                line_height += cross_dim_lead;
 
-        //                                     if !(YGFloatsEqual(
-        //                                         childWidth,
-        //                                         child.layout.measured_dimensions.width,
-        //                                     )
-        //                                         && YGFloatsEqual(
-        //                                             childHeight,
-        //                                             child.layout.measured_dimensions.height,
-        //                                         )) {
-        //                                         YGLayoutNodeInternal(
-        //                                             child,
-        //                                             childWidth,
-        //                                             childHeight,
-        //                                             direction,
-        //                                             MeasureMode::Exactly,
-        //                                             MeasureMode::Exactly,
-        //                                             availableInnerWidth,
-        //                                             availableInnerHeight,
-        //                                             true,
-        //                                             "multiline-stretch",
-        //                                             config,
-        //                                         );
-        //                                     }
-        //                                 }
-        //                             }
-        //                             Align::Baseline => {
-        //                                 child.layout.position[Edge::Top as usize] = currentLead
-        //                                     + maxAscentForCurrentLine
-        //                                     - baseline(child)
-        //                                     + LeadingPosition(
-        //                                         child,
-        //                                         FlexDirection::Column,
-        //                                         availableInnerCrossDim,
-        //                                     );
-        //                             }
-        //                             _ => (),
-        //                         }
-        //                     }
-        //                 }
-        //             }
+                if perform_layout {
+                    for ii in start_index..end_index {
+                        if self.child(ii).style().display == Display::None {
+                            continue;
+                        }
+                        if self.child(ii).style().position_type == PositionType::Relative {
+                            match self.align_item(self.child(ii)) {
+                                Align::FlexStart => {
+                                    let child_leading_margin = self
+                                        .child(ii)
+                                        .style()
+                                        .margin
+                                        .leading(cross_axis, available_inner_width)
+                                        .unwrap_or(r32(0.0));
+                                    self.child_mut(ii).layout_mut().position.set(
+                                        cross_axis.leading_edge(),
+                                        current_lead + child_leading_margin,
+                                    );
+                                }
+                                Align::FlexEnd => {
+                                    let child_trailing_margin = self
+                                        .child(ii)
+                                        .style()
+                                        .margin
+                                        .trailing(cross_axis, available_inner_width)
+                                        .unwrap_or(r32(0.0));
+                                    let child_cross_measured = self
+                                        .child(ii)
+                                        .layout()
+                                        .measured_dimensions
+                                        .map(|d| d[cross_axis.dimension()])
+                                        .unwrap_or(r32(0.0));
 
-        //             currentLead += lineHeight;
-        //         }
-        //     }
+                                    self.child_mut(ii).layout_mut().position.set(
+                                        cross_axis.leading_edge(),
+                                        current_lead + line_height
+                                            - child_trailing_margin
+                                            - child_cross_measured,
+                                    );
+                                }
+                                Align::Center => {
+                                    let mut child_height =
+                                        self.child(ii).layout().measured_dimensions.unwrap()
+                                            [cross_axis.dimension()];
+                                    self.child_mut(ii).layout_mut().position.set(
+                                        cross_axis.leading_edge(),
+                                        current_lead + (line_height - child_height) / 2.0,
+                                    );
+                                }
+                                Align::Stretch => {
+                                    let child_leading_margin = self
+                                        .child(ii)
+                                        .style()
+                                        .margin
+                                        .leading(cross_axis, available_inner_width)
+                                        .unwrap();
+                                    self.child_mut(ii).layout_mut().position.set(
+                                        cross_axis.leading_edge(),
+                                        current_lead + child_leading_margin,
+                                    );
+
+                                    // Remeasure child with the line height as it as been only measured with the
+                                    // parents height yet.
+                                    if !self
+                                        .child(ii)
+                                        .is_style_dim_defined(cross_axis, available_inner_cross_dim)
+                                    {
+                                        let child_width = if is_main_axis_row {
+                                            self.child(ii)
+                                                .layout()
+                                                .measured_dimensions
+                                                .unwrap()
+                                                .width
+                                                + self
+                                                    .child(ii)
+                                                    .style()
+                                                    .margin
+                                                    .for_axis(main_axis, available_inner_width)
+                                        } else {
+                                            line_height
+                                        };
+
+                                        let child_height = if !is_main_axis_row {
+                                            self.child(ii)
+                                                .layout()
+                                                .measured_dimensions
+                                                .unwrap()
+                                                .height
+                                                + self
+                                                    .child(ii)
+                                                    .style()
+                                                    .margin
+                                                    .for_axis(cross_axis, available_inner_width)
+                                        } else {
+                                            line_height
+                                        };
+
+                                        if !child_width.approx_eq(
+                                            self.child(ii)
+                                                .layout()
+                                                .measured_dimensions
+                                                .unwrap()
+                                                .width,
+                                        )
+                                            && child_height.approx_eq(
+                                                self.child(ii)
+                                                    .layout()
+                                                    .measured_dimensions
+                                                    .unwrap()
+                                                    .height,
+                                            ) {
+                                            self.child_mut(ii).layout_node_internal(
+                                                child_width,
+                                                child_height,
+                                                direction,
+                                                Some(MeasureMode::Exactly),
+                                                Some(MeasureMode::Exactly),
+                                                available_inner_width,
+                                                available_inner_height,
+                                                r32(Self::POINT_SCALE_FACTOR),
+                                                true,
+                                                "multiline-stretch",
+                                            );
+                                        }
+                                    }
+                                }
+                                Align::Baseline => {
+                                    let child_baseline = self.child_mut(ii).baseline();
+                                    let child_leading_position = self
+                                        .child(ii)
+                                        .style()
+                                        .position
+                                        .leading(FlexDirection::Column, available_inner_cross_dim)
+                                        .unwrap_or(r32(0.0));
+                                    self.child_mut(ii).layout_mut().position.set(
+                                        Edge::Top,
+                                        current_lead + max_ascent_for_current_line - child_baseline
+                                            + child_leading_position,
+                                    );
+                                }
+                                _ => (),
+                            }
+                        }
+                    }
+                }
+
+                current_lead += line_height;
+            }
+        }
 
         //     // STEP 9: COMPUTING FINAL DIMENSIONS
         //     self.layout().measured_dimensions.width = bound_axis(
@@ -2520,79 +2557,68 @@ where
         return align;
     }
 
-    // fn baseline(&mut self) -> R32 {
-    //     if self.baseline.is_some() {
-    //         let baseline: R32 = self.baseline.expect("non-null function pointer")(
-    //             node,
-    //             self.layout().measured_dimensions.width,
-    //             self.layout().measured_dimensions.height,
-    //         );
-    //         YGAssertWithNode(
-    //             node,
-    //             !baseline.is_nan(),
-    //             b"Expect custom baseline function to not return NaN\x00" as *const u8
-    //                 as *const c_char,
-    //         );
-    //         return baseline;
-    //     };
-    //     let mut baselineChild: Node = 0 as Node;
-    //     let childCount = GetChildCount(node);
-    //     {
-    //         let mut i = 0usize;
-    //         'loop5: while i < childCount {
-    //             'body3: loop {
-    //                 {
-    //                     let child: Node = GetChild(node, i);
-    //                     if child.lineIndex > 0 {
-    //                         break 'loop5;
-    //                     };
-    //                     if child.style().position_type == PositionType::Absolute {
-    //                         break 'body3;
-    //                     };
-    //                     if align_item(node, child) == Align::Baseline {
-    //                         baselineChild = child;
-    //                         break 'loop5;
-    //                     };
-    //                     if baselineChild.is_null() {
-    //                         baselineChild = child;
-    //                     };
-    //                 }
-    //                 break 'body3;
-    //             }
-    //             i = i.wrapping_add(1);
-    //         }
-    //     }
-    //     if baselineChild.is_null() {
-    //         return self.layout().measured_dimensions.height;
-    //     };
-    //     let baseline: R32 = baseline(baselineChild);
-    //     return baseline + (*baselineChild).layout.position[Edge::Top as usize];
-    // }
+    fn baseline(&mut self) -> R32 {
+        if let Some(baseline_fn) = self.baseline_fn() {
+            baseline_fn(
+                self,
+                self.layout().measured_dimensions.unwrap().width,
+                self.layout().measured_dimensions.unwrap().height,
+            )
+        } else {
+            let mut baseline_child = None;
 
-    // fn YGIsBaselineLayout(&mut self) -> bool {
-    //     if FlexDirectionIsColumn(self.style().flex_direction) {
-    //         return false;
-    //     };
-    //     if self.style().align_items == Align::Baseline {
-    //         return true;
-    //     };
-    //     let childCount = GetChildCount(node);
-    //     {
-    //         let mut i = 0;
-    //         while i < childCount {
-    //             {
-    //                 let child: Node = GetChild(node, i);
-    //                 if child.style().position_type == PositionType::Relative
-    //                     && child.style().align_self == Align::Baseline
-    //                 {
-    //                     return true;
-    //                 };
-    //             }
-    //             i = i.wrapping_add(1);
-    //         }
-    //     }
-    //     return false;
-    // }
+            {
+                let mut kerzy = || {
+                    // TODO(anp): audit this, it seems a little too clean even though i still
+                    // don't understand what it does
+                    for i in 0..self.children().len() {
+                        if self.child(i).line() > 0 {
+                            break;
+                        };
+
+                        if self.child(i).style().position_type == PositionType::Absolute {
+                            continue;
+                        }
+
+                        if self.align_item(self.child(i)) == Align::Baseline {
+                            baseline_child = Some(i);
+                            break;
+                        }
+
+                        if baseline_child.is_none() {
+                            baseline_child = Some(i);
+                        }
+                    }
+                };
+                kerzy();
+            }
+
+            if let Some(baseline_child) = baseline_child {
+                self.child_mut(baseline_child).baseline()
+                    + self.child(baseline_child).layout().position[Edge::Top].unwrap_or(r32(0.0))
+            } else {
+                self.layout().measured_dimensions.unwrap().height
+            }
+        }
+    }
+
+    fn is_baseline_layout(&mut self) -> bool {
+        if self.style().flex_direction.is_column() {
+            false
+        } else if self.style().align_items == Align::Baseline {
+            true
+        } else {
+            for child in self.children() {
+                if child.style().position_type == PositionType::Relative
+                    && child.style().align_self == Align::Baseline
+                {
+                    return true;
+                }
+            }
+
+            false
+        }
+    }
 
     fn is_flex(&self) -> bool {
         self.style().position_type == PositionType::Relative
