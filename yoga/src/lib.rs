@@ -2217,90 +2217,94 @@ where
             }
         }
 
-        //     // STEP 9: COMPUTING FINAL DIMENSIONS
-        //     self.layout().measured_dimensions.width = bound_axis(
-        //         node,
-        //         FlexDirection::Row,
-        //         availableWidth - marginAxisRow,
-        //         parentWidth,
-        //         parentWidth,
-        //     );
-        //     self.layout().measured_dimensions.height = bound_axis(
-        //         node,
-        //         FlexDirection::Column,
-        //         availableHeight - marginAxisColumn,
-        //         parentHeight,
-        //         parentWidth,
-        //     );
+        // STEP 9: COMPUTING FINAL DIMENSIONS
+        let measured = MeasuredDimensions {
+            width: self.bound_axis(
+                FlexDirection::Row,
+                available_width - margin_axis_row,
+                parent_width,
+                parent_width,
+            ),
+            height: self.bound_axis(
+                FlexDirection::Column,
+                available_height - margin_axis_column,
+                parent_height,
+                parent_width,
+            ),
+        };
 
-        //     // If the user didn't specify a width or height for the node, set the
-        //     // dimensions based on the children.
-        //     if measureModeMainDim == MeasureMode::Undefined
-        //         || (self.style().overflow != Overflow::Scroll
-        //             && measureModeMainDim == MeasureMode::AtMost)
-        //     {
-        //         // Clamp the size to the min/max size, if specified, and make sure it
-        //         // doesn't go below the padding and border amount.
-        //         self.layout().measured_dimensions[DIM[mainAxis as usize]] = bound_axis(
-        //             node,
-        //             mainAxis,
-        //             maxLineMainDim,
-        //             mainAxisParentSize,
-        //             parentWidth,
-        //         );
-        //     } else if measureModeMainDim == MeasureMode::AtMost
-        //         && self.style().overflow == Overflow::Scroll
-        //     {
-        //         self.layout().measured_dimensions[DIM[mainAxis as usize]] = (availableInnerMainDim
-        //             + paddingAndBorderAxisMain)
-        //             .min(bound_axis_within_min_and_max(
-        //                 node,
-        //                 mainAxis,
-        //                 maxLineMainDim,
-        //                 mainAxisParentSize,
-        //             ))
-        //             .max(paddingAndBorderAxisMain);
-        //     }
+        self.layout_mut().measured_dimensions = Some(measured);
 
-        //     if measureModeCrossDim == MeasureMode::Undefined
-        //         || (self.style().overflow != Overflow::Scroll
-        //             && measureModeCrossDim == MeasureMode::AtMost)
-        //     {
-        //         // Clamp the size to the min/max size, if specified, and make sure it
-        //         // doesn't go below the padding and border amount.
-        //         self.layout().measured_dimensions[DIM[crossAxis as usize]] = bound_axis(
-        //             node,
-        //             crossAxis,
-        //             totalLineCrossDim + paddingAndBorderAxisCross,
-        //             crossAxisParentSize,
-        //             parentWidth,
-        //         );
-        //     } else if measureModeCrossDim == MeasureMode::AtMost
-        //         && self.style().overflow == Overflow::Scroll
-        //     {
-        //         self.layout().measured_dimensions[DIM[crossAxis as usize]] =
-        //             (availableInnerCrossDim + paddingAndBorderAxisCross)
-        //                 .max(bound_axis_within_min_and_max(
-        //                     node,
-        //                     crossAxis,
-        //                     totalLineCrossDim + paddingAndBorderAxisCross,
-        //                     crossAxisParentSize,
-        //                 ))
-        //                 .max(paddingAndBorderAxisCross);
-        //     }
+        // If the user didn't specify a width or height for the node, set the
+        // dimensions based on the children.
+        if measure_mode_main_dim.is_none()
+            || (self.style().overflow != Overflow::Scroll
+                && measure_mode_main_dim == Some(MeasureMode::AtMost))
+        {
+            // Clamp the size to the min/max size, if specified, and make sure it
+            // doesn't go below the padding and border amount.
+            self.layout().measured_dimensions.unwrap()[main_axis.dimension()] = self.bound_axis(
+                main_axis,
+                max_line_main_dim,
+                main_axis_parent_size,
+                parent_width,
+            );
+        } else if measure_mode_main_dim == Some(MeasureMode::AtMost)
+            && self.style().overflow == Overflow::Scroll
+        {
+            self.layout_mut().measured_dimensions.unwrap()[main_axis.dimension()] =
+                (available_inner_main_dim + padding_and_border_axis_main)
+                    .min(self.bound_axis_within_min_and_max(
+                        main_axis,
+                        max_line_main_dim,
+                        main_axis_parent_size,
+                    ))
+                    .max(padding_and_border_axis_main);
+        }
 
-        //     // As we only wrapped in normal direction yet, we need to reverse the positions on wrap-reverse.
-        //     if performLayout && self.style().flex_wrap == YGWrapWrapReverse {
-        //         for i in 0..childCount {
-        //             let child = GetChild(node, i);
-        //             if child.style().position_type == PositionType::Relative {
-        //                 child.layout.position[pos[crossAxis as usize] as usize] =
-        //                     self.layout().measured_dimensions[DIM[crossAxis as usize]]
-        //                         - child.layout.position[pos[crossAxis as usize] as usize]
-        //                         - child.layout.measured_dimensions[DIM[crossAxis as usize]];
-        //             }
-        //         }
-        //     }
+        if measure_mode_cross_dim.is_none()
+            || (self.style().overflow != Overflow::Scroll
+                && measure_mode_cross_dim == Some(MeasureMode::AtMost))
+        {
+            // Clamp the size to the min/max size, if specified, and make sure it
+            // doesn't go below the padding and border amount.
+            self.layout().measured_dimensions.unwrap()[cross_axis.dimension()] = self.bound_axis(
+                cross_axis,
+                total_line_cross_dim + padding_and_border_axis_cross,
+                cross_axis_parent_size,
+                parent_width,
+            );
+        } else if measure_mode_cross_dim == Some(MeasureMode::AtMost)
+            && self.style().overflow == Overflow::Scroll
+        {
+            self.layout().measured_dimensions.unwrap()[cross_axis.dimension()] =
+                (available_inner_cross_dim + padding_and_border_axis_cross)
+                    .max(self.bound_axis_within_min_and_max(
+                        cross_axis,
+                        total_line_cross_dim + padding_and_border_axis_cross,
+                        cross_axis_parent_size,
+                    ))
+                    .max(padding_and_border_axis_cross);
+        }
+
+        // As we only wrapped in normal direction yet, we need to reverse the positions on wrap-reverse.
+        if perform_layout && self.style().flex_wrap == Wrap::WrapReverse {
+            let thing_ill_name_above =
+                self.layout().measured_dimensions.unwrap()[cross_axis.dimension()];
+
+            for child in self.children_mut() {
+                if child.style().position_type == PositionType::Relative {
+                    let child_cross_position =
+                        child.layout().position[cross_axis.leading_edge()].unwrap_or(r32(0.0));
+                    let child_cross_measured =
+                        child.layout().measured_dimensions.unwrap()[cross_axis.dimension()];
+                    child.layout_mut().position.set(
+                        cross_axis.leading_edge(),
+                        thing_ill_name_above - child_cross_position - child_cross_measured,
+                    );
+                }
+            }
+        }
 
         //     if performLayout {
         //         // STEP 10: SIZING AND POSITIONING ABSOLUTE CHILDREN
