@@ -1,14 +1,5 @@
-#![feature(specialization)]
-#![allow(dead_code)]
-#![allow(mutable_transmutes)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
-#![allow(unused_mut)]
-#![allow(unknown_lints)]
-// TODO(anp): what is itertools going to do once flatten stabilizes?
+// TODO(anp): clean up the use of flatten and remove this
 #![allow(unstable_name_collisions)]
-#![warn(clippy)]
 
 // TODO(anp): look at `gPrintChanges` variable in Yoga.c and add logging statements here
 // TODO(anp): excise unwrap/expect/panic!
@@ -21,6 +12,8 @@
 // TODO(anp): create a style builder that can be constructed with some defaults
 //   and used to churn out nodes
 // TODO(anp): do a pass to remove .is_nan()
+// TODO(anp): pass to remove unnecessary #[allow(...)]
+// TODO(anp): let clippy loose once nightlies are blocked on it
 
 extern crate arrayvec;
 extern crate float_cmp;
@@ -228,7 +221,8 @@ where
             let dir = self.layout().direction;
             let has_parent = self.parent().is_some();
             let style = *self.style();
-            self.layout_mut().set_position(
+            // unused: we know it's been updated, we're calculating it
+            let _ = self.layout_mut().set_position(
                 style,
                 dir,
                 parent_width,
@@ -508,12 +502,12 @@ where
                 height_measure_mode,
             );
 
-            let mut bound = |dir,
-                             measure_mode: Option<MeasureMode>,
-                             measured_size,
-                             axis_margin,
-                             available1,
-                             available2| {
+            let bound = |dir,
+                         measure_mode: Option<MeasureMode>,
+                         measured_size,
+                         axis_margin,
+                         available1,
+                         available2| {
                 self.bound_axis(
                     dir,
                     if measure_mode.is_none() || measure_mode == Some(MeasureMode::AtMost) {
@@ -549,9 +543,9 @@ where
 
     /// Like bound_axis_within_min_and_max but also ensures that the value doesn't go below the
     /// padding and border amount.
-    fn bound_axis(&self, axis: FlexDirection, value: R32, axisSize: R32, widthSize: R32) -> R32 {
-        self.bound_axis_within_min_and_max(axis, value, axisSize)
-            .max(self.style().padding_and_border_for_axis(axis, widthSize))
+    fn bound_axis(&self, axis: FlexDirection, value: R32, axis_size: R32, width_size: R32) -> R32 {
+        self.bound_axis_within_min_and_max(axis, value, axis_size)
+            .max(self.style().padding_and_border_for_axis(axis, width_size))
     }
 
     fn bound_axis_within_min_and_max(
@@ -1056,7 +1050,7 @@ where
         } else {
             available_inner_height
         };
-        let mut available_inner_cross_dim = if is_main_axis_row {
+        let available_inner_cross_dim = if is_main_axis_row {
             available_inner_height
         } else {
             available_inner_width
@@ -1080,7 +1074,6 @@ where
         let mut total_outer_flex_basis = r32(0.0);
 
         // FIXME(anp): not sure whether this gets incremented later in the loop, check to see
-        let current_generation = self.current_generation();
         let self_flex_direction = self.style().flex_direction;
         let self_overflow = self.style().overflow;
 
@@ -1103,7 +1096,8 @@ where
                 // Set the initial position (relative to the parent).
                 let child_direction = child.style().direction.resolve(direction);
                 let child_style = *child.style();
-                child.layout_mut().set_position(
+                // unused: we know its getting mutated, we're doing layout now
+                let _ = child.layout_mut().set_position(
                     child_style,
                     child_direction,
                     available_inner_main_dim,
@@ -1162,30 +1156,11 @@ where
 
         // STEP 4: COLLECT FLEX ITEMS INTO FLEX LINES
 
-        struct FlexLine {
-            /// Index of child that represents the first item in the line.
-            begin_idx: usize,
-            /// Index of child that represents the last item in the line.
-            end_idx: usize,
-            /// Number of items on the currently line. May be different than the difference between
-            /// start and end indicates because we skip over absolute-positioned items.
-            n_items: usize,
-        }
-
-        let mut lines: Vec<FlexLine> = Vec::new();
-
         // Accumulated cross dimensions of all lines so far.
         let mut total_line_cross_dim = r32(0.0);
 
         // Max main dimension of all the lines.
         let mut max_line_main_dim = r32(0.0);
-
-        // reset this and push onto lines vec when a line is full
-        let mut current_line = FlexLine {
-            begin_idx: 0,
-            end_idx: 0,
-            n_items: 0,
-        };
 
         let mut start_of_line_index = 0;
         let mut end_of_line_index = 0;
@@ -1209,7 +1184,7 @@ where
                     continue;
                 }
 
-                *child.line() = lines.len();
+                *child.line() = line_count;
 
                 if child.style().position_type != PositionType::Absolute {
                     let child_margin_main_axis = child
@@ -1233,7 +1208,7 @@ where
                     if size_consumed_on_current_line_including_min_constraint
                         + flex_basis_with_min_and_max_constraints.unwrap()
                         + child_margin_main_axis > available_inner_main_dim
-                        && is_node_flex_wrap && lines.len() > 0
+                        && is_node_flex_wrap && line_count > 0
                     {
                         break;
                     }
@@ -1242,7 +1217,7 @@ where
                         flex_basis_with_min_and_max_constraints.unwrap() + child_margin_main_axis;
                     size_consumed_on_current_line +=
                         flex_basis_with_min_and_max_constraints.unwrap() + child_margin_main_axis;
-                    current_line.n_items += 1;
+                    items_on_line += 1;
 
                     if child.is_flex() {
                         total_flex_grow_factors += child.resolve_flex_grow();
@@ -1305,7 +1280,7 @@ where
                 remaining_free_space = size_consumed_on_current_line;
             }
 
-            let mut original_remaining_free_space = remaining_free_space;
+            let original_remaining_free_space = remaining_free_space;
             let mut delta_free_space = r32(0.0);
 
             // Maintain a linked list of the child node indices that can shrink and/or grow.
@@ -1706,7 +1681,8 @@ where
                         .margin
                         .leading(main_axis, available_inner_width)
                         .unwrap_or(r32(0.0));
-                    self.child_mut(i).layout_mut().position.set(
+                    // unused: starting to think that this shouldn't return updated or sth
+                    let _ = self.child_mut(i).layout_mut().position.set(
                         main_axis.leading_edge(),
                         leading_pos + own_leading_border + child_leading_margin,
                     );
@@ -1723,7 +1699,9 @@ where
                         }
 
                         if perform_layout {
-                            self.child_mut(i)
+                            // yeah, pretty sure of that now
+                            let _ = self
+                                .child_mut(i)
                                 .layout_mut()
                                 .position
                                 .add(main_axis.leading_edge(), main_dim);
@@ -1768,7 +1746,8 @@ where
                         }
                     } else if perform_layout {
                         let own_leading_border = self.style().border.leading(main_axis);
-                        self.child_mut(i).layout_mut().position.set(
+                        // unused:  ok i'll  refactor this TODO(anp)
+                        let _ = self.child_mut(i).layout_mut().position.set(
                             main_axis.leading_edge(),
                             own_leading_border + leading_main_dim,
                         );
@@ -1827,7 +1806,7 @@ where
                                 .margin
                                 .leading(cross_axis, available_inner_width)
                                 .unwrap_or(r32(0.0));
-                            self.child_mut(i).layout_mut().position.set(
+                            let _ = self.child_mut(i).layout_mut().position.set(
                                 cross_axis.leading_edge(),
                                 child_leading_pos + own_leading_border + child_leading_margin,
                             );
@@ -1843,7 +1822,7 @@ where
                                 .margin
                                 .leading(cross_axis, available_inner_width)
                                 .unwrap_or(r32(0.0));
-                            self.child_mut(i).layout_mut().position.set(
+                            let _ = self.child_mut(i).layout_mut().position.set(
                                 cross_axis.leading_edge(),
                                 own_leading_border + child_leading_margin,
                             );
@@ -1907,8 +1886,8 @@ where
                                 let mut child_cross_measure_mode = Some(MeasureMode::Exactly);
 
                                 let (
-                                    (child_main_size, child_main_measure_mode),
-                                    (child_cross_size, child_cross_measure_mode),
+                                    (child_main_size, _child_main_measure_mode),
+                                    (child_cross_size, _child_cross_measure_mode),
                                 ) = (
                                     self.child(i).constrained_max_size_for_mode(
                                         main_axis,
@@ -1985,7 +1964,7 @@ where
                                 };
                         }
                         // And we apply the position
-                        self.child_mut(i).layout_mut().position.set(
+                        let _ = self.child_mut(i).layout_mut().position.set(
                             cross_axis.leading_edge(),
                             total_line_cross_dim + leading_cross_dim,
                         );
@@ -2635,7 +2614,7 @@ where
     ) {
         let main_axis = parent_flex_direction.resolve_direction(direction);
         let is_main_axis_row = main_axis.is_row();
-        let main_axis_size = if is_main_axis_row { width } else { height };
+        let _main_axis_size = if is_main_axis_row { width } else { height };
         let main_axis_parent_size = if is_main_axis_row {
             parent_width
         } else {
@@ -2646,7 +2625,7 @@ where
         let is_row_style_dim_defined = self.is_style_dim_defined(FlexDirection::Row, parent_width);
         let is_column_style_dim_defined =
             self.is_style_dim_defined(FlexDirection::Column, parent_height);
-        if let Some(resolved_flex_basis) = resolved_flex_basis {
+        if let Some(_resolved_flex_basis) = resolved_flex_basis {
             // FIXME(anp): this should be sorted out!
             // if self.layout().computed_flex_basis.is_nan()
             //         && self.layout.computed_flex_basis_generation != gCurrentGenerationCount

@@ -68,66 +68,17 @@ macro_rules! edges {
             }
 
             $(
+                #[allow(unused)]
                 pub(crate) fn $set_fn(&mut self, new: $userty) {
                     self.$field = Some(new);
                 }
             )*
-        }
 
-        #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-        pub struct $mindlessresolution {
-            // TODO(anp): the conversion process from Border -> BorderResolved should obviate
-            // the need for Option here
-            $(
-                $field: Option<$resolvedty>,
-            )*
-        }
-
-        edges! { @both $mindlessresolution [ $($field)* ] $resolvedty }
-
-        impl $mindlessresolution {
-            pub fn get(&self, edge: Edge) -> Option<$resolvedty> {
-                self[edge]
-            }
-
-            pub(crate) fn add(&mut self, edge: Edge, new: $resolvedty) -> Updated {
+            #[allow(unused)]
+            pub(crate) fn set(&mut self, edge: Edge, new: $userty) -> Updated {
                 use Edge::*;
 
-
-                let mut field = match edge {
-                    Top => &mut self.top,
-                    Bottom => &mut self.bottom,
-                    Left => &mut self.left,
-                    Right => &mut self.right,
-                    Start => &mut self.start,
-                    End => &mut self.end,
-                    Vertical => &mut self.vertical,
-                    Horizontal => &mut self.horizontal,
-                    All => &mut self.all,
-                };
-
-                *field = Some(field.unwrap_or(r32(0.0)) + new);
-
-                Updated::Dirty
-            }
-
-            $(
-                pub fn $set_fn(&mut self, new: $resolvedty) {
-                    self.$field = Some(new);
-                }
-
-            )*
-        }
-    };
-
-    (@both $struct:ident [ $($field:ident)* ] $field_ty:ty) => {
-        default!($struct, $struct { $( $field: None, )* });
-
-        impl $struct {
-            pub(crate) fn set(&mut self, edge: Edge, new: $field_ty) -> Updated {
-                use Edge::*;
-
-                let mut field = match edge {
+                let field = match edge {
                     Top => &mut self.top,
                     Bottom => &mut self.bottom,
                     Left => &mut self.left,
@@ -146,6 +97,78 @@ macro_rules! edges {
                     Updated::Dirty
                 }
             }
+        }
+
+        #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
+        pub struct $mindlessresolution {
+            // TODO(anp): the conversion process from Border -> BorderResolved should obviate
+            // the need for Option here
+            $(
+                $field: Option<$resolvedty>,
+            )*
+        }
+
+        edges! { @both $mindlessresolution [ $($field)* ] $resolvedty }
+
+        impl $mindlessresolution {
+            pub fn get(&self, edge: Edge) -> Option<$resolvedty> {
+                self[edge]
+            }
+
+            #[allow(unused)]
+            pub(crate) fn add(&mut self, edge: Edge, new: $resolvedty) -> Updated {
+                use Edge::*;
+
+
+                let field = match edge {
+                    Top => &mut self.top,
+                    Bottom => &mut self.bottom,
+                    Left => &mut self.left,
+                    Right => &mut self.right,
+                    Start => &mut self.start,
+                    End => &mut self.end,
+                    Vertical => &mut self.vertical,
+                    Horizontal => &mut self.horizontal,
+                    All => &mut self.all,
+                };
+
+                *field = Some(field.unwrap_or(r32(0.0)) + new);
+
+                Updated::Dirty
+            }
+
+            #[allow(unused)]
+            pub(crate) fn set(&mut self, edge: Edge, new: $resolvedty) {
+                use Edge::*;
+
+                let field = match edge {
+                    Top => &mut self.top,
+                    Bottom => &mut self.bottom,
+                    Left => &mut self.left,
+                    Right => &mut self.right,
+                    Start => &mut self.start,
+                    End => &mut self.end,
+                    Vertical => &mut self.vertical,
+                    Horizontal => &mut self.horizontal,
+                    All => &mut self.all,
+                };
+
+                *field = Some(new);
+            }
+
+            $(
+                pub fn $set_fn(&mut self, new: $resolvedty) {
+                    self.$field = Some(new);
+                }
+
+            )*
+        }
+    };
+
+    (@both $struct:ident [ $($field:ident)* ] $field_ty:ty) => {
+        default!($struct, $struct { $( $field: None, )* });
+
+        impl $struct {
 
         }
 

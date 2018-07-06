@@ -57,7 +57,7 @@ impl Style {
             Value::Point(p)
         } else if let Value::Percent(p) = self.flex_basis {
             Value::Percent(p)
-        } else if let (Some((flex, true)), false) = (
+        } else if let (Some((_, true)), false) = (
             self.flex.map(|f| (f, f > 0.0)),
             cfg!(feature = "web-default"),
         ) {
@@ -192,7 +192,7 @@ macro_rules! property_impl {
             #[inline]
             fn apply(self, style: &mut Style) -> Updated {
                 let $style = style;
-                let mut field = &mut $field;
+                let field = &mut $field;
 
                 let to_apply = self.prep();
 

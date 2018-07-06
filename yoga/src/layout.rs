@@ -65,7 +65,7 @@ default!(
 );
 
 impl Layout {
-    pub fn set_position(
+    pub(crate) fn set_position(
         &mut self,
         style: Style,
         direction: Direction,
@@ -104,7 +104,6 @@ impl Layout {
                 .leading(main_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_main,
         );
-
         position.set(
             main_axis.trailing_edge(),
             style
@@ -112,7 +111,6 @@ impl Layout {
                 .trailing(main_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_main,
         );
-
         position.set(
             cross_axis.leading_edge(),
             style
@@ -120,8 +118,6 @@ impl Layout {
                 .leading(cross_axis, parent_width)
                 .unwrap_or(r32(0.0)) + relative_position_cross,
         );
-
-        // FIXME(anp): this looks like a bug
         position.set(
             cross_axis.trailing_edge(),
             style
