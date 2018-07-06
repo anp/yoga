@@ -69,19 +69,23 @@ prelude!();
 // static mut firstAbsoluteChild: Node = ::std::ptr::null_mut();
 // static mut currentAbsoluteChild: Node = ::std::ptr::null_mut();
 
-pub trait Yggdrasil<N: Node<Self>>
+pub trait Yggdrasil<N: Node<Self, I>, I>
 where
-    N: Node<Self>,
+    N: Node<Self, I>,
+    // FIXME(anp): this is going to be  broken until i can refactor the traits the use handles
+    I: Iterator<Item = N>,
     Self: 'static + Debug + Sized,
 {
     // TODO(anp): implement this as a linked list or smth i guess? probably needs to be done with
     //   handles
     fn add_absolute_child(&N);
+    fn absolute_children() -> I;
 }
 
-pub trait Node<Y>
+pub trait Node<Y, I>
 where
-    Y: Yggdrasil<Self>,
+    I: Iterator<Item = Self>,
+    Y: Yggdrasil<Self, I>,
     Self: 'static + Debug + Eq + PartialEq + Sized,
 {
     // TODO(anp): should probably be runtime configurable in some ergonomic way that doesn't force
@@ -2306,59 +2310,57 @@ where
             }
         }
 
-        //     if performLayout {
-        //         // STEP 10: SIZING AND POSITIONING ABSOLUTE CHILDREN
-        //         currentAbsoluteChild = firstAbsoluteChild;
-        //         while !currentAbsoluteChild.is_null() {
-        //             absolute_layout_child((
-        //                 node,
-        //                 currentAbsoluteChild,
-        //                 availableInnerWidth,
-        //                 if isMainAxisRow {
-        //                     measureModeMainDim
-        //                 } else {
-        //                     measureModeCrossDim
-        //                 },
-        //                 availableInnerHeight,
-        //                 direction,
-        //                 config,
-        //             );
-        //             currentAbsoluteChild = (*currentAbsoluteChild).nextChild;
-        //         }
+        if perform_layout {
+            // STEP 10: SIZING AND POSITIONING ABSOLUTE CHILDREN
+            for current_absolute_child in Y::absolute_children() {
+                self.absolute_layout_child(
+                    current_absolute_child,
+                    available_inner_width,
+                    if is_main_axis_row {
+                        measure_mode_main_dim
+                    } else {
+                        measure_mode_cross_dim
+                    },
+                    available_inner_height,
+                    direction,
+                );
+            }
 
-        //         // STEP 11: SETTING TRAILING POSITIONS FOR CHILDREN
-        //         let needsMainTrailingPos = mainAxis == FlexDirection::RowReverse
-        //             || mainAxis == FlexDirection::ColumnReverse;
-        //         let needsCrossTrailingPos = crossAxis == FlexDirection::RowReverse
-        //             || crossAxis == FlexDirection::ColumnReverse;
+            // STEP 11: SETTING TRAILING POSITIONS FOR CHILDREN
+            let needs_main_trailing_pos =
+                main_axis == FlexDirection::RowReverse || main_axis == FlexDirection::ColumnReverse;
+            let needs_cross_trailing_pos = cross_axis == FlexDirection::RowReverse
+                || cross_axis == FlexDirection::ColumnReverse;
 
-        //         // Set trailing position if necessary.
-        //         if needsMainTrailingPos || needsCrossTrailingPos {
-        //             for i in 0..childCount {
-        //                 let child = ListGet(self.children, i);
-        //                 if child.style().display == Display::None {
-        //                     continue;
-        //                 }
-        //                 if needsMainTrailingPos {
-        //                     set_child_trailing_position(node, child, mainAxis);
-        //                 }
+            // Set trailing position if necessary.
+            if needs_main_trailing_pos || needs_cross_trailing_pos {
+                for i in 0..self.children().len() {
+                    if self.child(i).style().display == Display::None {
+                        continue;
+                    }
 
-        //                 if needsCrossTrailingPos {
-        //                     set_child_trailing_position(node, child, crossAxis);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                    let set_child_trailing_position = |axis| {
+                        let size =
+                            self.child(i).layout().measured_dimensions.unwrap()[axis.dimension()];
+                        self.child_mut(i).layout_mut().position.set(
+                            axis.trailing_edge(),
+                            self.layout().measured_dimensions[axis.dimension()]
+                                - size
+                                - self.child(i).layout().position[axis.leading_edge()],
+                        );
+                    };
+
+                    if needs_main_trailing_pos {
+                        set_child_trailing_position(main_axis);
+                    }
+
+                    if needs_cross_trailing_pos {
+                        set_child_trailing_position(cross_axis);
+                    }
+                }
+            }
+        }
     }
-
-    // fn set_child_trailing_position(&mut self, child: Node, axis: FlexDirection) -> () {
-    //     let size: R32 = child.layout.measured_dimensions[DIM[axis as usize]];
-    //     child.layout.position[trailing[axis as usize] as usize] =
-    //         self.layout().measured_dimensions[DIM[axis as usize]]
-    //             - size
-    //             - child.layout.position[pos[axis as usize] as usize];
-    // }
 
     // fn absolute_layout_child(
     //     &mut self,
