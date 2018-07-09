@@ -13,22 +13,32 @@ pub enum Edge {
     All,
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
+pub enum PhysicalEdge {
+    Top,
+    Bottom,
+    // TODO(anp) pretty sure these should be left/right
+    Start,
+    End,
+}
+
 macro_rules! edges {
     ($a:ident: $aty:ty, $b:ident: $bty:ty) => {
         edges! {
             user: $a: $aty,
             resolved: $b: $bty,
             fields: [
-                left (set_left),
                 top (set_top),
-                right (set_right),
                 bottom (set_bottom),
                 start (set_start),
                 end (set_end),
+                left (set_left),
+                right (set_right),
                 vertical (set_vertical),
                 horizontal (set_horizontal),
                 all (set_all)
-            ]
+            ],
+            resolved_fields: [ top, bottom, start, end ]
         }
     };
     ($a:ident, $b:ident) => {
@@ -36,22 +46,24 @@ macro_rules! edges {
             user: $a: Value,
             resolved: $b: R32,
             fields: [
-                left (set_left),
                 top (set_top),
-                right (set_right),
                 bottom (set_bottom),
                 start (set_start),
                 end (set_end),
+                left (set_left),
+                right (set_right),
                 vertical (set_vertical),
                 horizontal (set_horizontal),
                 all (set_all)
-            ]
+            ],
+            resolved_fields: [ top, bottom, start, end ]
         }
     };
     (
         user: $mindlessoutlining:ident: $userty:ty,
         resolved: $mindlessresolution:ident: $resolvedty:ty,
-        fields: [ $($field:ident ($set_fn:ident)),* ]
+        fields: [ $($field:ident ($set_fn:ident)),* ],
+        resolved_fields: [ $( $resolvedfield:ident ),* ]
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
         pub struct $mindlessoutlining {
@@ -60,120 +72,11 @@ macro_rules! edges {
             )*
         }
 
-        edges! { @both $mindlessoutlining [ $($field)* ] $userty }
 
-        impl $mindlessoutlining {
-            pub fn get(&self, edge: Edge) -> Option<$userty> {
-                self[edge]
-            }
+        default!($mindlessoutlining, $mindlessoutlining { $( $field: None, )* });
 
-            $(
-                #[allow(unused)]
-                pub(crate) fn $set_fn(&mut self, new: $userty) {
-                    self.$field = Some(new);
-                }
-            )*
-
-            #[allow(unused)]
-            pub(crate) fn set(&mut self, edge: Edge, new: $userty) -> Updated {
-                use Edge::*;
-
-                let field = match edge {
-                    Top => &mut self.top,
-                    Bottom => &mut self.bottom,
-                    Left => &mut self.left,
-                    Right => &mut self.right,
-                    Start => &mut self.start,
-                    End => &mut self.end,
-                    Vertical => &mut self.vertical,
-                    Horizontal => &mut self.horizontal,
-                    All => &mut self.all,
-                };
-
-                if *field == Some(new) {
-                    Updated::Clean
-                } else {
-                    *field = Some(new);
-                    Updated::Dirty
-                }
-            }
-        }
-
-        #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-        pub struct $mindlessresolution {
-            // TODO(anp): the conversion process from Border -> BorderResolved should obviate
-            // the need for Option here
-            $(
-                $field: Option<$resolvedty>,
-            )*
-        }
-
-        edges! { @both $mindlessresolution [ $($field)* ] $resolvedty }
-
-        impl $mindlessresolution {
-            pub fn get(&self, edge: Edge) -> Option<$resolvedty> {
-                self[edge]
-            }
-
-            #[allow(unused)]
-            pub(crate) fn add(&mut self, edge: Edge, new: $resolvedty) -> Updated {
-                use Edge::*;
-
-
-                let field = match edge {
-                    Top => &mut self.top,
-                    Bottom => &mut self.bottom,
-                    Left => &mut self.left,
-                    Right => &mut self.right,
-                    Start => &mut self.start,
-                    End => &mut self.end,
-                    Vertical => &mut self.vertical,
-                    Horizontal => &mut self.horizontal,
-                    All => &mut self.all,
-                };
-
-                *field = Some(field.unwrap_or(r32(0.0)) + new);
-
-                Updated::Dirty
-            }
-
-            #[allow(unused)]
-            pub(crate) fn set(&mut self, edge: Edge, new: $resolvedty) {
-                use Edge::*;
-
-                let field = match edge {
-                    Top => &mut self.top,
-                    Bottom => &mut self.bottom,
-                    Left => &mut self.left,
-                    Right => &mut self.right,
-                    Start => &mut self.start,
-                    End => &mut self.end,
-                    Vertical => &mut self.vertical,
-                    Horizontal => &mut self.horizontal,
-                    All => &mut self.all,
-                };
-
-                *field = Some(new);
-            }
-
-            $(
-                pub fn $set_fn(&mut self, new: $resolvedty) {
-                    self.$field = Some(new);
-                }
-
-            )*
-        }
-    };
-
-    (@both $struct:ident [ $($field:ident)* ] $field_ty:ty) => {
-        default!($struct, $struct { $( $field: None, )* });
-
-        impl $struct {
-
-        }
-
-        impl ::std::ops::Index<Edge> for $struct {
-            type Output = Option<$field_ty>;
+        impl ::std::ops::Index<Edge> for $mindlessoutlining {
+            type Output = Option<$userty>;
             fn index(&self, edge: Edge) -> &Self::Output {
                 use Edge::*;
                 match edge {
@@ -205,6 +108,134 @@ macro_rules! edges {
                 }
             }
         }
+
+        impl ::std::ops::Index<PhysicalEdge> for $mindlessoutlining {
+            type Output = Option<$userty>;
+            fn index(&self, edge: PhysicalEdge) -> &Self::Output {
+                use PhysicalEdge::*;
+                match edge {
+                    Top if self.top.is_some() => &self.top,
+                    Bottom if self.bottom.is_some() => &self.bottom,
+                    Start if self.start.is_some() => &self.start,
+                    End if self.end.is_some() => &self.end,
+
+                    Top |
+                    Bottom
+                    if self.vertical.is_some() => &self.vertical,
+
+                    Start |
+                    End
+                    if self.horizontal.is_some() => &self.horizontal,
+
+                    // one fallback to rule them all
+                    _ if self.all.is_some() => &self.all,
+                    _ => &None,
+                }
+            }
+        }
+
+        impl $mindlessoutlining {
+            pub fn get(&self, edge: Edge) -> Option<$userty> {
+                self[edge]
+            }
+
+            $(
+                #[allow(unused)]
+                pub(crate) fn $set_fn(&mut self, new: $userty) {
+                    self.$field = Some(new);
+                }
+            )*
+
+            #[allow(unused)]
+            pub(crate) fn set(&mut self, edge: Edge, new: $userty) -> Updated {
+                use Edge::*;
+
+                let field = match edge {
+                    Top => &mut self.top,
+                    Bottom => &mut self.bottom,
+                    Left => &mut self.left,
+                    Right => &mut self.right,
+                    Start => &mut self.start,
+                    End => &mut self.end,
+                    // Vertical => &mut self.vertical,
+                    // Horizontal => &mut self.horizontal,
+                    // All => &mut self.all,
+                    _ => panic!("TODO(anp) remove these extra fields where possible")
+                };
+
+                if *field == Some(new) {
+                    Updated::Clean
+                } else {
+                    *field = Some(new);
+                    Updated::Dirty
+                }
+            }
+        }
+
+        #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
+        pub struct $mindlessresolution {
+            $(
+                pub(crate) $resolvedfield: $resolvedty,
+            )*
+        }
+
+        // TODO(anp): take this away and require full initialization of layout fields
+        default!(
+            $mindlessresolution,
+            $mindlessresolution {
+                start: R32::default(),
+                end: R32::default(),
+                top: R32::default(),
+                bottom: R32::default(),
+            }
+        );
+
+        impl ::std::ops::Index<PhysicalEdge> for $mindlessresolution {
+            type Output = $resolvedty;
+            fn index(&self, edge: PhysicalEdge) -> &Self::Output {
+                &self.get(edge)
+            }
+        }
+
+        impl $mindlessresolution {
+            pub fn get(&self, edge: PhysicalEdge) -> &$resolvedty {
+                use PhysicalEdge::*;
+                match edge {
+                    Top => &self.top,
+                    Bottom => &self.bottom,
+                    Start => &self.start,
+                    End => &self.end,
+                }
+            }
+
+            #[allow(unused)]
+            pub(crate) fn add(&mut self, edge: PhysicalEdge, new: $resolvedty) {
+                use PhysicalEdge::*;
+
+                let field = match edge {
+                    Top => &mut self.top,
+                    Bottom => &mut self.bottom,
+                    Start => &mut self.start,
+                    End => &mut self.end,
+                };
+
+                *field = *field + new;
+            }
+
+            #[allow(unused)]
+            pub(crate) fn set(&mut self, edge: PhysicalEdge, new: $resolvedty) {
+                use PhysicalEdge::*;
+
+                let field = match edge {
+                    Top => &mut self.top,
+                    Bottom => &mut self.bottom,
+                    Start => &mut self.start,
+                    End => &mut self.end,
+                };
+
+                *field = new;
+            }
+        }
     };
 }
 
@@ -216,12 +247,10 @@ edges! { Position, PositionResolved }
 impl Border {
     pub fn resolve(&self, row_dir: FlexDirection, col_dir: FlexDirection) -> BorderResolved {
         BorderResolved {
-            start: Some(self.leading(row_dir)),
-            end: Some(self.trailing(row_dir)),
-            top: Some(self.leading(col_dir)),
-            bottom: Some(self.trailing(col_dir)),
-            // FIXME(anp): pretty sure we shouldn't even have these, right?
-            ..Default::default()
+            start: self.leading(row_dir),
+            end: self.trailing(row_dir),
+            top: self.leading(col_dir),
+            bottom: self.trailing(col_dir),
         }
     }
 
@@ -255,27 +284,28 @@ impl Margin {
         }
     }
 
-    pub fn trailing(&self, axis: FlexDirection, width_size: R32) -> Option<R32> {
+    pub fn trailing(&self, axis: FlexDirection, width_size: R32) -> R32 {
         match (axis.is_row(), self[Edge::End]) {
             (true, Some(v)) => Some(v),
             _ => self[axis.trailing_edge()],
         }.into_iter()
             .flat_map(|m| m.resolve(width_size))
             .next()
+            .unwrap_or(r32(0.0))
     }
 
     pub fn for_axis(&self, axis: FlexDirection, width_size: R32) -> R32 {
-        self.leading(axis, width_size).unwrap_or(r32(0.0))
-            + self.trailing(axis, width_size).unwrap_or(r32(0.0))
+        self.leading(axis, width_size) + self.trailing(axis, width_size)
     }
 
-    pub fn leading(&self, axis: FlexDirection, width_size: R32) -> Option<R32> {
+    pub fn leading(&self, axis: FlexDirection, width_size: R32) -> R32 {
         match (axis.is_row(), self[Edge::Start]) {
             (true, Some(m)) => Some(m),
             _ => self[axis.leading_edge()],
         }.into_iter()
             .flat_map(|m| m.resolve(width_size))
             .next()
+            .unwrap_or(r32(0.0))
     }
 
     pub fn resolve(
@@ -289,8 +319,6 @@ impl Margin {
             end: self.trailing(row_dir, parent_width),
             top: self.leading(col_dir, parent_width),
             bottom: self.trailing(col_dir, parent_width),
-            // FIXME(anp): pretty sure we shouldn't even have these, right?
-            ..Default::default()
         }
     }
 }
@@ -332,13 +360,10 @@ impl Padding {
         parent_width: R32,
     ) -> PaddingResolved {
         PaddingResolved {
-            // FIXME(anp): these don't need to be optional, needs change to macro
-            start: Some(self.leading(row_dir, parent_width)),
-            end: Some(self.trailing(row_dir, parent_width)),
-            top: Some(self.leading(col_dir, parent_width)),
-            bottom: Some(self.trailing(col_dir, parent_width)),
-            // FIXME(anp): pretty sure we dont actually need these anymore
-            ..Default::default()
+            start: self.leading(row_dir, parent_width),
+            end: self.trailing(row_dir, parent_width),
+            top: self.leading(col_dir, parent_width),
+            bottom: self.trailing(col_dir, parent_width),
         }
     }
 }
@@ -357,7 +382,7 @@ impl Position {
 
     pub(crate) fn leading(&self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
         let leading_edge = if axis.is_row() {
-            Edge::Start
+            PhysicalEdge::Start
         } else {
             axis.leading_edge()
         };
@@ -370,7 +395,7 @@ impl Position {
 
     pub(crate) fn trailing(&self, axis: FlexDirection, axis_size: R32) -> Option<R32> {
         let trailing_edge = if axis.is_row() {
-            Edge::End
+            PhysicalEdge::End
         } else {
             axis.trailing_edge()
         };
@@ -379,5 +404,85 @@ impl Position {
             .into_iter()
             .flat_map(|p| p.resolve(axis_size))
             .next()
+    }
+
+    pub(crate) fn resolve(
+        &self,
+        margin: &Margin,
+        main_axis: FlexDirection,
+        main_size: R32,
+        cross_axis: FlexDirection,
+        cross_size: R32,
+        parent_width: R32,
+    ) -> PositionResolved {
+        let relative_position_main = self.relative(main_axis, main_size).unwrap_or(r32(0.0));
+        // FIXME(anp): should this be getting added to the values below?
+        let _relative_position_cross = self.relative(cross_axis, cross_size).unwrap_or(r32(0.0));
+
+        PositionBuilder::new()
+            .set(
+                main_axis.leading_edge(),
+                margin.leading(main_axis, parent_width) + relative_position_main,
+            )
+            .set(
+                main_axis.trailing_edge(),
+                margin.trailing(main_axis, parent_width) + relative_position_main,
+            )
+            .set(
+                cross_axis.leading_edge(),
+                margin.leading(cross_axis, parent_width),
+            )
+            .set(
+                cross_axis.trailing_edge(),
+                margin.trailing(cross_axis, parent_width),
+            )
+            .build()
+    }
+}
+
+struct PositionBuilder {
+    start: Option<R32>,
+    end: Option<R32>,
+    top: Option<R32>,
+    bottom: Option<R32>,
+}
+
+impl PositionBuilder {
+    fn new() -> Self {
+        PositionBuilder {
+            start: None,
+            end: None,
+            top: None,
+            bottom: None,
+        }
+    }
+
+    fn set(&mut self, edge: PhysicalEdge, value: R32) -> &mut Self {
+        use PhysicalEdge::*;
+        match edge {
+            Top => self.top = Some(value),
+            Bottom => self.bottom = Some(value),
+            Start => self.start = Some(value),
+            End => self.end = Some(value),
+        }
+
+        self
+    }
+
+    fn build(&mut self) -> PositionResolved {
+        match self {
+            PositionBuilder {
+                start: Some(start),
+                end: Some(end),
+                top: Some(top),
+                bottom: Some(bottom),
+            } => PositionResolved {
+                start: *start,
+                end: *end,
+                top: *top,
+                bottom: *bottom,
+            },
+            _ => panic!("not all position fields have been set"),
+        }
     }
 }

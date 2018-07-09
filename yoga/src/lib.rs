@@ -13,6 +13,9 @@
 // TODO(anp): do a pass to remove .is_nan()
 // TODO(anp): pass to remove unnecessary #[allow(...)]
 // TODO(anp): let clippy loose once nightlies are blocked on it
+// TODO(anp): disable pub on everything and do a public api pass
+// TODO(anp): docs
+// TODO(anp): sort out left/right vs start/end for PhysicalEdge
 
 extern crate arrayvec;
 extern crate float_cmp;
@@ -708,16 +711,8 @@ where
 
     fn dim_with_margin(&self, axis: FlexDirection, width_size: R32) -> R32 {
         self.layout().measured_dimensions[axis.dimension()]
-            + self
-                .style()
-                .margin
-                .leading(axis, width_size)
-                .unwrap_or(r32(0.0))
-            + self
-                .style()
-                .margin
-                .trailing(axis, width_size)
-                .unwrap_or(r32(0.0))
+            + self.style().margin.leading(axis, width_size)
+            + self.style().margin.trailing(axis, width_size)
     }
 
     // This is the main routine that implements a subset of the flexbox layout
@@ -1656,8 +1651,7 @@ where
                         .child(i)
                         .style()
                         .margin
-                        .leading(main_axis, available_inner_width)
-                        .unwrap_or(r32(0.0));
+                        .leading(main_axis, available_inner_width);
                     // unused: starting to think that this shouldn't return updated or sth
                     let _ = self.child_mut(i).layout_mut().position.set(
                         main_axis.leading_edge(),
@@ -1781,8 +1775,7 @@ where
                                 .child(i)
                                 .style()
                                 .margin
-                                .leading(cross_axis, available_inner_width)
-                                .unwrap_or(r32(0.0));
+                                .leading(cross_axis, available_inner_width);
                             let _ = self.child_mut(i).layout_mut().position.set(
                                 cross_axis.leading_edge(),
                                 child_leading_pos + own_leading_border + child_leading_margin,
@@ -1797,8 +1790,7 @@ where
                                 .child(i)
                                 .style()
                                 .margin
-                                .leading(cross_axis, available_inner_width)
-                                .unwrap_or(r32(0.0));
+                                .leading(cross_axis, available_inner_width);
                             let _ = self.child_mut(i).layout_mut().position.set(
                                 cross_axis.leading_edge(),
                                 own_leading_border + child_leading_margin,
@@ -2022,8 +2014,7 @@ where
                                     .child(ii)
                                     .style()
                                     .margin
-                                    .leading(FlexDirection::Column, available_inner_width)
-                                    .unwrap_or(r32(0.0));
+                                    .leading(FlexDirection::Column, available_inner_width);
                             let descent = self.child(ii).layout().measured_dimensions.height
                                 + self
                                     .child(ii)
@@ -2053,8 +2044,7 @@ where
                                         .child(ii)
                                         .style()
                                         .margin
-                                        .leading(cross_axis, available_inner_width)
-                                        .unwrap_or(r32(0.0));
+                                        .leading(cross_axis, available_inner_width);
                                     self.child_mut(ii).layout_mut().position.set(
                                         cross_axis.leading_edge(),
                                         current_lead + child_leading_margin,
@@ -2065,8 +2055,7 @@ where
                                         .child(ii)
                                         .style()
                                         .margin
-                                        .trailing(cross_axis, available_inner_width)
-                                        .unwrap_or(r32(0.0));
+                                        .trailing(cross_axis, available_inner_width);
                                     let child_cross_measured =
                                         self.child(ii).layout().measured_dimensions
                                             [cross_axis.dimension()];
@@ -2092,8 +2081,7 @@ where
                                         .child(ii)
                                         .style()
                                         .margin
-                                        .leading(cross_axis, available_inner_width)
-                                        .unwrap();
+                                        .leading(cross_axis, available_inner_width);
                                     self.child_mut(ii).layout_mut().position.set(
                                         cross_axis.leading_edge(),
                                         current_lead + child_leading_margin,
@@ -2155,9 +2143,9 @@ where
                                         .style()
                                         .position
                                         .leading(FlexDirection::Column, available_inner_cross_dim)
-                                        .unwrap_or(r32(0.0));
+                                        .unwrap();
                                     self.child_mut(ii).layout_mut().position.set(
-                                        Edge::Top,
+                                        PhysicalEdge::Top,
                                         current_lead + max_ascent_for_current_line - child_baseline
                                             + child_leading_position,
                                     );
@@ -2251,8 +2239,7 @@ where
 
             for child in self.children_mut() {
                 if child.style().position_type == PositionType::Relative {
-                    let child_cross_position =
-                        child.layout().position[cross_axis.leading_edge()].unwrap_or(r32(0.0));
+                    let child_cross_position = child.layout().position[cross_axis.leading_edge()];
                     let child_cross_measured =
                         child.layout().measured_dimensions[cross_axis.dimension()];
                     child.layout_mut().position.set(
@@ -2294,9 +2281,9 @@ where
 
                     let mut set_child_trailing_position = |axis: FlexDirection| {
                         let size = self.child(i).layout().measured_dimensions[axis.dimension()];
-                        let new_pos = self.layout().measured_dimensions[axis.dimension()] - size
-                            - self.child(i).layout().position[axis.leading_edge()]
-                                .unwrap_or(r32(0.0));
+                        let new_pos = self.layout().measured_dimensions[axis.dimension()]
+                            - size
+                            - self.child(i).layout().position[axis.leading_edge()];
                         self.child_mut(i)
                             .layout_mut()
                             .position
@@ -2466,11 +2453,8 @@ where
             let new_pos = self.layout().measured_dimensions[main_axis.dimension()]
                 - child.layout().measured_dimensions[main_axis.dimension()]
                 - self.style().border.trailing(main_axis)
-                - child
-                    .style()
-                    .margin
-                    .trailing(main_axis, width)
-                    .unwrap_or(r32(0.0)) - trailing_pos;
+                - child.style().margin.trailing(main_axis, width)
+                - trailing_pos;
             child
                 .layout_mut()
                 .position
@@ -2519,7 +2503,7 @@ where
             let new_pos = self.layout().measured_dimensions[cross_axis.dimension()]
                 - child.layout().measured_dimensions[cross_axis.dimension()]
                 - self.style().border.trailing(cross_axis)
-                - self.style().margin.trailing(cross_axis, width).unwrap()
+                - self.style().margin.trailing(cross_axis, width)
                 - trailing_cross_pos;
             child
                 .layout_mut()
@@ -2609,7 +2593,7 @@ where
 
             if let Some(baseline_child) = baseline_child {
                 self.child_mut(baseline_child).baseline()
-                    + self.child(baseline_child).layout().position[Edge::Top].unwrap_or(r32(0.0))
+                    + self.child(baseline_child).layout().position[PhysicalEdge::Top]
             } else {
                 self.layout().measured_dimensions.height
             }
@@ -2863,14 +2847,8 @@ where
             return;
         }
 
-        let node_left = match self.layout().position[Edge::Left] {
-            Some(nl) => nl,
-            None => panic!("node is missing a left position: {:?}", self),
-        };
-        let node_top = match self.layout().position[Edge::Top] {
-            Some(nt) => nt,
-            None => panic!("node is missing a top position: {:?}", self),
-        };
+        let node_left = self.layout().position.start;
+        let node_top = self.layout().position.top;
 
         let node_width = match self.layout().dimensions.unwrap()[Dimension::Width] {
             Value::Point(nw) => nw,
@@ -2899,11 +2877,11 @@ where
         let text_rounding = self.node_type() == NodeType::Text;
 
         self.layout_mut().position.set(
-            Edge::Left,
+            PhysicalEdge::Start,
             round_value_to_pixel_grid(node_left, point_scale_factor, false, text_rounding),
         );
         self.layout_mut().position.set(
-            Edge::Top,
+            PhysicalEdge::Top,
             round_value_to_pixel_grid(node_top, point_scale_factor, false, text_rounding),
         );
 

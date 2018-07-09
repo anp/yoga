@@ -31,9 +31,9 @@ pub struct Layout {
     pub(crate) cached_layout: Option<CachedMeasurement>,
 }
 
-impl ::std::ops::Index<Edge> for Layout {
-    type Output = Option<R32>;
-    fn index(&self, edge: Edge) -> &Self::Output {
+impl ::std::ops::Index<PhysicalEdge> for Layout {
+    type Output = R32;
+    fn index(&self, edge: PhysicalEdge) -> &Self::Output {
         self.position.index(edge)
     }
 }
@@ -42,10 +42,6 @@ default!(
     Layout,
     Layout {
         position: PositionResolved::default(),
-        // left: r32(0.0),
-        // right: r32(0.0),
-        // top: r32(0.0),
-        // bottom: r32(0.0),
         dimensions: None,
         margin: MarginResolved::default(),
         border: BorderResolved::default(),
@@ -86,91 +82,19 @@ impl Layout {
             .resolve_direction(direction_respecting_root);
 
         let cross_axis: FlexDirection = main_axis.cross(direction_respecting_root);
-        let relative_position_main = style
-            .position
-            .relative(main_axis, main_size)
-            .unwrap_or(r32(0.0));
-        let relative_position_cross = style
-            .position
-            .relative(cross_axis, cross_size)
-            .unwrap_or(r32(0.0));
 
-        let mut position = PositionResolved::default();
-
-        position.set(
-            main_axis.leading_edge(),
-            style
-                .margin
-                .leading(main_axis, parent_width)
-                .unwrap_or(r32(0.0)) + relative_position_main,
+        self.position = style.position.resolve(
+            &style.margin,
+            main_axis,
+            main_size,
+            cross_axis,
+            cross_size,
+            parent_width,
         );
-        position.set(
-            main_axis.trailing_edge(),
-            style
-                .margin
-                .trailing(main_axis, parent_width)
-                .unwrap_or(r32(0.0)) + relative_position_main,
-        );
-        position.set(
-            cross_axis.leading_edge(),
-            style
-                .margin
-                .leading(cross_axis, parent_width)
-                .unwrap_or(r32(0.0)) + relative_position_cross,
-        );
-        position.set(
-            cross_axis.trailing_edge(),
-            style
-                .margin
-                .trailing(cross_axis, parent_width)
-                .unwrap_or(r32(0.0)),
-        );
-
-        self.position = position;
     }
 
     pub fn is_dim_defined(&self, axis: FlexDirection) -> bool {
         self.measured_dimensions[axis.dimension()] >= 0.0
-    }
-
-    fn edge_with_direction(&self, edge: Edge) -> Edge {
-        match (edge, self.direction) {
-            (Edge::Left, Direction::RTL) => Edge::End,
-            (Edge::Left, _) => Edge::Start,
-            (Edge::Right, Direction::RTL) => Edge::Start,
-            (Edge::Right, _) => Edge::End,
-            _ => edge,
-        }
-    }
-
-    pub fn margin(&self, edge: Edge) -> Option<R32> {
-        assert!(
-            edge != Edge::Horizontal && edge != Edge::Vertical && edge != Edge::All,
-            "cannot get layout properties of multi-edge shorthands. node: {:?}",
-            self
-        );
-
-        self.margin[self.edge_with_direction(edge)]
-    }
-
-    pub fn border(&self, edge: Edge) -> Option<R32> {
-        assert!(
-            edge != Edge::Horizontal && edge != Edge::Vertical && edge != Edge::All,
-            "cannot get layout properties of multi-edge shorthands. node: {:?}",
-            self
-        );
-
-        self.border[self.edge_with_direction(edge)]
-    }
-
-    pub fn padding(&self, edge: Edge) -> Option<R32> {
-        assert!(
-            edge != Edge::Horizontal && edge != Edge::Vertical && edge != Edge::All,
-            "cannot get layout properties of multi-edge shorthands. node: {:?}",
-            self
-        );
-
-        self.padding[self.edge_with_direction(edge)]
     }
 }
 

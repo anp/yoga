@@ -153,21 +153,21 @@ impl FlexDirection {
         }
     }
 
-    pub fn leading_edge(&self) -> Edge {
+    pub fn leading_edge(&self) -> PhysicalEdge {
         match self {
-            FlexDirection::Column => Edge::Top,
-            FlexDirection::ColumnReverse => Edge::Bottom,
-            FlexDirection::Row => Edge::Left,
-            FlexDirection::RowReverse => Edge::Right,
+            FlexDirection::Column => PhysicalEdge::Top,
+            FlexDirection::ColumnReverse => PhysicalEdge::Bottom,
+            FlexDirection::Row => PhysicalEdge::Start,
+            FlexDirection::RowReverse => PhysicalEdge::End,
         }
     }
 
-    pub fn trailing_edge(&self) -> Edge {
+    pub fn trailing_edge(&self) -> PhysicalEdge {
         match &self {
-            FlexDirection::Column => Edge::Bottom,
-            FlexDirection::ColumnReverse => Edge::Top,
-            FlexDirection::Row => Edge::Right,
-            FlexDirection::RowReverse => Edge::Left,
+            FlexDirection::Column => PhysicalEdge::Bottom,
+            FlexDirection::ColumnReverse => PhysicalEdge::Top,
+            FlexDirection::Row => PhysicalEdge::Start,
+            FlexDirection::RowReverse => PhysicalEdge::End,
         }
     }
 
