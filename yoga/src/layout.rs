@@ -27,7 +27,7 @@ pub struct Layout {
     // TODO(anp): use arrayvec or an LRU crate for these
     pub(crate) next_cached_measurements_index: usize,
     pub(crate) cached_measurements: [Option<CachedMeasurement>; MAX_CACHED_RESULTS],
-    pub measured_dimensions: Option<MeasuredDimensions>,
+    pub measured_dimensions: MeasuredDimensions,
     pub(crate) cached_layout: Option<CachedMeasurement>,
 }
 
@@ -59,7 +59,7 @@ default!(
         last_parent_direction: None,
         next_cached_measurements_index: 0,
         cached_measurements: [None; 16],
-        measured_dimensions: None,
+        measured_dimensions: MeasuredDimensions::default(),
         cached_layout: None,
     }
 );
@@ -130,7 +130,7 @@ impl Layout {
     }
 
     pub fn is_dim_defined(&self, axis: FlexDirection) -> bool {
-        self.measured_dimensions.map(|d| d[axis.dimension()] >= 0.0) == Some(true)
+        self.measured_dimensions[axis.dimension()] >= 0.0
     }
 
     fn edge_with_direction(&self, edge: Edge) -> Edge {

@@ -17,7 +17,6 @@
 
 extern crate arrayvec;
 extern crate float_cmp;
-extern crate itertools;
 extern crate libc;
 #[macro_use]
 extern crate log;
@@ -35,7 +34,6 @@ pub(crate) mod prelude {
     pub(crate) use super::layout::{CachedMeasurement, Layout};
     pub(crate) use super::style::{Property, Style};
     pub(crate) use super::Node;
-    pub(crate) use itertools::Itertools;
     pub(crate) use noisy_float::prelude::*;
     pub(crate) use serde::{Deserialize, Serialize};
     pub(crate) use std::default::Default;
@@ -355,7 +353,7 @@ where
         };
 
         if let (false, Some(cached)) = (need_to_visit_node, cached_results) {
-            self.layout_mut().measured_dimensions = Some(cached.computed);
+            self.layout_mut().measured_dimensions = cached.computed;
         } else {
             self.layout_impl(
                 available_width,
@@ -374,7 +372,7 @@ where
                     self.layout_mut().next_cached_measurements_index = 0;
                 };
 
-                let computed = self.layout_mut().measured_dimensions.unwrap();
+                let computed = self.layout_mut().measured_dimensions;
 
                 let mut new_cache_entry = if perform_layout {
                     // Use the single layout cache entry.
@@ -398,7 +396,7 @@ where
         self.layout_mut().generation_count = self.current_generation();
 
         if perform_layout {
-            self.layout_mut().dimensions = self.layout_mut().measured_dimensions.map(|d| d.into());
+            self.layout_mut().dimensions = Some(self.layout_mut().measured_dimensions.into());
             self.new_layout();
             *self.dirty() = false;
         };
@@ -730,10 +728,7 @@ where
     }
 
     fn dim_with_margin(&self, axis: FlexDirection, width_size: R32) -> R32 {
-        self.layout()
-            .measured_dimensions
-            .map(|m| m[axis.dimension()])
-            .unwrap_or(r32(0.0))
+        self.layout().measured_dimensions[axis.dimension()]
             + self
                 .style()
                 .margin
@@ -879,28 +874,26 @@ where
 
         // TODO(anp): make this idempotent/typesafe/etc
         if self.measure_fn().is_some() {
-            self.layout_mut().measured_dimensions =
-                Some(self.with_measure_func_set_measured_dimensions(
-                    available_width,
-                    available_height,
-                    width_measure_mode,
-                    height_measure_mode,
-                    parent_width,
-                    parent_height,
-                ));
+            self.layout_mut().measured_dimensions = self.with_measure_func_set_measured_dimensions(
+                available_width,
+                available_height,
+                width_measure_mode,
+                height_measure_mode,
+                parent_width,
+                parent_height,
+            );
             return;
         }
 
         if self.children().is_empty() {
-            self.layout_mut().measured_dimensions =
-                Some(self.empty_container_set_measured_dimensions(
-                    available_width,
-                    available_height,
-                    width_measure_mode,
-                    height_measure_mode,
-                    parent_width,
-                    parent_height,
-                ));
+            self.layout_mut().measured_dimensions = self.empty_container_set_measured_dimensions(
+                available_width,
+                available_height,
+                width_measure_mode,
+                height_measure_mode,
+                parent_width,
+                parent_height,
+            );
             return;
         };
 
@@ -917,7 +910,7 @@ where
                 parent_height,
             ),
         ) {
-            self.layout_mut().measured_dimensions = Some(d);
+            self.layout_mut().measured_dimensions = d;
             return;
         }
 
@@ -1862,7 +1855,7 @@ where
                                 .is_style_dim_defined(cross_axis, available_inner_cross_dim)
                             {
                                 let mut child_main_size =
-                                    self.child(i).layout().measured_dimensions.unwrap()
+                                    self.child(i).layout().measured_dimensions
                                         [main_axis.dimension()];
 
                                 let mut child_cross_size =
@@ -2036,8 +2029,7 @@ where
 
                         if self.child(ii).layout().is_dim_defined(cross_axis) {
                             line_height = line_height.max(
-                                self.child(ii).layout().measured_dimensions.unwrap()
-                                    [cross_axis.dimension()]
+                                self.child(ii).layout().measured_dimensions[cross_axis.dimension()]
                                     + self
                                         .child(ii)
                                         .style()
@@ -2053,14 +2045,13 @@ where
                                     .margin
                                     .leading(FlexDirection::Column, available_inner_width)
                                     .unwrap_or(r32(0.0));
-                            let descent =
-                                self.child(ii).layout().measured_dimensions.unwrap().height
-                                    + self
-                                        .child(ii)
-                                        .style()
-                                        .margin
-                                        .for_axis(FlexDirection::Column, available_inner_width)
-                                    - ascent;
+                            let descent = self.child(ii).layout().measured_dimensions.height
+                                + self
+                                    .child(ii)
+                                    .style()
+                                    .margin
+                                    .for_axis(FlexDirection::Column, available_inner_width)
+                                - ascent;
                             max_ascent_for_current_line = max_ascent_for_current_line.max(ascent);
                             max_descent_for_current_line =
                                 max_descent_for_current_line.max(descent);
@@ -2097,12 +2088,9 @@ where
                                         .margin
                                         .trailing(cross_axis, available_inner_width)
                                         .unwrap_or(r32(0.0));
-                                    let child_cross_measured = self
-                                        .child(ii)
-                                        .layout()
-                                        .measured_dimensions
-                                        .map(|d| d[cross_axis.dimension()])
-                                        .unwrap_or(r32(0.0));
+                                    let child_cross_measured =
+                                        self.child(ii).layout().measured_dimensions
+                                            [cross_axis.dimension()];
 
                                     self.child_mut(ii).layout_mut().position.set(
                                         cross_axis.leading_edge(),
@@ -2113,7 +2101,7 @@ where
                                 }
                                 Align::Center => {
                                     let mut child_height =
-                                        self.child(ii).layout().measured_dimensions.unwrap()
+                                        self.child(ii).layout().measured_dimensions
                                             [cross_axis.dimension()];
                                     self.child_mut(ii).layout_mut().position.set(
                                         cross_axis.leading_edge(),
@@ -2139,11 +2127,7 @@ where
                                         .is_style_dim_defined(cross_axis, available_inner_cross_dim)
                                     {
                                         let child_width = if is_main_axis_row {
-                                            self.child(ii)
-                                                .layout()
-                                                .measured_dimensions
-                                                .unwrap()
-                                                .width
+                                            self.child(ii).layout().measured_dimensions.width
                                                 + self
                                                     .child(ii)
                                                     .style()
@@ -2154,11 +2138,7 @@ where
                                         };
 
                                         let child_height = if !is_main_axis_row {
-                                            self.child(ii)
-                                                .layout()
-                                                .measured_dimensions
-                                                .unwrap()
-                                                .height
+                                            self.child(ii).layout().measured_dimensions.height
                                                 + self
                                                     .child(ii)
                                                     .style()
@@ -2169,18 +2149,10 @@ where
                                         };
 
                                         if !child_width.approx_eq(
-                                            self.child(ii)
-                                                .layout()
-                                                .measured_dimensions
-                                                .unwrap()
-                                                .width,
+                                            self.child(ii).layout().measured_dimensions.width,
                                         )
                                             && child_height.approx_eq(
-                                                self.child(ii)
-                                                    .layout()
-                                                    .measured_dimensions
-                                                    .unwrap()
-                                                    .height,
+                                                self.child(ii).layout().measured_dimensions.height,
                                             ) {
                                             self.child_mut(ii).layout_node_internal(
                                                 child_width,
@@ -2237,7 +2209,9 @@ where
             ),
         };
 
-        self.layout_mut().measured_dimensions = Some(measured);
+        {
+            self.layout_mut().measured_dimensions = measured;
+        }
 
         // If the user didn't specify a width or height for the node, set the
         // dimensions based on the children.
@@ -2247,23 +2221,24 @@ where
         {
             // Clamp the size to the min/max size, if specified, and make sure it
             // doesn't go below the padding and border amount.
-            self.layout().measured_dimensions.unwrap()[main_axis.dimension()] = self.bound_axis(
+            let new_dim = self.bound_axis(
                 main_axis,
                 max_line_main_dim,
                 main_axis_parent_size,
                 parent_width,
             );
+            self.layout_mut().measured_dimensions[main_axis.dimension()] = new_dim;
         } else if measure_mode_main_dim == Some(MeasureMode::AtMost)
             && self.style().overflow == Overflow::Scroll
         {
-            self.layout_mut().measured_dimensions.unwrap()[main_axis.dimension()] =
-                (available_inner_main_dim + padding_and_border_axis_main)
-                    .min(self.bound_axis_within_min_and_max(
-                        main_axis,
-                        max_line_main_dim,
-                        main_axis_parent_size,
-                    ))
-                    .max(padding_and_border_axis_main);
+            self.layout_mut().measured_dimensions[main_axis.dimension()] = (available_inner_main_dim
+                + padding_and_border_axis_main)
+                .min(self.bound_axis_within_min_and_max(
+                    main_axis,
+                    max_line_main_dim,
+                    main_axis_parent_size,
+                ))
+                .max(padding_and_border_axis_main);
         }
 
         if measure_mode_cross_dim.is_none()
@@ -2272,7 +2247,7 @@ where
         {
             // Clamp the size to the min/max size, if specified, and make sure it
             // doesn't go below the padding and border amount.
-            self.layout().measured_dimensions.unwrap()[cross_axis.dimension()] = self.bound_axis(
+            self.layout_mut().measured_dimensions[cross_axis.dimension()] = self.bound_axis(
                 cross_axis,
                 total_line_cross_dim + padding_and_border_axis_cross,
                 cross_axis_parent_size,
@@ -2281,7 +2256,7 @@ where
         } else if measure_mode_cross_dim == Some(MeasureMode::AtMost)
             && self.style().overflow == Overflow::Scroll
         {
-            self.layout().measured_dimensions.unwrap()[cross_axis.dimension()] =
+            self.layout_mut().measured_dimensions[cross_axis.dimension()] =
                 (available_inner_cross_dim + padding_and_border_axis_cross)
                     .max(self.bound_axis_within_min_and_max(
                         cross_axis,
@@ -2293,15 +2268,14 @@ where
 
         // As we only wrapped in normal direction yet, we need to reverse the positions on wrap-reverse.
         if perform_layout && self.style().flex_wrap == Wrap::WrapReverse {
-            let thing_ill_name_above =
-                self.layout().measured_dimensions.unwrap()[cross_axis.dimension()];
+            let thing_ill_name_above = self.layout().measured_dimensions[cross_axis.dimension()];
 
             for child in self.children_mut() {
                 if child.style().position_type == PositionType::Relative {
                     let child_cross_position =
                         child.layout().position[cross_axis.leading_edge()].unwrap_or(r32(0.0));
                     let child_cross_measured =
-                        child.layout().measured_dimensions.unwrap()[cross_axis.dimension()];
+                        child.layout().measured_dimensions[cross_axis.dimension()];
                     child.layout_mut().position.set(
                         cross_axis.leading_edge(),
                         thing_ill_name_above - child_cross_position - child_cross_measured,
@@ -2312,9 +2286,9 @@ where
 
         if perform_layout {
             // STEP 10: SIZING AND POSITIONING ABSOLUTE CHILDREN
-            for current_absolute_child in Y::absolute_children() {
+            for mut current_absolute_child in Y::absolute_children() {
                 self.absolute_layout_child(
-                    current_absolute_child,
+                    &mut current_absolute_child,
                     available_inner_width,
                     if is_main_axis_row {
                         measure_mode_main_dim
@@ -2339,15 +2313,15 @@ where
                         continue;
                     }
 
-                    let set_child_trailing_position = |axis| {
-                        let size =
-                            self.child(i).layout().measured_dimensions.unwrap()[axis.dimension()];
-                        self.child_mut(i).layout_mut().position.set(
-                            axis.trailing_edge(),
-                            self.layout().measured_dimensions[axis.dimension()]
-                                - size
-                                - self.child(i).layout().position[axis.leading_edge()],
-                        );
+                    let mut set_child_trailing_position = |axis: FlexDirection| {
+                        let size = self.child(i).layout().measured_dimensions[axis.dimension()];
+                        let new_pos = self.layout().measured_dimensions[axis.dimension()] - size
+                            - self.child(i).layout().position[axis.leading_edge()]
+                                .unwrap_or(r32(0.0));
+                        self.child_mut(i)
+                            .layout_mut()
+                            .position
+                            .set(axis.trailing_edge(), new_pos);
                     };
 
                     if needs_main_trailing_pos {
@@ -2362,192 +2336,247 @@ where
         }
     }
 
-    // fn absolute_layout_child(
-    //     &mut self,
-    //     child: Node,
-    //     width: R32,
-    //     width_mode: MeasureMode,
-    //     height: R32,
-    //     direction: Direction,
-    // ) -> () {
-    //     let mainAxis: FlexDirection =
-    //         YGResolveFlexDirection(self.style().flex_direction, direction);
-    //     let crossAxis: FlexDirection = FlexDirectionCross(mainAxis, direction);
-    //     let isMainAxisRow: bool = FlexDirectionIsRow(mainAxis);
-    //     let mut childWidth: R32 = ::std::f32::NAN;
-    //     let mut childHeight: R32 = ::std::f32::NAN;
-    //     let mut childWidthMeasureMode: MeasureMode;
-    //     let mut childHeightMeasureMode: MeasureMode;
-    //     let margin_row: R32 = MarginForAxis(child, FlexDirection::Row, width);
-    //     let margin_column: R32 = MarginForAxis(child, FlexDirection::Column, width);
-    //     if IsStyleDimDefined(child, FlexDirection::Row, width) {
-    //         childWidth = YGResolveValue(child.resolvedDimensions.width, width) + margin_row;
-    //     } else {
-    //         // If the child doesn't have a specified width, compute the width based
-    //         // on the left/right
-    //         // offsets if they're defined.
-    //         if IsLeadingPosDefined(child, FlexDirection::Row)
-    //             && is_trailing_pos_defined(child, FlexDirection::Row)
-    //         {
-    //             childWidth = self.layout().measured_dimensions.width
-    //                 - (LeadingBorder(node, FlexDirection::Row)
-    //                     + TrailingBorder(node, FlexDirection::Row))
-    //                 - (LeadingPosition(child, FlexDirection::Row, width)
-    //                     + TrailingPosition(child, FlexDirection::Row, width));
-    //             childWidth = bound_axis(child, FlexDirection::Row, childWidth, width, width);
-    //         };
-    //     };
-    //     if IsStyleDimDefined(child, FlexDirection::Column, height) {
-    //         childHeight = YGResolveValue(child.resolvedDimensions.height, height) + margin_column;
-    //     } else {
-    //         // If the child doesn't have a specified height, compute the height
-    //         // based on the top/bottom
-    //         // offsets if they're defined.
-    //         if IsLeadingPosDefined(child, FlexDirection::Column)
-    //             && is_trailing_pos_defined(child, FlexDirection::Column)
-    //         {
-    //             childHeight = self.layout().measured_dimensions.height
-    //                 - (LeadingBorder(node, FlexDirection::Column)
-    //                     + TrailingBorder(node, FlexDirection::Column))
-    //                 - (LeadingPosition(child, FlexDirection::Column, height)
-    //                     + TrailingPosition(child, FlexDirection::Column, height));
-    //             childHeight =
-    //                 bound_axis(child, FlexDirection::Column, childHeight, height, width);
-    //         };
-    //     };
-    //     // Exactly one dimension needs to be defined for us to be able to do aspect ratio
-    //     // calculation. One dimension being the anchor and the other being flexible.
-    //     if childWidth.is_nan() || childHeight.is_nan() {
-    //         if !child.style().aspect_ratio.is_nan() {
-    //             if childWidth.is_nan() {
-    //                 childWidth =
-    //                     margin_row + (childHeight - margin_column) * child.style().aspect_ratio;
-    //             } else {
-    //                 if childHeight.is_nan() {
-    //                     childHeight =
-    //                         margin_column + (childWidth - margin_row) / child.style().aspect_ratio;
-    //                 };
-    //             };
-    //         };
-    //     };
-    //     // If we're still missing one or the other dimension, measure the content.
-    //     if childWidth.is_nan() || childHeight.is_nan() {
-    //         childWidthMeasureMode = if childWidth.is_nan() {
-    //             MeasureMode::Undefined
-    //         } else {
-    //             MeasureMode::Exactly
-    //         };
-    //         childHeightMeasureMode = if childHeight.is_nan() {
-    //             MeasureMode::Undefined
-    //         } else {
-    //             MeasureMode::Exactly
-    //         };
-    //         // If the size of the parent is defined then try to constrain the absolute child to that size
-    //         // as well. This allows text within the absolute child to wrap to the size of its parent.
-    //         // This is the same behavior as many browsers implement.
-    //         if !isMainAxisRow
-    //             && childWidth.is_nan()
-    //             && width_mode != MeasureMode::Undefined
-    //             && width > 0.0
-    //         {
-    //             childWidth = width;
-    //             childWidthMeasureMode = MeasureMode::AtMost;
-    //         };
-    //         YGLayoutNodeInternal(
-    //             child,
-    //             childWidth,
-    //             childHeight,
-    //             direction,
-    //             childWidthMeasureMode,
-    //             childHeightMeasureMode,
-    //             childWidth,
-    //             childHeight,
-    //             false,
-    //             "abs-measure",
-    //             config,
-    //         );
-    //         childWidth = child.layout.measured_dimensions.width
-    //             + MarginForAxis(child, FlexDirection::Row, width);
-    //         childHeight = child.layout.measured_dimensions.height
-    //             + MarginForAxis(child, FlexDirection::Column, width);
-    //     };
-    //     YGLayoutNodeInternal(
-    //         child,
-    //         childWidth,
-    //         childHeight,
-    //         direction,
-    //         MeasureMode::Exactly,
-    //         MeasureMode::Exactly,
-    //         childWidth,
-    //         childHeight,
-    //         true,
-    //         "abs-layout",
-    //         config,
-    //     );
-    //     if is_trailing_pos_defined(child, mainAxis)
-    //         && !IsLeadingPosDefined(child, mainAxis)
-    //     {
-    //         child.layout.position[leading[mainAxis as usize] as usize] =
-    //             self.layout().measured_dimensions[DIM[mainAxis as usize]]
-    //                 - child.layout.measured_dimensions[DIM[mainAxis as usize]]
-    //                 - TrailingBorder(node, mainAxis)
-    //                 - TrailingMargin(child, mainAxis, width)
-    //                 - TrailingPosition(
-    //                     child,
-    //                     mainAxis,
-    //                     if isMainAxisRow { width } else { height },
-    //                 );
-    //     } else {
-    //         if !IsLeadingPosDefined(child, mainAxis)
-    //             && self.style().justify_content == Justify::Center
-    //         {
-    //             child.layout.position[leading[mainAxis as usize] as usize] =
-    //                 (self.layout().measured_dimensions[DIM[mainAxis as usize]]
-    //                     - child.layout.measured_dimensions[DIM[mainAxis as usize]])
-    //                     / 2.0f32;
-    //         } else {
-    //             if !IsLeadingPosDefined(child, mainAxis)
-    //                 && self.style().justify_content == Justify::FlexEnd
-    //             {
-    //                 child.layout.position[leading[mainAxis as usize] as usize] =
-    //                     self.layout().measured_dimensions[DIM[mainAxis as usize]]
-    //                         - child.layout.measured_dimensions[DIM[mainAxis as usize]];
-    //             };
-    //         };
-    //     };
-    //     if is_trailing_pos_defined(child, crossAxis)
-    //         && !IsLeadingPosDefined(child, crossAxis)
-    //     {
-    //         child.layout.position[leading[crossAxis as usize] as usize] =
-    //             self.layout().measured_dimensions[DIM[crossAxis as usize]]
-    //                 - child.layout.measured_dimensions[DIM[crossAxis as usize]]
-    //                 - TrailingBorder(node, crossAxis)
-    //                 - TrailingMargin(child, crossAxis, width)
-    //                 - TrailingPosition(
-    //                     child,
-    //                     crossAxis,
-    //                     if isMainAxisRow { height } else { width },
-    //                 );
-    //     } else {
-    //         if !IsLeadingPosDefined(child, crossAxis)
-    //             && align_item(node, child) == Align::Center
-    //         {
-    //             child.layout.position[leading[crossAxis as usize] as usize] =
-    //                 (self.layout().measured_dimensions[DIM[crossAxis as usize]]
-    //                     - child.layout.measured_dimensions[DIM[crossAxis as usize]])
-    //                     / 2.0f32;
-    //         } else {
-    //             if !IsLeadingPosDefined(child, crossAxis)
-    //                 && (align_item(node, child) == Align::FlexEnd)
-    //                     ^ (self.style().flex_wrap == YGWrapWrapReverse)
-    //             {
-    //                 child.layout.position[leading[crossAxis as usize] as usize] =
-    //                     self.layout().measured_dimensions[DIM[crossAxis as usize]]
-    //                         - child.layout.measured_dimensions[DIM[crossAxis as usize]];
-    //             };
-    //         };
-    //     };
-    // }
+    fn absolute_layout_child(
+        &mut self,
+        child: &mut Self,
+        width: R32,
+        width_mode: Option<MeasureMode>,
+        height: R32,
+        direction: Direction,
+    ) -> () {
+        let main_axis = self.style().flex_direction.resolve_direction(direction);
+        let cross_axis = main_axis.cross(direction);
+        let is_main_axis_row = main_axis.is_row();
+        let mut child_width = None;
+        let mut child_height = None;
+        let mut child_width_measure_mode;
+        let child_height_measure_mode;
+        let margin_row = child.style().margin.for_axis(FlexDirection::Row, width);
+        let margin_column = child.style().margin.for_axis(FlexDirection::Column, width);
+        if child.is_style_dim_defined(FlexDirection::Row, width) {
+            child_width = child
+                .resolved()
+                .width
+                .resolve(width)
+                .map(|w| w + margin_row);
+        } else {
+            // If the child doesn't have a specified width, compute the width based
+            // on the left/right
+            // offsets if they're defined.
+            if let (Some(leading_pos), Some(trailing_pos)) = (
+                child.style().position.leading(FlexDirection::Row, width),
+                child.style().position.trailing(FlexDirection::Row, width),
+            ) {
+                let new_child_width = self.layout().measured_dimensions.width
+                    - (self.style().border.leading(FlexDirection::Row)
+                        + self.style().border.trailing(FlexDirection::Row))
+                    - (leading_pos + trailing_pos);
+                child_width =
+                    Some(child.bound_axis(FlexDirection::Row, new_child_width, width, width));
+            };
+        };
+        if child.is_style_dim_defined(FlexDirection::Column, height) {
+            child_height = child
+                .resolved()
+                .height
+                .resolve(height)
+                .map(|h| h + margin_column);
+        } else {
+            // If the child doesn't have a specified height, compute the height
+            // based on the top/bottom
+            // offsets if they're defined.
+            if let (Some(leading_pos), Some(trailing_pos)) = (
+                child
+                    .style()
+                    .position
+                    .leading(FlexDirection::Column, height),
+                child
+                    .style()
+                    .position
+                    .trailing(FlexDirection::Column, height),
+            ) {
+                let new_child_height = self.layout().measured_dimensions.height
+                    - (self.style().border.leading(FlexDirection::Column)
+                        + self.style().border.trailing(FlexDirection::Column))
+                    - (leading_pos + trailing_pos);
+
+                child_height =
+                    Some(child.bound_axis(FlexDirection::Column, new_child_height, height, width));
+            };
+        };
+
+        // Exactly one dimension needs to be defined for us to be able to do aspect ratio
+        // calculation. One dimension being the anchor and the other being flexible.
+        match (child_width, child_height, child.style().aspect_ratio) {
+            (Some(child_width), None, Some(ar)) => {
+                child_height = Some(margin_column + (child_width - margin_row) / ar);
+            }
+            (None, Some(child_height), Some(ar)) => {
+                child_width = Some(margin_row + (child_height - margin_column) * ar);
+            }
+            _ => (),
+        }
+
+        // If we're still missing one or the other dimension, measure the content.
+        if child_width.is_none() || child_height.is_none() {
+            child_width_measure_mode = if child_width.is_none() {
+                None
+            } else {
+                Some(MeasureMode::Exactly)
+            };
+            child_height_measure_mode = if child_height.is_none() {
+                None
+            } else {
+                Some(MeasureMode::Exactly)
+            };
+
+            // If the size of the parent is defined then try to constrain the absolute child to that size
+            // as well. This allows text within the absolute child to wrap to the size of its parent.
+            // This is the same behavior as many browsers implement.
+            if !is_main_axis_row && child_width.is_none() && width_mode != None && width > 0.0 {
+                child_width = Some(width);
+                child_width_measure_mode = Some(MeasureMode::AtMost);
+            };
+
+            child.layout_node_internal(
+                child_width.unwrap(),
+                child_height.unwrap(),
+                direction,
+                child_width_measure_mode,
+                child_height_measure_mode,
+                child_width.unwrap(),
+                child_height.unwrap(),
+                r32(Self::POINT_SCALE_FACTOR),
+                false,
+                "abs-measure",
+            );
+
+            child_width = Some(
+                child.layout().measured_dimensions.width
+                    + child.style().margin.for_axis(FlexDirection::Row, width),
+            );
+            child_height = Some(
+                child.layout().measured_dimensions.height
+                    + child.style().margin.for_axis(FlexDirection::Column, width),
+            );
+        };
+
+        child.layout_node_internal(
+            child_width.unwrap(),
+            child_height.unwrap(),
+            direction,
+            Some(MeasureMode::Exactly),
+            Some(MeasureMode::Exactly),
+            child_width.unwrap(),
+            child_height.unwrap(),
+            r32(Self::POINT_SCALE_FACTOR),
+            true,
+            "abs-layout",
+        );
+
+        if let (Some(trailing_pos), None) = (
+            child
+                .style()
+                .position
+                .trailing(main_axis, if is_main_axis_row { width } else { height }),
+            child
+                .style()
+                .position
+                .leading(main_axis, if is_main_axis_row { width } else { height }),
+        ) {
+            let new_pos = self.layout().measured_dimensions[main_axis.dimension()]
+                - child.layout().measured_dimensions[main_axis.dimension()]
+                - self.style().border.trailing(main_axis)
+                - child
+                    .style()
+                    .margin
+                    .trailing(main_axis, width)
+                    .unwrap_or(r32(0.0)) - trailing_pos;
+            child
+                .layout_mut()
+                .position
+                .set(main_axis.leading_edge(), new_pos);
+        } else if let (None, Justify::Center) = (
+            child
+                .style()
+                .position
+                .leading(main_axis, if is_main_axis_row { width } else { height }),
+            self.style().justify_content,
+        ) {
+            let new_pos = (self.layout().measured_dimensions[main_axis.dimension()]
+                - child.layout().measured_dimensions[main_axis.dimension()])
+                / 2.0;
+            child
+                .layout_mut()
+                .position
+                .set(main_axis.leading_edge(), new_pos);
+        } else {
+            if let (None, Justify::FlexEnd) = (
+                child
+                    .style()
+                    .position
+                    .leading(main_axis, if is_main_axis_row { width } else { height }),
+                self.style().justify_content,
+            ) {
+                let new_pos = self.layout().measured_dimensions[main_axis.dimension()]
+                    - child.layout().measured_dimensions[main_axis.dimension()];
+                child
+                    .layout_mut()
+                    .position
+                    .set(main_axis.leading_edge(), new_pos);
+            };
+        };
+
+        if let (Some(trailing_cross_pos), None) = (
+            child
+                .style()
+                .position
+                .trailing(cross_axis, if is_main_axis_row { height } else { width }),
+            child
+                .style()
+                .position
+                .leading(cross_axis, if is_main_axis_row { height } else { width }),
+        ) {
+            let new_pos = self.layout().measured_dimensions[cross_axis.dimension()]
+                - child.layout().measured_dimensions[cross_axis.dimension()]
+                - self.style().border.trailing(cross_axis)
+                - self.style().margin.trailing(cross_axis, width).unwrap()
+                - trailing_cross_pos;
+            child
+                .layout_mut()
+                .position
+                .set(cross_axis.leading_edge(), new_pos);
+        } else if let (None, Align::Center) = (
+            child
+                .style()
+                .position
+                .leading(cross_axis, if is_main_axis_row { height } else { width }),
+            self.align_item(child),
+        ) {
+            let own_cross_measured = self.layout().measured_dimensions[cross_axis.dimension()];
+            let prev = child.layout().measured_dimensions[cross_axis.dimension()];
+            child
+                .layout_mut()
+                .position
+                .set(cross_axis.leading_edge(), (own_cross_measured - prev) / 2.0);
+        } else {
+            if child
+                .style()
+                .position
+                .leading(cross_axis, if is_main_axis_row { height } else { width })
+                .is_none()
+                && (self.align_item(child) == Align::FlexEnd)
+                    ^ (self.style().flex_wrap == Wrap::WrapReverse)
+            {
+                let new_pos = self.layout().measured_dimensions[cross_axis.dimension()]
+                    - child.layout().measured_dimensions[cross_axis.dimension()];
+                child
+                    .layout_mut()
+                    .position
+                    .set(cross_axis.leading_edge(), new_pos);
+            };
+        };
+    }
 
     fn align_item(&self, child: &Self) -> Align {
         let align: Align = if child.style().align_self == Align::Auto {
@@ -2567,8 +2596,8 @@ where
         if let Some(baseline_fn) = self.baseline_fn() {
             baseline_fn(
                 self,
-                self.layout().measured_dimensions.unwrap().width,
-                self.layout().measured_dimensions.unwrap().height,
+                self.layout().measured_dimensions.width,
+                self.layout().measured_dimensions.height,
             )
         } else {
             let mut baseline_child = None;
@@ -2603,7 +2632,7 @@ where
                 self.child_mut(baseline_child).baseline()
                     + self.child(baseline_child).layout().position[Edge::Top].unwrap_or(r32(0.0))
             } else {
-                self.layout().measured_dimensions.unwrap().height
+                self.layout().measured_dimensions.height
             }
         }
     }
@@ -2830,49 +2859,16 @@ where
                 "measure",
             );
 
-            self.layout_mut().computed_flex_basis = self.layout().measured_dimensions.map(|m| {
-                m[main_axis.dimension()].max(
+            self.layout_mut().computed_flex_basis = Some(
+                self.layout().measured_dimensions[main_axis.dimension()].max(
                     self.style()
                         .padding_and_border_for_axis(main_axis, parent_width),
-                )
-            });
+                ),
+            );
         }
 
         self.layout_mut().computed_flex_basis_generation = self.current_generation();
     }
-    // fn copy_style(&mut self, mut from: Self) {
-    //     let mut src = from.style();
-    //     let mut dst = self.style();
-    //     if src != dst {
-    //         *dst = *src;
-    //         self.mark_dirty();
-    //     }
-    // }
-
-    // fn SetMeasureFunc(&mut self, mut measureFunc: YGMeasureFunc) -> () {
-    //     if measureFunc.is_none() {
-    //         self.measure = None;
-    //         self.nodeType = NodeType::Default;
-    //     } else {
-    //         YGAssertWithNode(
-    //         node,
-    //         GetChildCount(node) == 0,
-    //         b"Cannot set measure function: Nodes with measure functions cannot have children.\x00"
-    //             as *const u8 as *const c_char,
-    //     );
-    //         self.measure = measureFunc;
-    //         self.nodeType = NodeType::Text;
-    //     };
-    // }
-
-    // fn SetNodeType(&mut self, mut nodeType: NodeType) -> () {
-    //     self.nodeType = nodeType;
-    // }
-
-    // fn GetNodeType(&mut self) -> NodeType {
-    //     return self.nodeType;
-    // }
-
     // unsafe fn YGRoundToPixelGrid(
     //     &mut self,
     //     pointScaleFactor: R32,

@@ -47,6 +47,14 @@ pub struct MeasuredDimensions {
     pub width: R32,
 }
 
+default!(
+    MeasuredDimensions,
+    MeasuredDimensions {
+        height: r32(0.0),
+        width: r32(0.0)
+    }
+);
+
 impl Into<Dimensions> for MeasuredDimensions {
     fn into(self) -> Dimensions {
         Dimensions {
@@ -268,8 +276,13 @@ pub enum Value {
     Auto,
 }
 
-impl Value {
-    pub fn resolve(&self, parent_size: R32) -> Option<R32> {
+pub trait ResolveValue {
+    fn resolve(&self, parent_size: R32) -> Option<R32>;
+}
+
+impl ResolveValue for Value {
+    // TODO(anp) comment this out and find all of  the places i did stupid iterator  things
+    fn resolve(&self, parent_size: R32) -> Option<R32> {
         match *self {
             Value::Point(v) => Some(v),
             Value::Percent(v) => Some(v * parent_size / r32(100.0)),
