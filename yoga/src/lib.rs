@@ -60,13 +60,6 @@ pub mod style;
 
 prelude!();
 
-// FIXME(anp): this seems...wrong
-// static mut gDepth: uint32_t = 0i32 as uint32_t;
-
-// TODO(anp): do these even need to exist?
-// static mut firstAbsoluteChild: Node = ::std::ptr::null_mut();
-// static mut currentAbsoluteChild: Node = ::std::ptr::null_mut();
-
 pub trait Yggdrasil<N: Node<Self, I>, I>
 where
     N: Node<Self, I>,
@@ -234,8 +227,7 @@ where
                 has_parent,
             );
 
-            // FIXME(anp): uncomment
-            // YGRoundToPixelGrid(node, (*self.config).pointScaleFactor, 0.0f32, 0.0f32);
+            self.round_to_pixel_grid(r32(Self::POINT_SCALE_FACTOR), r32(0.0), r32(0.0));
         };
     }
 
@@ -309,7 +301,7 @@ where
                 } else {
                     // Try to use the measurement cache.
                     let idx = self.layout().next_cached_measurements_index;
-                    self.layout().cached_measurements[0..idx]
+                    match self.layout().cached_measurements[0..idx]
                         .into_iter()
                         .find(|c| {
                             CachedMeasurement::usable(
@@ -322,11 +314,10 @@ where
                                 margin_axis_column,
                                 point_scale_factor,
                             )
-                        })
-                        .into_iter()
-                        .flatten()
-                        .map(|&v| v)
-                        .next()
+                        }) {
+                        Some(Some(v)) => Some(*v),
+                        _ => None,
+                    }
                 }
             } else if perform_layout
                 && cached.available_width.approx_eq(available_width)
@@ -455,22 +446,11 @@ where
             .for_axis(FlexDirection::Column, available_width);
 
         // We want to make sure we don't call measure with negative size
-        // TODO(anp): presumably this is supposed to end up being NaN under some conditions?
-        //   let inner_width = if YGFloatIsUndefined(availableWidth) {
-        //                                availableWidth } else {
-        //                                (availableWidth - marginAxisRow - paddingAndBorderAxisRow).max(0.0)};
-        let inner_width = available_width;
+        let inner_width =
+            (available_width - margin_axis_row - padding_and_border_axis_row).max(r32(0.0));
 
-        // TODO(anp): these types will panic if this were to be true
-        // let inner_height = if YGFloatIsUndefined(availableHeight) {
-        //     availableHeight
-        // } else {
-        //     fmaxf(
-        //         0,
-        //         availableHeight - marginAxisColumn - paddingAndBorderAxisColumn,
-        //     )
-        // };
-        let inner_height = available_height;
+        let inner_height =
+            (available_height - margin_axis_column - padding_and_border_axis_column).max(r32(0.0));
 
         if width_measure_mode == Some(MeasureMode::Exactly)
             && height_measure_mode == Some(MeasureMode::Exactly)
@@ -2735,25 +2715,28 @@ where
                 .margin
                 .for_axis(FlexDirection::Column, parent_width);
             if is_row_style_dim_defined {
-                self_width = self
+                self_width = match self
                     .resolved()
                     .width
                     .map(|w| w.resolve(parent_width).map(|w| w + margin_row))
-                    .into_iter()
-                    .flatten()
-                    .next();
+                {
+                    Some(Some(v)) => Some(v),
+                    _ => None,
+                };
                 self_width_measure_mode = Some(MeasureMode::Exactly);
             };
             if is_column_style_dim_defined {
-                self_height = self
+                self_height = match self
                     .resolved()
                     .height
                     .map(|h| h.resolve(parent_height).map(|h| h + margin_column))
-                    .into_iter()
-                    .flatten()
-                    .next();
+                {
+                    Some(Some(v)) => Some(v),
+                    _ => None,
+                };
                 self_height_measure_mode = Some(MeasureMode::Exactly);
             };
+
             // The W3C spec doesn't say anything about the 'overflow' property,
             // but all major browsers appear to implement the following logic.
             if (!is_main_axis_row && parent_overflow == Overflow::Scroll)
@@ -2789,6 +2772,7 @@ where
                     };
                 };
             };
+
             // If self has no defined size in the cross axis and is set to stretch,
             // set the cross
             // axis to be measured exactly with the available inner width
@@ -2869,69 +2853,105 @@ where
 
         self.layout_mut().computed_flex_basis_generation = self.current_generation();
     }
-    // unsafe fn YGRoundToPixelGrid(
-    //     &mut self,
-    //     pointScaleFactor: R32,
-    //     absoluteLeft: R32,
-    //     absoluteTop: R32,
-    // ) {
-    //     if pointScaleFactor == 0.0 {
-    //         return;
-    //     }
 
-    //     let nodeLeft = self.layout().position[Edge::Left as usize];
-    //     let nodeTop = self.layout().position[Edge::Top as usize];
+    fn round_to_pixel_grid(
+        &mut self,
+        point_scale_factor: R32,
+        absolute_left: R32,
+        absolute_top: R32,
+    ) {
+        if point_scale_factor == 0.0 {
+            return;
+        }
 
-    //     let nodeWidth = self.layout().dimensions[Dimension::Width as usize];
-    //     let nodeHeight = self.layout().dimensions[Dimension::Height as usize];
+        let node_left = match self.layout().position[Edge::Left] {
+            Some(nl) => nl,
+            None => panic!("node is missing a left position: {:?}", self),
+        };
+        let node_top = match self.layout().position[Edge::Top] {
+            Some(nt) => nt,
+            None => panic!("node is missing a top position: {:?}", self),
+        };
 
-    //     let absoluteNodeLeft = absoluteLeft + nodeLeft;
-    //     let absoluteNodeTop = absoluteTop + nodeTop;
+        let node_width = match self.layout().dimensions.unwrap()[Dimension::Width] {
+            Value::Point(nw) => nw,
+            _ => panic!(
+                "node_width had not been resolved before being rounded to pixel grid: {:?}",
+                self
+            ),
+        };
 
-    //     let absoluteNodeRight = absoluteNodeLeft + nodeWidth;
-    //     let absoluteNodeBottom = absoluteNodeTop + nodeHeight;
+        let node_height = match self.layout().dimensions.unwrap()[Dimension::Height] {
+            Value::Point(nh) => nh,
+            _ => panic!(
+                "node_height has not been resolved before being rounded to pixel grid: {:?}",
+                self
+            ),
+        };
 
-    //     // If a node has a custom measure function we never want to round down its size as this could
-    //     // lead to unwanted text truncation.
-    //     let textRounding = self.nodeType == NodeType::Text;
+        let absolute_node_left = absolute_left + node_left;
+        let absolute_node_top = absolute_top + node_top;
 
-    //     self.layout().position[Edge::Left as usize] =
-    //         round_value_to_pixel_grid(nodeLeft, pointScaleFactor, false, textRounding);
-    //     self.layout().position[Edge::Top as usize] =
-    //         round_value_to_pixel_grid(nodeTop, pointScaleFactor, false, textRounding);
+        let absolute_node_right = absolute_node_left + node_width;
+        let absolute_node_bottom = absolute_node_top + node_height;
 
-    //     // We multiply dimension by scale factor and if the result is close to the whole number, we don't
-    //     // have any fraction
-    //     // To verify if the result is close to whole number we want to check both floor and ceil numbers
-    //     let hasFractionalWidth = !YGFloatsEqual(nodeWidth * pointScaleFactor % 1.0, 0.0)
-    //         && !YGFloatsEqual(nodeWidth * pointScaleFactor % 1.0, 1.0);
-    //     let hasFractionalHeight = !YGFloatsEqual(nodeHeight * pointScaleFactor % 1.0, 0.0)
-    //         && !YGFloatsEqual(nodeHeight * pointScaleFactor % 1.0, 1.0);
+        // If a node has a custom measure function we never want to round down its size as this could
+        // lead to unwanted text truncation.
+        let text_rounding = self.node_type() == NodeType::Text;
 
-    //     self.layout().dimensions[Dimension::Width as usize] = round_value_to_pixel_grid(
-    //         absoluteNodeRight,
-    //         pointScaleFactor,
-    //         textRounding && hasFractionalWidth,
-    //         textRounding && !hasFractionalWidth,
-    //     )
-    //         - round_value_to_pixel_grid(absoluteNodeLeft, pointScaleFactor, false, textRounding);
-    //     self.layout().dimensions[Dimension::Height as usize] = round_value_to_pixel_grid(
-    //         absoluteNodeBottom,
-    //         pointScaleFactor,
-    //         textRounding && hasFractionalHeight,
-    //         textRounding && !hasFractionalHeight,
-    //     )
-    //         - round_value_to_pixel_grid(absoluteNodeTop, pointScaleFactor, false, textRounding);
+        self.layout_mut().position.set(
+            Edge::Left,
+            round_value_to_pixel_grid(node_left, point_scale_factor, false, text_rounding),
+        );
+        self.layout_mut().position.set(
+            Edge::Top,
+            round_value_to_pixel_grid(node_top, point_scale_factor, false, text_rounding),
+        );
 
-    //     for i in 0..ListCount(self.children) {
-    //         YGRoundToPixelGrid(
-    //             GetChild(node, i),
-    //             pointScaleFactor,
-    //             absoluteNodeLeft,
-    //             absoluteNodeTop,
-    //         );
-    //     }
-    // }
+        // We multiply dimension by scale factor and if the result is close to the whole number, we don't
+        // have any fraction
+        // To verify if the result is close to whole number we want to check both floor and ceil numbers
+        let has_fractional_width = !(node_width * point_scale_factor % 1.0).approx_eq(r32(0.0))
+            && !(node_width * point_scale_factor % 1.0).approx_eq(r32(1.0));
+        let has_fractional_height = !(node_height * point_scale_factor % 1.0).approx_eq(r32(0.0))
+            && !(node_height * point_scale_factor % 1.0).approx_eq(r32(1.0));
+
+        self.layout_mut().dimensions = Some(Dimensions {
+            // TODO(anp): this type wrapping is silly
+            width: Value::Point(
+                round_value_to_pixel_grid(
+                    absolute_node_right,
+                    point_scale_factor,
+                    text_rounding && has_fractional_width,
+                    text_rounding && !has_fractional_width,
+                )
+                    - round_value_to_pixel_grid(
+                        absolute_node_left,
+                        point_scale_factor,
+                        false,
+                        text_rounding,
+                    ),
+            ),
+            height: Value::Point(
+                round_value_to_pixel_grid(
+                    absolute_node_bottom,
+                    point_scale_factor,
+                    text_rounding && has_fractional_height,
+                    text_rounding && !has_fractional_height,
+                )
+                    - round_value_to_pixel_grid(
+                        absolute_node_top,
+                        point_scale_factor,
+                        false,
+                        text_rounding,
+                    ),
+            ),
+        });
+
+        for mut child in self.children_mut() {
+            child.round_to_pixel_grid(point_scale_factor, absolute_node_left, absolute_node_top);
+        }
+    }
 
     fn constrained_max_size_for_mode(
         &self,
