@@ -3,7 +3,6 @@
 
 // TODO(anp): look at `gPrintChanges` variable in Yoga.c and add logging statements here
 // TODO(anp): excise unwrap/expect/panic!
-// TODO(anp): excise unsafe!
 // TODO(anp): check out the inline annotations from the c code
 // TODO(anp): revist raph's continuation-based layout stuff, in case you forget, june 2018 meetup at mozilla
 // TODO(anp): pub/pub(crate)/private audit

@@ -143,7 +143,6 @@ impl Layout {
         }
     }
 
-    // pub unsafe fn YGNodeLayoutGetMargin(node: Node, edge: Edge) -> c_float {
     pub fn margin(&self, edge: Edge) -> Option<R32> {
         assert!(
             edge != Edge::Horizontal && edge != Edge::Vertical && edge != Edge::All,
