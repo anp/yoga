@@ -157,10 +157,9 @@ macro_rules! edges {
                     Right => &mut self.right,
                     Start => &mut self.start,
                     End => &mut self.end,
-                    // Vertical => &mut self.vertical,
-                    // Horizontal => &mut self.horizontal,
-                    // All => &mut self.all,
-                    _ => panic!("TODO(anp) remove these extra fields where possible")
+                    Vertical => &mut self.vertical,
+                    Horizontal => &mut self.horizontal,
+                    All => &mut self.all,
                 };
 
                 if *field == Some(new) {
@@ -328,7 +327,6 @@ impl Padding {
         let existing = self[Edge::End];
         let resolved = existing.map(|v| v.resolve(parent_width));
 
-        // TODO(anp): why does leading have a max(0.0) call but this doesn't? my mistake?
         match (axis.is_row(), resolved) {
             (true, Some(Some(p))) if p >= 0.0 => p,
             _ => self[axis.trailing_edge()]
@@ -336,7 +334,7 @@ impl Padding {
                 .flat_map(|p| p.resolve(parent_width))
                 .next()
                 .unwrap_or(r32(0.0)),
-        }
+        }.max(r32(0.0))
     }
 
     pub fn leading(&self, axis: FlexDirection, parent_width: R32) -> R32 {

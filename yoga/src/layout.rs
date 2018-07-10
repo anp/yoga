@@ -133,7 +133,6 @@ impl CachedMeasurement {
             None => return false,
         };
 
-        // TODO(anp): figure out how we'd get here? should we have positive float types for all of this?
         if last_computed_height < 0.0 || last_computed_width < 0.0 {
             return false;
         };

@@ -1,7 +1,3 @@
-// TODO(anp): clean up the use of flatten and remove this
-#![allow(unstable_name_collisions)]
-
-// TODO(anp): look at `gPrintChanges` variable in Yoga.c and add logging statements here
 // TODO(anp): excise unwrap/expect/panic!
 // TODO(anp): check out the inline annotations from the c code
 // TODO(anp): revist raph's continuation-based layout stuff, in case you forget, june 2018 meetup at mozilla
@@ -81,8 +77,6 @@ where
     Y: Yggdrasil<Self, I>,
     Self: 'static + Debug + Eq + PartialEq + Sized,
 {
-    // TODO(anp): should probably be runtime configurable in some ergonomic way that doesn't force
-    // an extra field onto frequently-created structs
     const POINT_SCALE_FACTOR: f32 = 1.0;
 
     // TODO(anp): eliminate mutable methods and require all mutations to be passed back to caller
@@ -99,9 +93,6 @@ where
     fn layout_mut(&mut self) -> &mut Layout;
     fn line(&self) -> usize;
     fn line_mut(&mut self) -> &mut usize;
-    // TODO(anp): can this be easly done without dynamic dispatch?
-    // thought from later: probably not, it would require dyanamic dispatch of all nodes, much less
-    // this specific method
     fn measure_fn(
         &self,
     ) -> Option<&'static Fn(&Self, R32, Option<MeasureMode>, R32, Option<MeasureMode>) -> Size>;
@@ -421,7 +412,6 @@ where
         parent_width: R32,
         parent_height: R32,
     ) -> MeasuredDimensions {
-        // TODO(anp): guarantee this statically i think
         let measure = self
             .measure_fn()
             .expect("expected node to have custom measure function");
@@ -455,6 +445,7 @@ where
             let width = self.bound_axis(
                 FlexDirection::Row,
                 available_width - margin_axis_row,
+                // TODO(anp): the original source said parentWidth 2x here, not sure why
                 parent_width,
                 parent_width,
             );
@@ -466,11 +457,7 @@ where
                 parent_width,
             );
 
-            MeasuredDimensions {
-                // TODO(anp): the original source said parentWidth 2x here, not sure why
-                width,
-                height,
-            }
+            MeasuredDimensions { width, height }
         } else {
             // Measure the text under the current constraints.
             let measured_size = measure(
@@ -616,7 +603,6 @@ where
         height_measure_mode: Option<MeasureMode>,
         parent_width: R32,
         parent_height: R32,
-        // TODO(anp): maybe a different type than bool?
     ) -> Option<MeasuredDimensions> {
         if width_measure_mode == Some(MeasureMode::AtMost) && available_width <= 0.0
             || height_measure_mode == Some(MeasureMode::AtMost) && available_height <= 0.0
@@ -1430,7 +1416,6 @@ where
                     let mut child_cross_measure_mode;
                     let mut child_main_measure_mode = Some(MeasureMode::Exactly);
 
-                    // TODO(anp) check for bug on the C side -- this was an != NULL check
                     if let Some(ar) = curr_rel_child!().style().aspect_ratio {
                         child_cross_size = if is_main_axis_row {
                             (child_main_size - margin_main) / ar
@@ -1531,7 +1516,6 @@ where
 
                     // Recursively call the layout algorithm for this child with the updated
                     // main size.
-                    // TODO(anp): pass a continuation here!
                     curr_rel_child!(mut).layout_node_internal(
                         child_width,
                         child_height,
@@ -1641,8 +1625,7 @@ where
                         .style()
                         .margin
                         .leading(main_axis, available_inner_width);
-                    // unused: starting to think that this shouldn't return updated or sth
-                    let _ = self.child_mut(i).layout_mut().position.set(
+                    self.child_mut(i).layout_mut().position.set(
                         main_axis.leading_edge(),
                         leading_pos + own_leading_border + child_leading_margin,
                     );
@@ -1659,9 +1642,7 @@ where
                         }
 
                         if perform_layout {
-                            // yeah, pretty sure of that now
-                            let _ = self
-                                .child_mut(i)
+                            self.child_mut(i)
                                 .layout_mut()
                                 .position
                                 .add(main_axis.leading_edge(), main_dim);
@@ -1706,8 +1687,7 @@ where
                         }
                     } else if perform_layout {
                         let own_leading_border = self.style().border.leading(main_axis);
-                        // unused:  ok i'll  refactor this TODO(anp)
-                        let _ = self.child_mut(i).layout_mut().position.set(
+                        self.child_mut(i).layout_mut().position.set(
                             main_axis.leading_edge(),
                             own_leading_border + leading_main_dim,
                         );

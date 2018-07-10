@@ -281,7 +281,6 @@ pub trait ResolveValue {
 }
 
 impl ResolveValue for Value {
-    // TODO(anp) comment this out and find all of  the places i did stupid iterator  things
     fn resolve(&self, parent_size: R32) -> Option<R32> {
         match *self {
             Value::Point(v) => Some(v),
