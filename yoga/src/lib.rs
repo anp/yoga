@@ -252,9 +252,6 @@ where
     ) -> bool {
         trace!("layout for reason {} on node {:?}", reason, self);
 
-        // FIXME(anp): make this non-static wtf
-        // gDepth = gDepth.wrapping_add(1);
-
         let current_generation = self.current_generation();
         let need_to_visit_node = *self.dirty()
             && self.layout().generation_count != current_generation
@@ -393,9 +390,6 @@ where
             self.new_layout();
             *self.dirty() = false;
         };
-
-        // FIXME(anp) make this not static wtf
-        // gDepth = gDepth.wrapping_sub(1);
 
         return need_to_visit_node || cached_results.is_none();
     }
@@ -677,7 +671,6 @@ where
         let flex = self.style().flex;
         match (self.parent(), flex_grow, flex) {
             (None, _, _) => r32(0.0),
-            // FIXME(anp): flex_grow should probably be an option?
             (_, grow, _) if grow != Style::DEFAULT_FLEX_GROW => grow,
             (_, _, Some(flex)) if flex > 0.0 => flex,
             _ => r32(Style::DEFAULT_FLEX_GROW),
@@ -693,7 +686,6 @@ where
         ) {
             // Root nodes flexShrink should always be 0
             (None, _, _, _) => r32(0.0),
-            // FIXME(anp): flex_shrink should probably be an option?
             (_, shrink, _, _) if shrink != Style::DEFAULT_FLEX_SHRINK => shrink,
             (_, _, Some(flex), false) if flex < 0.0 => -flex,
             _ => r32(Style::DEFAULT_FLEX_SHRINK),
@@ -1031,21 +1023,20 @@ where
         // If there is only one child with flex_grow + flex_shrink it means we can set the
         // computed_flex_basis to 0 instead of measuring and shrinking / flexing the child to exactly
         // match the remaining space
-        // FIXME(anp): figure out the borrowing bs here
-        // let single_flex_child = if measure_mode_main_dim == Some(MeasureMode::Exactly) {
-        //     self.children()
-        //         .iter()
-        //         .filter(|&child| {
-        //             child.resolve_flex_grow() > 0.0 && child.resolve_flex_shrink() > 0.0
-        //         })
-        //         .next()
-        // } else {
-        //     None
-        // };
+        let has_single_flex_child = if measure_mode_main_dim == Some(MeasureMode::Exactly) {
+            self.children()
+                .iter()
+                .filter(|&child| {
+                    child.resolve_flex_grow() > 0.0 && child.resolve_flex_shrink() > 0.0
+                })
+                .next()
+                .is_some()
+        } else {
+            false
+        };
 
         let mut total_outer_flex_basis = r32(0.0);
 
-        // FIXME(anp): not sure whether this gets incremented later in the loop, check to see
         let self_flex_direction = self.style().flex_direction;
         let self_overflow = self.style().overflow;
 
@@ -1056,6 +1047,7 @@ where
             .collect::<Vec<_>>();
 
         // STEP 3: DETERMINE FLEX BASIS FOR EACH ITEM
+        let current_gen = self.current_generation();
         for (mut child, parent_align) in self.children_mut().into_iter().zip(aligns) {
             if child.style().display == Display::None {
                 child.zero_layout_recursively();
@@ -1085,10 +1077,9 @@ where
                 // Store a private linked list of absolutely positioned children
                 // so that we can efficiently traverse them later.
                 Y::add_absolute_child(&*child);
-            // FIXME(anp): figure out the borrowing bs here (look for similar comment above)
-            // } else if Some(&*child) == single_flex_child {
-            //     child.layout_mut().computed_flex_basis_generation = current_generation;
-            //     child.layout_mut().computed_flex_basis = Some(r32(0.0));
+            } else if has_single_flex_child {
+                child.layout_mut().computed_flex_basis_generation = current_gen;
+                child.layout_mut().computed_flex_basis = Some(r32(0.0));
             } else {
                 child.compute_flex_basis_from_parent(
                     available_inner_width,
@@ -1108,8 +1099,6 @@ where
                 total_outer_flex_basis += basis;
             }
 
-            // FIXME(anp): pretty sure this should have been operating on layout, but i impld
-            // it on the margin that style gets
             total_outer_flex_basis += child
                 .style()
                 .margin
@@ -2636,6 +2625,7 @@ where
         parent_overflow: Overflow,
         self_align: Align,
     ) {
+        let current_gen = self.current_generation();
         let main_axis = parent_flex_direction.resolve_direction(direction);
         let is_main_axis_row = main_axis.is_row();
         let _main_axis_size = if is_main_axis_row { width } else { height };
@@ -2649,14 +2639,17 @@ where
         let is_row_style_dim_defined = self.is_style_dim_defined(FlexDirection::Row, parent_width);
         let is_column_style_dim_defined =
             self.is_style_dim_defined(FlexDirection::Column, parent_height);
-        if let Some(_resolved_flex_basis) = resolved_flex_basis {
-            // FIXME(anp): this should be sorted out!
-            // if self.layout().computed_flex_basis.is_nan()
-            //         && self.layout.computed_flex_basis_generation != gCurrentGenerationCount
-            // {
-            //     self.layout.computed_flex_basis =
-            //         resolvedFlexBasis.max(PaddingAndBorderForAxis(self, mainAxis, parentWidth));
-            // };
+        if let Some(resolved_flex_basis) = resolved_flex_basis {
+            if self.layout().computed_flex_basis.is_none()
+                && self.layout_mut().computed_flex_basis_generation != current_gen
+            {
+                self.layout_mut().computed_flex_basis = Some(
+                    resolved_flex_basis.max(
+                        self.style()
+                            .padding_and_border_for_axis(main_axis, parent_width),
+                    ),
+                );
+            };
         } else if is_main_axis_row && is_row_style_dim_defined {
             // The width is definite, so use that as the flex basis.
             self.layout_mut().computed_flex_basis = self
@@ -2740,17 +2733,13 @@ where
                 }
             }
 
-            if !self.style().aspect_ratio.is_none() {
+            if let Some(ar) = self.style().aspect_ratio {
                 if !is_main_axis_row && self_width_measure_mode == Some(MeasureMode::Exactly) {
-                    self_height = self_width
-                        // FIXME(anp): aspect_ratio should not be optional
-                        .map(|w| (w - margin_row) / self.style().aspect_ratio.unwrap_or(r32(1.0)));
+                    self_height = self_width.map(|w| (w - margin_row) / ar);
                     self_height_measure_mode = Some(MeasureMode::Exactly);
                 } else {
                     if is_main_axis_row && self_height_measure_mode == Some(MeasureMode::Exactly) {
-                        self_width = self_height.map(|h| {
-                            (h - margin_column) * self.style().aspect_ratio.unwrap_or(r32(0.0))
-                        });
+                        self_width = self_height.map(|h| (h - margin_column) * ar);
                         self_width_measure_mode = Some(MeasureMode::Exactly);
                     };
                 };

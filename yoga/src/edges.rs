@@ -416,8 +416,7 @@ impl Position {
         parent_width: R32,
     ) -> PositionResolved {
         let relative_position_main = self.relative(main_axis, main_size).unwrap_or(r32(0.0));
-        // FIXME(anp): should this be getting added to the values below?
-        let _relative_position_cross = self.relative(cross_axis, cross_size).unwrap_or(r32(0.0));
+        let relative_position_cross = self.relative(cross_axis, cross_size).unwrap_or(r32(0.0));
 
         PositionBuilder::new()
             .set(
@@ -430,11 +429,11 @@ impl Position {
             )
             .set(
                 cross_axis.leading_edge(),
-                margin.leading(cross_axis, parent_width),
+                margin.leading(cross_axis, parent_width) + relative_position_cross,
             )
             .set(
                 cross_axis.trailing_edge(),
-                margin.trailing(cross_axis, parent_width),
+                margin.trailing(cross_axis, parent_width) + relative_position_cross,
             )
             .build()
     }
