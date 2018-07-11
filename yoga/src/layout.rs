@@ -25,10 +25,10 @@ pub struct Layout {
     pub generation_count: u32,
     pub last_parent_direction: Option<Direction>,
     // TODO(anp): use arrayvec or an LRU crate for these
-    pub(crate) next_cached_measurements_index: usize,
-    pub(crate) cached_measurements: [Option<CachedMeasurement>; MAX_CACHED_RESULTS],
+    // pub(crate) next_cached_measurements_index: usize,
+    // pub(crate) cached_measurements: [Option<CachedMeasurement>; MAX_CACHED_RESULTS],
     pub measured_dimensions: MeasuredDimensions,
-    pub(crate) cached_layout: Option<CachedMeasurement>,
+    // pub(crate) cached_layout: Option<CachedMeasurement>,
 }
 
 impl ::std::ops::Index<PhysicalEdge> for Layout {
@@ -53,10 +53,10 @@ default!(
         generation_count: 0,
         // RIIR(anp): this is not technically correct, it was uninit  before
         last_parent_direction: None,
-        next_cached_measurements_index: 0,
-        cached_measurements: [None; 16],
+        // next_cached_measurements_index: 0,
+        // cached_measurements: [None; 16],
         measured_dimensions: MeasuredDimensions::default(),
-        cached_layout: None,
+        // cached_layout: None,
     }
 );
 
