@@ -1,7 +1,7 @@
-prelude!();
+internal_prelude!();
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub(crate) struct Style {
+pub struct Style {
     pub(crate) direction: Direction,
     pub(crate) flex_direction: FlexDirection,
     pub(crate) justify_content: Justify,
@@ -107,7 +107,7 @@ default!(
     }
 );
 
-pub(crate) trait Property
+pub trait Property
 where
     Self: Sized,
 {
@@ -212,7 +212,7 @@ macro_rules! property_impl {
         $inner:ident | ->
         $target:ty { $prep:expr }
     ) => {
-        pub(crate) struct $struct($contained);
+        pub struct $struct(pub $contained);
 
         property_impl! {
             @trait
@@ -230,7 +230,7 @@ macro_rules! property_impl {
         );
     };
     (| $style:ident | $field:expr, $edge:expr, $struct:ident(optional $target:ty) ) => {
-        pub(crate) struct $struct($target);
+        pub struct $struct(pub $target);
 
         property_impl!(
             @edge_apply

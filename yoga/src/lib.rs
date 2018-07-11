@@ -11,6 +11,8 @@
 // TODO(anp): docs
 // TODO(anp): sort out left/right vs start/end for PhysicalEdge
 // TODO(anp): do a pass on node.0
+// TODO(anp): eliminate mutable methods and require all mutations to be passed back to caller
+// TODO(anp): do a pass checking for missing inline attrs
 
 extern crate arrayvec;
 extern crate float_cmp;
@@ -22,8 +24,16 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+pub mod prelude {
+    pub use noisy_float::prelude::*;
+
+    pub use super::{
+        edges::Margin, enums::AsValue, enums::Value::*, enums::*, style::Property, style::*, *,
+    };
+}
+
 #[allow(unused_imports)]
-pub(crate) mod prelude {
+pub(crate) mod internal_prelude {
     pub(crate) use super::edges::*;
     pub(crate) use super::enums::Value::*;
     pub(crate) use super::enums::*;
@@ -41,10 +51,10 @@ pub(crate) mod prelude {
 }
 
 #[macro_use]
-macro_rules! prelude {
+macro_rules! internal_prelude {
     () => {
         #[allow(unused_imports)]
-        use $crate::prelude::*;
+        use $crate::internal_prelude::*;
     };
 }
 
@@ -56,19 +66,21 @@ pub(crate) mod enums;
 pub(crate) mod layout;
 pub(crate) mod style;
 
-prelude!();
+internal_prelude!();
 
 // TODO(anp): include a generation count here to avoid issues
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Handle(usize);
 
 #[derive(Clone)]
-pub struct Wheel {
+pub struct Ygg {
+    total_available: MeasuredDimensions,
+    container_direction: Direction,
     current_gen: u32,
     // TODO(anp): cache layouts here instead of inline
     // TODO(anp): compact these between layouts?
     // TODO(anp): use an actual bitvec, this is unnecessarily large
-    dirty: Vec<bool>,
+    dirties: Vec<bool>,
     // TODO(anp): should this be inline with style or something else?
     types: Vec<NodeType>,
     styles: Vec<Style>,
@@ -82,17 +94,80 @@ pub struct Wheel {
     resolved: Vec<ResolvedDimensions>,
     // this one doesn't have the same indices!
     abs_children: Vec<Handle>,
-    // measure_fns: BTreeMap<Handle, MEASURE_FN<(&Self, Handle)>>,
-    // baseline_fns: BTreeMap<Handle, BASELINE_FN<(&Self, Handle)>>,
+    measure_fns: BTreeMap<Handle, MeasureFn>,
+    baseline_fns: BTreeMap<Handle, BaselineFn>,
 }
 
 const POINT_SCALE_FACTOR: f32 = 1.0;
-pub type BaselineFn = fn((&Wheel, Handle), R32, R32) -> R32;
-pub type MeasureFn =
-    fn((&Wheel, Handle), R32, Option<MeasureMode>, R32, Option<MeasureMode>) -> Size;
+pub type BaselineFn = fn((&Ygg, Handle), R32, R32) -> R32;
+pub type MeasureFn = fn((&Ygg, Handle), R32, Option<MeasureMode>, R32, Option<MeasureMode>) -> Size;
 
-impl Wheel {
-    // TODO(anp): eliminate mutable methods and require all mutations to be passed back to caller
+impl Ygg {
+    pub fn new(available: MeasuredDimensions, direction: Direction) -> Ygg {
+        Ygg {
+            total_available: available,
+            container_direction: direction,
+            current_gen: 0,
+            dirties: Vec::new(),
+            types: Vec::new(),
+            styles: Vec::new(),
+            new_layout: Vec::new(),
+            layouts: Vec::new(),
+            lines: Vec::new(),
+            parents: Vec::new(),
+            children: Vec::new(),
+            resolved: Vec::new(),
+            abs_children: Vec::new(),
+            measure_fns: BTreeMap::new(),
+            baseline_fns: BTreeMap::new(),
+        }
+    }
+
+    pub fn new_node(&mut self) -> Handle {
+        let new_handle = Handle(self.dirties.len());
+
+        self.dirties.push(true);
+        self.types.push(NodeType::Default);
+        self.styles.push(Style::default());
+        self.new_layout.push(false);
+        self.layouts.push(Layout::default());
+        self.lines.push(Default::default());
+        self.parents.push(None);
+        self.children.push(Vec::new());
+        self.resolved.push(Default::default());
+
+        let lens = [
+            self.dirties.len(),
+            self.types.len(),
+            self.styles.len(),
+            self.new_layout.len(),
+            self.layouts.len(),
+            self.lines.len(),
+            self.parents.len(),
+            self.children.len(),
+            self.resolved.len(),
+        ];
+
+        assert!(
+            lens[1..].iter().all(|&l| l == lens[0]),
+            "ygg's storage vectors are out of sync. lengths: {:?}",
+            lens
+        );
+
+        new_handle
+    }
+
+    pub fn get_layout(&mut self) -> () {
+        let available = self.total_available;
+        let direction = self.container_direction;
+        // CACHING(anp): could probably check for a cached layout, no?
+        self.calculate_layout(Handle(0), available, direction);
+    }
+
+    pub fn push_child(&mut self, parent: Handle, child: Handle) {
+        self.children[parent.0].push(child);
+    }
+
     fn add_absolute_child(&mut self, child: Handle) {
         self.abs_children.push(child);
     }
@@ -179,19 +254,19 @@ impl Wheel {
     fn calculate_layout(
         &mut self,
         node: Handle,
-        parent_width: R32,
-        parent_height: R32,
+        parent_dimensions: MeasuredDimensions,
         parent_direction: Direction,
     ) {
+        let MeasuredDimensions {
+            width: parent_width,
+            height: parent_height,
+        } = parent_dimensions;
         // Increment the generation count. This will force the recursive routine to
         // visit
         // all dirty nodes at least once. Subsequent visits will be skipped if the
         // input
         // parameters don't change.
-
-        // FIXME(anp): reenable
-        // Y::increment_generation();
-
+        self.increment_generation();
         self.resolve_dimensions(node);
 
         let (width, width_measure_mode): (Option<R32>, Option<MeasureMode>) =
@@ -309,7 +384,7 @@ impl Wheel {
 
         // FIXME(anp): reenable
         // let current_generation = Y::current_generation();
-        let need_to_visit_node = self.dirty[node.0]
+        let need_to_visit_node = self.dirties[node.0]
             // FIXME(anp): reenable
             // && self.layout(node).generation_count != current_generation
             || self.layout(node).last_parent_direction != Some(parent_direction);
@@ -453,15 +528,15 @@ impl Wheel {
             self.layout_mut(node).dimensions =
                 Some(self.layout_mut(node).measured_dimensions.into());
             self.new_layout[node.0];
-            self.dirty[node.0] = false;
+            self.dirties[node.0] = false;
         };
 
         return need_to_visit_node || cached_results.is_none();
     }
 
     fn mark_dirty(&mut self, node: Handle) {
-        if !self.dirty[node.0] {
-            self.dirty[node.0] = true;
+        if !self.dirties[node.0] {
+            self.dirties[node.0] = true;
             self.layout_mut(node).computed_flex_basis = None;
 
             if let Some(p) = self.parent(node) {
@@ -470,7 +545,7 @@ impl Wheel {
         };
     }
 
-    fn apply_style<P: Property>(&mut self, node: Handle, new_style: P) {
+    pub fn apply_style<P: Property>(&mut self, node: Handle, new_style: P) {
         if Updated::Dirty == new_style.apply(&mut self.styles[node.0]) {
             self.mark_dirty(node);
         }
@@ -2937,7 +3012,7 @@ impl Wheel {
         let node_width = match self.layout(node).dimensions.unwrap()[Dimension::Width] {
             Value::Point(nw) => nw,
             _ => panic!(
-                // FIXME(anp): once we know how to do Debug for Wheel
+                // FIXME(anp): once we know how to do Debug for Ygg
                 // "node_width had not been resolved before being rounded to pixel grid: {:?}",
                 // self
             ),
@@ -2946,7 +3021,7 @@ impl Wheel {
         let node_height = match self.layout(node).dimensions.unwrap()[Dimension::Height] {
             Value::Point(nh) => nh,
             _ => panic!(
-                // FIXME(anp): once we know how to do Debug for Wheel
+                // FIXME(anp): once we know how to do Debug for Ygg
                 // "node_height has not been resolved before being rounded to pixel grid: {:?}",
                 // self
             ),

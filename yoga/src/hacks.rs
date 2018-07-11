@@ -1,4 +1,4 @@
-prelude!();
+internal_prelude!();
 
 macro_rules! default {
     ($struct:ty, $value:expr) => {

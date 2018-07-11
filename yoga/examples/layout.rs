@@ -1,36 +1,47 @@
-#[macro_use]
-extern crate yoga;
+extern crate ygg;
 
-use yoga::*;
+use ygg::prelude::*;
 
 fn main() {
-    let mut node = Node::new();
-
-    let mut child = Node::new();
-    let mut other_child = Node::new();
-
-    node.insert_child(&mut child, 0);
-    node.insert_child(&mut other_child, 1);
-
-    style!(node,
-    	Margin(10 pt),
-    	MarginLeft(Auto),
-    	PaddingHorizontal(4 pt),
-    	Left(16 %),
-    	Bottom(UndefinedValue)
+    let mut tree = Ygg::new(
+        MeasuredDimensions {
+            width: r32(512.0),
+            height: r32(512.0),
+        },
+        Direction::LTR,
     );
 
-    let child_styles = make_styles!(
-    	Width(32 pt),
-    	Height(32 pt),
-    	Margin(Auto),
-    	FlexGrow(1.0)
+    let node = tree.new_node();
+    let child = tree.new_node();
+    let other_child = tree.new_node();
+
+    tree.push_child(node, child);
+    tree.push_child(node, other_child);
+
+    tree.apply_style(
+        node,
+        Margin {
+            all: Some(10.points()),
+            ..Default::default()
+        },
     );
 
-    child.apply_styles(&child_styles);
-    other_child.apply_styles(&child_styles);
+    tree.apply_style(node, MarginLeft(Auto));
+    tree.apply_style(node, PaddingHorizontal(4i32.points()));
+    tree.apply_style(node, Left(16.percent()));
 
-    node.calculate_layout(512.0, 512.0, yoga::Direction::LTR);
+    // FIXME(anp): i guess maybe i need to resurrect the undefined arm of value?
+    // tree.apply_style(node, Bottom(None));
 
-    println!("Layout is {:#?}", node.get_layout());
+    // let child_styles = make_styles!(
+    // 	Width(32 pt),
+    // 	Height(32 pt),
+    // 	Margin(Auto),
+    // 	FlexGrow(1.0)
+    // );
+
+    // child.apply_styles(&child_styles);
+    // other_child.apply_styles(&child_styles);
+
+    println!("Layout is {:#?}", tree.get_layout());
 }

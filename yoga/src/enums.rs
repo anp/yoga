@@ -1,4 +1,4 @@
-prelude!();
+internal_prelude!();
 
 use std::f32::EPSILON;
 use std::ops::{Index, IndexMut};
@@ -18,13 +18,13 @@ default!(Display, Display::Flex);
 
 #[must_use]
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) enum Updated {
+pub enum Updated {
     Dirty,
     Clean,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub(crate) enum Align {
+pub enum Align {
     Auto,
     FlexStart,
     Center,
@@ -41,10 +41,18 @@ pub(crate) struct ResolvedDimensions {
     pub(crate) height: Option<Value>,
 }
 
+default!(
+    ResolvedDimensions,
+    ResolvedDimensions {
+        width: None,
+        height: None
+    }
+);
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub(crate) struct MeasuredDimensions {
-    pub(crate) height: R32,
-    pub(crate) width: R32,
+pub struct MeasuredDimensions {
+    pub height: R32,
+    pub width: R32,
 }
 
 default!(
@@ -105,14 +113,13 @@ pub(crate) enum Dimension {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub(crate) enum Direction {
+pub enum Direction {
     Inherit,
     LTR,
     RTL,
 }
 
 impl Direction {
-    // was YGNodeResolveDirection
     pub(crate) fn resolve(&self, parent: Self) -> Self {
         use Direction::*;
         match (self, parent) {
@@ -300,6 +307,35 @@ impl PartialEq for Value {
             }
             _ => false,
         }
+    }
+}
+
+pub trait AsValue {
+    fn points(self) -> Value;
+    fn percent(self) -> Value;
+}
+
+impl AsValue for i32 {
+    #[inline]
+    fn points(self) -> Value {
+        Value::Point(r32(self as f32))
+    }
+
+    #[inline]
+    fn percent(self) -> Value {
+        Value::Percent(r32(self as f32))
+    }
+}
+
+impl AsValue for f32 {
+    #[inline]
+    fn points(self) -> Value {
+        Value::Point(r32(self))
+    }
+
+    #[inline]
+    fn percent(self) -> Value {
+        Value::Percent(r32(self))
     }
 }
 

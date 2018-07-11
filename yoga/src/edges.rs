@@ -1,4 +1,4 @@
-prelude!();
+internal_prelude!();
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub(crate) enum Edge {
@@ -66,9 +66,9 @@ macro_rules! edges {
         resolved_fields: [ $( $resolvedfield:ident ),* ]
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-        pub(crate) struct $mindlessoutlining {
+        pub struct $mindlessoutlining {
             $(
-                $field: Option<$userty>,
+                pub $field: Option<$userty>,
             )*
         }
 
