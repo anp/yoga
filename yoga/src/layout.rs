@@ -6,29 +6,19 @@ prelude!();
 const MAX_CACHED_RESULTS: usize = 16;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct Layout {
-    pub position: PositionResolved,
-    // pub left: R32,
-    // pub right: R32,
-    // pub top: R32,
-    // pub bottom: R32,
-    pub dimensions: Option<Dimensions>,
-    pub direction: Direction,
-    pub margin: MarginResolved,
-    pub border: BorderResolved,
-    pub padding: PaddingResolved,
-    pub computed_flex_basis_generation: u32,
-    pub computed_flex_basis: Option<R32>,
-    pub had_overflow: bool,
-    // Instead of recomputing the entire layout every single time, we
-    // cache some information to break early when nothing changed:
-    pub generation_count: u32,
-    pub last_parent_direction: Option<Direction>,
-    // TODO(anp): use arrayvec or an LRU crate for these
-    // pub(crate) next_cached_measurements_index: usize,
-    // pub(crate) cached_measurements: [Option<CachedMeasurement>; MAX_CACHED_RESULTS],
-    pub measured_dimensions: MeasuredDimensions,
-    // pub(crate) cached_layout: Option<CachedMeasurement>,
+pub(crate) struct Layout {
+    pub(crate) position: PositionResolved,
+    pub(crate) dimensions: Option<Dimensions>,
+    pub(crate) direction: Direction,
+    pub(crate) margin: MarginResolved,
+    pub(crate) border: BorderResolved,
+    pub(crate) padding: PaddingResolved,
+    pub(crate) computed_flex_basis_generation: u32,
+    pub(crate) computed_flex_basis: Option<R32>,
+    pub(crate) had_overflow: bool,
+    pub(crate) generation_count: u32,
+    pub(crate) last_parent_direction: Option<Direction>,
+    pub(crate) measured_dimensions: MeasuredDimensions,
 }
 
 impl ::std::ops::Index<PhysicalEdge> for Layout {
@@ -93,22 +83,23 @@ impl Layout {
         );
     }
 
-    pub fn is_dim_defined(&self, axis: FlexDirection) -> bool {
+    pub(crate) fn is_dim_defined(&self, axis: FlexDirection) -> bool {
         self.measured_dimensions[axis.dimension()] >= 0.0
     }
 }
 
+// CACHING(anp): this needs to be rethought in the rust context
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct CachedMeasurement {
-    pub available_width: R32,
-    pub available_height: R32,
-    pub width_measure_mode: Option<MeasureMode>,
-    pub height_measure_mode: Option<MeasureMode>,
-    pub computed: MeasuredDimensions,
+pub(crate) struct CachedMeasurement {
+    pub(crate) available_width: R32,
+    pub(crate) available_height: R32,
+    pub(crate) width_measure_mode: Option<MeasureMode>,
+    pub(crate) height_measure_mode: Option<MeasureMode>,
+    pub(crate) computed: MeasuredDimensions,
 }
 
 impl CachedMeasurement {
-    pub fn usable(
+    pub(crate) fn usable(
         this: Option<CachedMeasurement>,
         width_mode: Option<MeasureMode>,
         width: R32,

@@ -18,13 +18,13 @@ default!(Display, Display::Flex);
 
 #[must_use]
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub enum Updated {
+pub(crate) enum Updated {
     Dirty,
     Clean,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Align {
+pub(crate) enum Align {
     Auto,
     FlexStart,
     Center,
@@ -36,15 +36,15 @@ pub enum Align {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct ResolvedDimensions {
-    pub width: Option<Value>,
-    pub height: Option<Value>,
+pub(crate) struct ResolvedDimensions {
+    pub(crate) width: Option<Value>,
+    pub(crate) height: Option<Value>,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct MeasuredDimensions {
-    pub height: R32,
-    pub width: R32,
+pub(crate) struct MeasuredDimensions {
+    pub(crate) height: R32,
+    pub(crate) width: R32,
 }
 
 default!(
@@ -65,9 +65,9 @@ impl Into<Dimensions> for MeasuredDimensions {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct Dimensions {
-    pub height: Value,
-    pub width: Value,
+pub(crate) struct Dimensions {
+    pub(crate) height: Value,
+    pub(crate) width: Value,
 }
 
 macro_rules! index_with_dimension {
@@ -99,13 +99,13 @@ index_with_dimension!(MeasuredDimensions, R32);
 index_with_dimension!(ResolvedDimensions, Option<Value>);
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Dimension {
+pub(crate) enum Dimension {
     Width,
     Height,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Direction {
+pub(crate) enum Direction {
     Inherit,
     LTR,
     RTL,
@@ -113,7 +113,7 @@ pub enum Direction {
 
 impl Direction {
     // was YGNodeResolveDirection
-    pub fn resolve(&self, parent: Self) -> Self {
+    pub(crate) fn resolve(&self, parent: Self) -> Self {
         use Direction::*;
         match (self, parent) {
             (Inherit, Inherit) => Direction::LTR,
@@ -124,13 +124,13 @@ impl Direction {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Display {
+pub(crate) enum Display {
     Flex,
     None,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum FlexDirection {
+pub(crate) enum FlexDirection {
     Column,
     ColumnReverse,
     Row,
@@ -138,7 +138,7 @@ pub enum FlexDirection {
 }
 
 impl FlexDirection {
-    pub fn resolve_direction(&self, direction: Direction) -> FlexDirection {
+    pub(crate) fn resolve_direction(&self, direction: Direction) -> FlexDirection {
         match (direction, *self) {
             (Direction::RTL, FlexDirection::Row) => FlexDirection::RowReverse,
             (Direction::RTL, FlexDirection::RowReverse) => FlexDirection::Row,
@@ -146,14 +146,14 @@ impl FlexDirection {
         }
     }
 
-    pub fn dimension(&self) -> Dimension {
+    pub(crate) fn dimension(&self) -> Dimension {
         match &self {
             FlexDirection::Column | FlexDirection::ColumnReverse => Dimension::Height,
             FlexDirection::Row | FlexDirection::RowReverse => Dimension::Width,
         }
     }
 
-    pub fn leading_edge(&self) -> PhysicalEdge {
+    pub(crate) fn leading_edge(&self) -> PhysicalEdge {
         match self {
             FlexDirection::Column => PhysicalEdge::Top,
             FlexDirection::ColumnReverse => PhysicalEdge::Bottom,
@@ -162,7 +162,7 @@ impl FlexDirection {
         }
     }
 
-    pub fn trailing_edge(&self) -> PhysicalEdge {
+    pub(crate) fn trailing_edge(&self) -> PhysicalEdge {
         match &self {
             FlexDirection::Column => PhysicalEdge::Bottom,
             FlexDirection::ColumnReverse => PhysicalEdge::Top,
@@ -171,7 +171,7 @@ impl FlexDirection {
         }
     }
 
-    pub fn cross(&self, direction: Direction) -> FlexDirection {
+    pub(crate) fn cross(&self, direction: Direction) -> FlexDirection {
         if self.is_column() {
             FlexDirection::Row.resolve_direction(direction)
         } else {
@@ -179,14 +179,14 @@ impl FlexDirection {
         }
     }
 
-    pub fn is_column(&self) -> bool {
+    pub(crate) fn is_column(&self) -> bool {
         match self {
             FlexDirection::Column | FlexDirection::ColumnReverse => true,
             FlexDirection::Row | FlexDirection::RowReverse => false,
         }
     }
 
-    pub fn is_row(&self) -> bool {
+    pub(crate) fn is_row(&self) -> bool {
         match self {
             FlexDirection::Column | FlexDirection::ColumnReverse => true,
             FlexDirection::Row | FlexDirection::RowReverse => false,
@@ -195,7 +195,7 @@ impl FlexDirection {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Justify {
+pub(crate) enum Justify {
     FlexStart,
     Center,
     FlexEnd,
@@ -205,13 +205,12 @@ pub enum Justify {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum MeasureMode {
-    // undefined was 1
-    Exactly, // 1
-    AtMost,  // 2
+    Exactly,
+    AtMost,
 }
 
 impl MeasureMode {
-    pub fn new_measure_size_is_stricter_and_still_valid(
+    pub(crate) fn new_measure_size_is_stricter_and_still_valid(
         old_mode: Option<MeasureMode>,
         old_size: R32,
         old_computed: R32,
@@ -224,7 +223,7 @@ impl MeasureMode {
             && (old_computed <= new_size || new_size.approx_eq(old_computed))
     }
 
-    pub fn old_size_is_unspecified_and_still_fits(
+    pub(crate) fn old_size_is_unspecified_and_still_fits(
         current: Option<MeasureMode>,
         size: R32,
         last_size_mode: Option<MeasureMode>,
@@ -235,7 +234,7 @@ impl MeasureMode {
             && (size >= last_computed_size || size.approx_eq(last_computed_size))
     }
 
-    pub fn size_is_exact_and_matches_old_measured_size(
+    pub(crate) fn size_is_exact_and_matches_old_measured_size(
         mode: Option<MeasureMode>,
         size: R32,
         last_computed_size: R32,
@@ -245,20 +244,20 @@ impl MeasureMode {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum NodeType {
+pub(crate) enum NodeType {
     Default,
     Text,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Overflow {
+pub(crate) enum Overflow {
     Visible,
     Hidden,
     Scroll,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum PositionType {
+pub(crate) enum PositionType {
     Relative,
     Absolute,
 }
@@ -276,7 +275,7 @@ pub enum Value {
     Auto,
 }
 
-pub trait ResolveValue {
+pub(crate) trait ResolveValue {
     fn resolve(&self, parent_size: R32) -> Option<R32>;
 }
 
@@ -336,7 +335,7 @@ pub(crate) fn round_value_to_pixel_grid(
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Wrap {
+pub(crate) enum Wrap {
     NoWrap,
     Wrap,
     WrapReverse,

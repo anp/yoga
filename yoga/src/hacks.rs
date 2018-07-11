@@ -10,7 +10,7 @@ macro_rules! default {
     };
 }
 
-pub use float_cmp::ApproxEq;
+pub(crate) use float_cmp::ApproxEq;
 pub(crate) trait ApproxEqHackForReals {
     fn approx_eq(&self, other: Self) -> bool;
 }

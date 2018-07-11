@@ -1,7 +1,6 @@
 // TODO(anp): excise unwrap/expect/panic!
 // TODO(anp): check out the inline annotations from the c code
 // TODO(anp): revist raph's continuation-based layout stuff, in case you forget, june 2018 meetup at mozilla
-// TODO(anp): pub/pub(crate)/private audit
 // TODO(anp): #![deny(missing_docs)]
 // TODO(anp): mutability pass
 // TODO(anp): create a style builder that can be constructed with some defaults
@@ -9,7 +8,6 @@
 // TODO(anp): do a pass to remove .is_nan()
 // TODO(anp): pass to remove unnecessary #[allow(...)]
 // TODO(anp): let clippy loose once nightlies are blocked on it
-// TODO(anp): disable pub on everything and do a public api pass
 // TODO(anp): docs
 // TODO(anp): sort out left/right vs start/end for PhysicalEdge
 // TODO(anp): do a pass on node.0
@@ -30,7 +28,7 @@ pub(crate) mod prelude {
     pub(crate) use super::enums::Value::*;
     pub(crate) use super::enums::*;
     pub(crate) use super::hacks::ApproxEqHackForReals;
-    pub(crate) use super::layout::{CachedMeasurement, Layout};
+    pub(crate) use super::layout::Layout;
     pub(crate) use super::style::{Property, Style};
     pub(crate) use super::*;
     pub(crate) use noisy_float::prelude::*;
@@ -51,29 +49,14 @@ macro_rules! prelude {
 }
 
 #[macro_use]
-pub(crate) mod hacks;
+mod hacks;
 
-pub mod edges;
-pub mod enums;
-pub mod layout;
-pub mod style;
+pub(crate) mod edges;
+pub(crate) mod enums;
+pub(crate) mod layout;
+pub(crate) mod style;
 
 prelude!();
-
-// pub trait Yggdrasil<N: Node<Self, I>, I>
-// where
-//     N: Node<Self, I>,
-//     // FIXME(anp): this is going to be  broken until i can refactor the traits the use handles
-//     I: Iterator<Item = N>,
-//     Self: 'static + Debug + Sized,
-// {
-//     // TODO(anp): implement this as a linked list or smth i guess? probably needs to be done with
-//     //   handles
-//     fn add_absolute_child(&N);
-//     fn absolute_children() -> I;
-//     fn current_generation() -> u32;
-//     fn increment_generation();
-// }
 
 // TODO(anp): include a generation count here to avoid issues
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
@@ -104,8 +87,8 @@ pub struct Wheel {
 }
 
 const POINT_SCALE_FACTOR: f32 = 1.0;
-pub(crate) type BASELINE_FN = fn((&Wheel, Handle), R32, R32) -> R32;
-pub(crate) type MEASURE_FN =
+pub type BaselineFn = fn((&Wheel, Handle), R32, R32) -> R32;
+pub type MeasureFn =
     fn((&Wheel, Handle), R32, Option<MeasureMode>, R32, Option<MeasureMode>) -> Size;
 
 impl Wheel {
@@ -154,11 +137,11 @@ impl Wheel {
         self.layouts.get_mut(node.0).unwrap()
     }
 
-    fn measure_fn(&self, node: Handle) -> Option<MEASURE_FN> {
+    fn measure_fn(&self, node: Handle) -> Option<MeasureFn> {
         unimplemented!()
     }
 
-    fn baseline_fn(&self, node: Handle) -> Option<BASELINE_FN> {
+    fn baseline_fn(&self, node: Handle) -> Option<BaselineFn> {
         unimplemented!()
     }
 
@@ -352,7 +335,7 @@ impl Wheel {
         // expensive to measure, so it's worth avoiding redundant measurements if at
         // all possible.
         // CACHING(anp): this is where some cached values were fetched previously
-        let cached_results: Option<CachedMeasurement> = None;
+        let cached_results: Option<layout::CachedMeasurement> = None;
         // let cached_results = if let Some(cached) = self.layout(node).cached_layout {
         //     if let Some(_) = self.measure_fn(node) {
         //         let margin_axis_row = self
@@ -496,7 +479,7 @@ impl Wheel {
     fn with_measure_func_set_measured_dimensions(
         &mut self,
         node: Handle,
-        measure: MEASURE_FN,
+        measure: MeasureFn,
         available_width: R32,
         available_height: R32,
         width_measure_mode: Option<MeasureMode>,

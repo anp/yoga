@@ -1,7 +1,7 @@
 prelude!();
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum Edge {
+pub(crate) enum Edge {
     Left,
     Top,
     Right,
@@ -14,7 +14,7 @@ pub enum Edge {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub enum PhysicalEdge {
+pub(crate) enum PhysicalEdge {
     Top,
     Bottom,
     // TODO(anp) pretty sure these should be left/right
@@ -66,7 +66,7 @@ macro_rules! edges {
         resolved_fields: [ $( $resolvedfield:ident ),* ]
     ) => {
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-        pub struct $mindlessoutlining {
+        pub(crate) struct $mindlessoutlining {
             $(
                 $field: Option<$userty>,
             )*
@@ -135,18 +135,10 @@ macro_rules! edges {
         }
 
         impl $mindlessoutlining {
-            pub fn get(&self, edge: Edge) -> Option<$userty> {
+            pub(crate) fn get(&self, edge: Edge) -> Option<$userty> {
                 self[edge]
             }
 
-            $(
-                #[allow(unused)]
-                pub(crate) fn $set_fn(&mut self, new: $userty) {
-                    self.$field = Some(new);
-                }
-            )*
-
-            #[allow(unused)]
             pub(crate) fn set(&mut self, edge: Edge, new: $userty) -> Updated {
                 use Edge::*;
 
@@ -172,7 +164,7 @@ macro_rules! edges {
         }
 
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-        pub struct $mindlessresolution {
+        pub(crate) struct $mindlessresolution {
             $(
                 pub(crate) $resolvedfield: $resolvedty,
             )*
@@ -197,7 +189,7 @@ macro_rules! edges {
         }
 
         impl $mindlessresolution {
-            pub fn get(&self, edge: PhysicalEdge) -> &$resolvedty {
+            pub(crate) fn get(&self, edge: PhysicalEdge) -> &$resolvedty {
                 use PhysicalEdge::*;
                 match edge {
                     Top => &self.top,
@@ -207,7 +199,6 @@ macro_rules! edges {
                 }
             }
 
-            #[allow(unused)]
             pub(crate) fn add(&mut self, edge: PhysicalEdge, new: $resolvedty) {
                 use PhysicalEdge::*;
 
@@ -221,7 +212,6 @@ macro_rules! edges {
                 *field = *field + new;
             }
 
-            #[allow(unused)]
             pub(crate) fn set(&mut self, edge: PhysicalEdge, new: $resolvedty) {
                 use PhysicalEdge::*;
 
@@ -244,7 +234,7 @@ edges! { Padding, PaddingResolved }
 edges! { Position, PositionResolved }
 
 impl Border {
-    pub fn resolve(&self, row_dir: FlexDirection, col_dir: FlexDirection) -> BorderResolved {
+    pub(crate) fn resolve(&self, row_dir: FlexDirection, col_dir: FlexDirection) -> BorderResolved {
         BorderResolved {
             start: self.leading(row_dir),
             end: self.trailing(row_dir),
@@ -253,14 +243,14 @@ impl Border {
         }
     }
 
-    pub fn leading(&self, axis: FlexDirection) -> R32 {
+    pub(crate) fn leading(&self, axis: FlexDirection) -> R32 {
         match (axis.is_row(), self[Edge::Start]) {
             (true, Some(b)) if b >= 0.0 => b,
             _ => self[axis.leading_edge()].unwrap_or(r32(0.0)),
         }.max(r32(0.0))
     }
 
-    pub fn trailing(&self, axis: FlexDirection) -> R32 {
+    pub(crate) fn trailing(&self, axis: FlexDirection) -> R32 {
         match (axis.is_row(), self[Edge::End]) {
             (true, Some(b)) if b >= 0.0 => b,
             _ => self[axis.trailing_edge()].unwrap_or(r32(0.0)),
@@ -269,21 +259,21 @@ impl Border {
 }
 
 impl Margin {
-    pub fn leading_value(&self, axis: FlexDirection) -> Option<Value> {
+    pub(crate) fn leading_value(&self, axis: FlexDirection) -> Option<Value> {
         match (axis.is_row(), self[Edge::Start], self[axis.leading_edge()]) {
             (true, Some(m), _) | (_, _, Some(m)) => Some(m),
             _ => None,
         }
     }
 
-    pub fn trailing_value(&self, axis: FlexDirection) -> Option<Value> {
+    pub(crate) fn trailing_value(&self, axis: FlexDirection) -> Option<Value> {
         match (axis.is_row(), self[Edge::End], self[axis.trailing_edge()]) {
             (true, Some(m), _) | (_, _, Some(m)) => Some(m),
             _ => None,
         }
     }
 
-    pub fn trailing(&self, axis: FlexDirection, width_size: R32) -> R32 {
+    pub(crate) fn trailing(&self, axis: FlexDirection, width_size: R32) -> R32 {
         match (axis.is_row(), self[Edge::End]) {
             (true, Some(v)) => Some(v),
             _ => self[axis.trailing_edge()],
@@ -293,11 +283,11 @@ impl Margin {
             .unwrap_or(r32(0.0))
     }
 
-    pub fn for_axis(&self, axis: FlexDirection, width_size: R32) -> R32 {
+    pub(crate) fn for_axis(&self, axis: FlexDirection, width_size: R32) -> R32 {
         self.leading(axis, width_size) + self.trailing(axis, width_size)
     }
 
-    pub fn leading(&self, axis: FlexDirection, width_size: R32) -> R32 {
+    pub(crate) fn leading(&self, axis: FlexDirection, width_size: R32) -> R32 {
         match (axis.is_row(), self[Edge::Start]) {
             (true, Some(m)) => Some(m),
             _ => self[axis.leading_edge()],
@@ -307,7 +297,7 @@ impl Margin {
             .unwrap_or(r32(0.0))
     }
 
-    pub fn resolve(
+    pub(crate) fn resolve(
         &self,
         row_dir: FlexDirection,
         col_dir: FlexDirection,
@@ -323,7 +313,7 @@ impl Margin {
 }
 
 impl Padding {
-    pub fn trailing(&self, axis: FlexDirection, parent_width: R32) -> R32 {
+    pub(crate) fn trailing(&self, axis: FlexDirection, parent_width: R32) -> R32 {
         let existing = self[Edge::End];
         let resolved = existing.map(|v| v.resolve(parent_width));
 
@@ -337,7 +327,7 @@ impl Padding {
         }.max(r32(0.0))
     }
 
-    pub fn leading(&self, axis: FlexDirection, parent_width: R32) -> R32 {
+    pub(crate) fn leading(&self, axis: FlexDirection, parent_width: R32) -> R32 {
         let existing = self[Edge::Start];
         let resolved = existing.map(|v| v.resolve(parent_width));
 
@@ -351,7 +341,7 @@ impl Padding {
         }.max(r32(0.0))
     }
 
-    pub fn resolve(
+    pub(crate) fn resolve(
         &self,
         row_dir: FlexDirection,
         col_dir: FlexDirection,

@@ -1,58 +1,58 @@
 prelude!();
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct Style {
-    pub direction: Direction,
-    pub flex_direction: FlexDirection,
-    pub justify_content: Justify,
-    pub align_content: Align,
-    pub align_items: Align,
-    pub align_self: Align,
-    pub position_type: PositionType,
-    pub flex_wrap: Wrap,
-    pub overflow: Overflow,
-    pub display: Display,
-    pub flex: Option<R32>,
-    pub flex_grow: R32,
-    pub flex_shrink: R32,
-    pub flex_basis: Value,
-    pub margin: Margin,
-    pub position: Position,
-    pub padding: Padding,
-    pub border: Border,
-    pub dimensions: Dimensions,
-    pub min_dimensions: Dimensions,
-    pub max_dimensions: Dimensions,
+pub(crate) struct Style {
+    pub(crate) direction: Direction,
+    pub(crate) flex_direction: FlexDirection,
+    pub(crate) justify_content: Justify,
+    pub(crate) align_content: Align,
+    pub(crate) align_items: Align,
+    pub(crate) align_self: Align,
+    pub(crate) position_type: PositionType,
+    pub(crate) flex_wrap: Wrap,
+    pub(crate) overflow: Overflow,
+    pub(crate) display: Display,
+    pub(crate) flex: Option<R32>,
+    pub(crate) flex_grow: R32,
+    pub(crate) flex_shrink: R32,
+    pub(crate) flex_basis: Value,
+    pub(crate) margin: Margin,
+    pub(crate) position: Position,
+    pub(crate) padding: Padding,
+    pub(crate) border: Border,
+    pub(crate) dimensions: Dimensions,
+    pub(crate) min_dimensions: Dimensions,
+    pub(crate) max_dimensions: Dimensions,
     // Yoga specific properties, not compatible with flexbox specification
-    pub aspect_ratio: Option<R32>,
+    pub(crate) aspect_ratio: Option<R32>,
 }
 
 impl Style {
-    pub const DEFAULT_FLEX_GROW: f32 = 0.0;
+    pub(crate) const DEFAULT_FLEX_GROW: f32 = 0.0;
 
     #[cfg(feature = "web-default")]
-    pub const DEFAULT_FLEX_SHRINK: f32 = 1.0;
+    pub(crate) const DEFAULT_FLEX_SHRINK: f32 = 1.0;
 
     #[cfg(not(feature = "web-default"))]
-    pub const DEFAULT_FLEX_SHRINK: f32 = 0.0;
+    pub(crate) const DEFAULT_FLEX_SHRINK: f32 = 0.0;
 
     #[inline]
-    pub fn padding_and_border_for_axis(&self, axis: FlexDirection, width_size: R32) -> R32 {
+    pub(crate) fn padding_and_border_for_axis(&self, axis: FlexDirection, width_size: R32) -> R32 {
         self.leading_padding_and_border(axis, width_size)
             + self.trailing_padding_and_border(axis, width_size)
     }
 
     #[inline]
-    pub fn leading_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
+    pub(crate) fn leading_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
         self.padding.leading(axis, width_size) + self.border.leading(axis)
     }
 
     #[inline]
-    pub fn trailing_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
+    pub(crate) fn trailing_padding_and_border(&self, axis: FlexDirection, width_size: R32) -> R32 {
         self.padding.trailing(axis, width_size) + self.border.trailing(axis)
     }
 
-    pub fn resolve_flex_basis(&self, parent_size: R32) -> Option<R32> {
+    pub(crate) fn resolve_flex_basis(&self, parent_size: R32) -> Option<R32> {
         if let Value::Point(p) = self.flex_basis {
             Value::Point(p)
         } else if let Value::Percent(p) = self.flex_basis {
@@ -66,16 +66,6 @@ impl Style {
             Value::Auto
         }.resolve(parent_size)
     }
-
-    // fn is_trailing_pos_defined(&mut self, axis: FlexDirection) -> bool {
-    //     axis.is_row()
-    //         && (self.style().position.computed(Edge::End).is_some()
-    //             || self
-    //                 .style
-    //                 .position
-    //                 .computed(trailing[axis as usize])
-    //                 .is_some())
-    // }
 }
 
 default!(
@@ -117,7 +107,7 @@ default!(
     }
 );
 
-pub trait Property
+pub(crate) trait Property
 where
     Self: Sized,
 {
@@ -222,7 +212,7 @@ macro_rules! property_impl {
         $inner:ident | ->
         $target:ty { $prep:expr }
     ) => {
-        pub struct $struct($contained);
+        pub(crate) struct $struct($contained);
 
         property_impl! {
             @trait
@@ -240,7 +230,7 @@ macro_rules! property_impl {
         );
     };
     (| $style:ident | $field:expr, $edge:expr, $struct:ident(optional $target:ty) ) => {
-        pub struct $struct($target);
+        pub(crate) struct $struct($target);
 
         property_impl!(
             @edge_apply
