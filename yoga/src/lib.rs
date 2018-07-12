@@ -212,12 +212,12 @@ impl Ygg {
         self.layouts.get_mut(node.0).unwrap()
     }
 
-    fn measure_fn(&self, node: Handle) -> Option<MeasureFn> {
-        unimplemented!()
+    fn measure_fn(&self, node: Handle) -> Option<&MeasureFn> {
+        self.measure_fns.get(&node)
     }
 
-    fn baseline_fn(&self, node: Handle) -> Option<BaselineFn> {
-        unimplemented!()
+    fn baseline_fn(&self, node: Handle) -> Option<&BaselineFn> {
+        self.baseline_fns.get(&node)
     }
 
     // fn dirty(&mut self) -> &mut bool;
@@ -228,7 +228,7 @@ impl Ygg {
     }
 
     fn set_resolved(&mut self, node: Handle, edge: Dimension, resolved: Value) {
-        unimplemented!()
+        self.resolved[node.0][edge] = Some(resolved);
     }
 
     fn is_style_dim_defined(&self, node: Handle, axis: FlexDirection, parent_size: R32) -> bool {
@@ -995,18 +995,19 @@ impl Ygg {
         );
 
         // TODO(anp): make this idempotent/typesafe/etc
-        if let Some(measure_fn) = self.measure_fn(node) {
-            self.layout_mut(node).measured_dimensions = self
-                .with_measure_func_set_measured_dimensions(
-                    node,
-                    measure_fn,
-                    available_width,
-                    available_height,
-                    width_measure_mode,
-                    height_measure_mode,
-                    parent_width,
-                    parent_height,
-                );
+        if let Some(&measure_fn) = self.measure_fn(node) {
+            let measured = self.with_measure_func_set_measured_dimensions(
+                node,
+                measure_fn,
+                available_width,
+                available_height,
+                width_measure_mode,
+                height_measure_mode,
+                parent_width,
+                parent_height,
+            );
+
+            self.layout_mut(node).measured_dimensions = measured;
             return;
         }
 
@@ -1323,18 +1324,21 @@ impl Ygg {
                     let flex_basis_with_max_constraints = self.style(child).max_dimensions
                         [main_axis.dimension()]
                         .resolve(main_axis_parent_size)
-                        .min(self.layout(child).computed_flex_basis);
+                        .min(self.layout(child).computed_flex_basis)
+                        // FIXME(anp): just papering over this here
+                        .unwrap_or(r32(0.0));
 
-                    let flex_basis_with_min_and_max_constraints = self.style(child).min_dimensions
-                        [main_axis.dimension()]
-                        .resolve(main_axis_parent_size)
-                        .max(flex_basis_with_max_constraints);
+                    let flex_basis_with_min_and_max_constraints: R32 = self.style(child).min_dimensions[main_axis.dimension()]
+                            .resolve(main_axis_parent_size)
+                            // FIXME(anp): just papering over this here
+                            .unwrap_or(r32(0.0))
+                            .max(flex_basis_with_max_constraints);
 
                     // If this is a multi-line flow and this item pushes us over the available size,
                     // we've hit the end of the current line. Break out of the loop and lay out the
                     // current line.
                     if size_consumed_on_current_line_including_min_constraint
-                        + flex_basis_with_min_and_max_constraints.unwrap()
+                        + flex_basis_with_min_and_max_constraints
                         + child_margin_main_axis > available_inner_main_dim
                         && is_node_flex_wrap && line_count > 0
                     {
@@ -1342,9 +1346,9 @@ impl Ygg {
                     }
 
                     size_consumed_on_current_line_including_min_constraint +=
-                        flex_basis_with_min_and_max_constraints.unwrap() + child_margin_main_axis;
+                        flex_basis_with_min_and_max_constraints + child_margin_main_axis;
                     size_consumed_on_current_line +=
-                        flex_basis_with_min_and_max_constraints.unwrap() + child_margin_main_axis;
+                        flex_basis_with_min_and_max_constraints + child_margin_main_axis;
                     items_on_line += 1;
 
                     if self.is_flex(child) {
@@ -1457,15 +1461,17 @@ impl Ygg {
                             self.style(curr_rel_child).min_dimensions[main_axis.dimension()]
                                 .resolve(main_axis_parent_size)
                                 .max(self.layout(curr_rel_child).computed_flex_basis),
-                        );
+                        )
+                        // FIXME(anp): just papering over this here
+                        .unwrap_or(r32(0.0));
 
                     if remaining_free_space < 0.0 {
                         flex_shrink_scaled_factor =
-                            -self.resolve_flex_shrink(curr_rel_child) * child_flex_basis.unwrap();
+                            -self.resolve_flex_shrink(curr_rel_child) * child_flex_basis;
 
                         // Is this child able to shrink?
                         if flex_shrink_scaled_factor != 0.0 {
-                            base_main_size = child_flex_basis.unwrap()
+                            base_main_size = child_flex_basis
                                 + remaining_free_space / total_flex_shrink_scaled_factors
                                     * flex_shrink_scaled_factor;
                             bound_main_size = self.bound_axis(
@@ -1482,7 +1488,7 @@ impl Ygg {
                                 // resulting in the
                                 // item's size calculation being identical in the first and second
                                 // passes.
-                                delta_free_space -= bound_main_size - child_flex_basis.unwrap();
+                                delta_free_space -= bound_main_size - child_flex_basis;
                                 delta_flex_shrink_scaled_factors -= flex_shrink_scaled_factor;
                             }
                         }
@@ -1491,7 +1497,7 @@ impl Ygg {
 
                         // Is this child able to grow?
                         if flex_grow_factor != 0.0 {
-                            base_main_size = child_flex_basis.unwrap()
+                            base_main_size = child_flex_basis
                                 + remaining_free_space / total_flex_grow_factors * flex_grow_factor;
                             bound_main_size = self.bound_axis(
                                 curr_rel_child,
@@ -1508,13 +1514,17 @@ impl Ygg {
                                 // resulting in the
                                 // item's size calculation being identical in the first and second
                                 // passes.
-                                delta_free_space -= bound_main_size - child_flex_basis.unwrap();
+                                delta_free_space -= bound_main_size - child_flex_basis;
                                 delta_flex_grow_factors -= flex_grow_factor;
                             }
                         }
                     }
 
-                    curr_rel_child_idx = Some(idx + 1);
+                    curr_rel_child_idx = if idx + 1 < self.children(node).len() {
+                        Some(idx + 1)
+                    } else {
+                        None
+                    };
                 }
 
                 total_flex_shrink_scaled_factors += delta_flex_shrink_scaled_factors;
@@ -1535,20 +1545,21 @@ impl Ygg {
                             self.style(curr_rel_child).min_dimensions[main_axis.dimension()]
                                 .resolve(main_axis_parent_size)
                                 .max(self.layout(curr_rel_child).computed_flex_basis),
-                        );
-                    let mut updated_main_size = child_flex_basis.unwrap();
+                        )
+                        .unwrap_or(r32(0.0));
+                    let mut updated_main_size = child_flex_basis;
 
                     if remaining_free_space < 0.0 {
                         flex_shrink_scaled_factor =
-                            -self.resolve_flex_shrink(curr_rel_child) * child_flex_basis.unwrap();
+                            -self.resolve_flex_shrink(curr_rel_child) * child_flex_basis;
                         // Is this child able to shrink?
                         if flex_shrink_scaled_factor != 0.0 {
                             let mut child_size;
 
                             if total_flex_shrink_scaled_factors == 0.0 {
-                                child_size = child_flex_basis.unwrap() + flex_shrink_scaled_factor;
+                                child_size = child_flex_basis + flex_shrink_scaled_factor;
                             } else {
-                                child_size = child_flex_basis.unwrap()
+                                child_size = child_flex_basis
                                     + (remaining_free_space / total_flex_shrink_scaled_factors)
                                         * flex_shrink_scaled_factor;
                             }
@@ -1569,7 +1580,7 @@ impl Ygg {
                             updated_main_size = self.bound_axis(
                                 curr_rel_child,
                                 main_axis,
-                                child_flex_basis.unwrap()
+                                child_flex_basis
                                     + remaining_free_space / total_flex_grow_factors
                                         * flex_grow_factor,
                                 available_inner_main_dim,
@@ -1578,7 +1589,7 @@ impl Ygg {
                         }
                     }
 
-                    delta_free_space -= updated_main_size - child_flex_basis.unwrap();
+                    delta_free_space -= updated_main_size - child_flex_basis;
 
                     let margin_main = self
                         .style(curr_rel_child)
@@ -2708,14 +2719,14 @@ impl Ygg {
     }
 
     fn baseline(&mut self, node: Handle) -> R32 {
-        if let Some(baseline_fn) = self.baseline_fn(node) {
+        if let Some(&baseline_fn) = self.baseline_fn(node) {
             baseline_fn(
                 (self, node),
                 self.layout(node).measured_dimensions.width,
                 self.layout(node).measured_dimensions.height,
             )
         } else {
-            let mut baseline_child = None;
+            let mut baseline_child: Option<Handle> = None;
 
             {
                 let mut kerzy = || {
@@ -2744,8 +2755,9 @@ impl Ygg {
             }
 
             if let Some(baseline_child) = baseline_child {
-                self.baseline(baseline_child)
-                    + self.layout(baseline_child).position[PhysicalEdge::Top]
+                let top = self.layout(baseline_child).position[PhysicalEdge::Top];
+                let baseline = self.baseline(baseline_child);
+                baseline + top
             } else {
                 self.layout(node).measured_dimensions.height
             }

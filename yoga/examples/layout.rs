@@ -1,8 +1,29 @@
+#[macro_use]
+extern crate log;
+
+extern crate chrono;
+extern crate fern;
 extern crate ygg;
 
 use ygg::prelude::*;
 
 fn main() {
+    // init logging
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(std::io::stdout())
+        .apply()
+        .unwrap();
+
     let mut tree = Ygg::new(
         MeasuredDimensions {
             width: r32(512.0),

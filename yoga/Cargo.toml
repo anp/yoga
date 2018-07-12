@@ -12,6 +12,10 @@ noisy_float = { version = "0.1", features = ["serde-1"] }
 serde = "1"
 serde_derive = "1"
 
+[dev-dependencies]
+chrono = "0.4"
+fern = "0.5"
+
 [features]
 default = []
 web-default = []

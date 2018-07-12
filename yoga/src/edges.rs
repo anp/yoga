@@ -406,27 +406,36 @@ impl Position {
         let relative_position_main = self.relative(main_axis, main_size).unwrap_or(r32(0.0));
         let relative_position_cross = self.relative(cross_axis, cross_size).unwrap_or(r32(0.0));
 
+        let main_leading = (
+            main_axis.leading_edge(),
+            margin.leading(main_axis, parent_width) + relative_position_main,
+        );
+
+        let main_trailing = (
+            main_axis.trailing_edge(),
+            margin.trailing(main_axis, parent_width) + relative_position_main,
+        );
+
+        let cross_leading = (
+            cross_axis.leading_edge(),
+            margin.leading(cross_axis, parent_width) + relative_position_cross,
+        );
+
+        let cross_trailing = (
+            cross_axis.trailing_edge(),
+            margin.trailing(cross_axis, parent_width) + relative_position_cross,
+        );
+
         PositionBuilder::new()
-            .set(
-                main_axis.leading_edge(),
-                margin.leading(main_axis, parent_width) + relative_position_main,
-            )
-            .set(
-                main_axis.trailing_edge(),
-                margin.trailing(main_axis, parent_width) + relative_position_main,
-            )
-            .set(
-                cross_axis.leading_edge(),
-                margin.leading(cross_axis, parent_width) + relative_position_cross,
-            )
-            .set(
-                cross_axis.trailing_edge(),
-                margin.trailing(cross_axis, parent_width) + relative_position_cross,
-            )
+            .set(main_leading.0, main_leading.1)
+            .set(main_trailing.0, main_trailing.1)
+            .set(cross_leading.0, cross_leading.1)
+            .set(cross_trailing.0, cross_trailing.1)
             .build()
     }
 }
 
+#[derive(Debug)]
 struct PositionBuilder {
     start: Option<R32>,
     end: Option<R32>,
@@ -469,7 +478,7 @@ impl PositionBuilder {
                 top: *top,
                 bottom: *bottom,
             },
-            _ => panic!("not all position fields have been set"),
+            _ => panic!("not all position fields have been set: {:?}", self),
         }
     }
 }

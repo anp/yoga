@@ -173,8 +173,8 @@ impl FlexDirection {
         match &self {
             FlexDirection::Column => PhysicalEdge::Bottom,
             FlexDirection::ColumnReverse => PhysicalEdge::Top,
-            FlexDirection::Row => PhysicalEdge::Start,
-            FlexDirection::RowReverse => PhysicalEdge::End,
+            FlexDirection::Row => PhysicalEdge::End,
+            FlexDirection::RowReverse => PhysicalEdge::Start,
         }
     }
 
