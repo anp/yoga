@@ -6,87 +6,39 @@ internal_prelude!();
 const MAX_CACHED_RESULTS: usize = 16;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub(crate) struct Layout {
-    pub(crate) position: PositionResolved,
-    pub(crate) dimensions: Option<Dimensions>,
-    pub(crate) direction: Direction,
-    pub(crate) margin: MarginResolved,
-    pub(crate) border: BorderResolved,
-    pub(crate) padding: PaddingResolved,
-    pub(crate) computed_flex_basis_generation: u32,
-    pub(crate) computed_flex_basis: Option<R32>,
-    pub(crate) had_overflow: bool,
-    pub(crate) generation_count: u32,
-    pub(crate) last_parent_direction: Option<Direction>,
-    pub(crate) measured_dimensions: MeasuredDimensions,
-}
+pub struct Layout {}
 
-impl ::std::ops::Index<PhysicalEdge> for Layout {
-    type Output = R32;
-    fn index(&self, edge: PhysicalEdge) -> &Self::Output {
-        self.position.index(edge)
-    }
-}
+// impl ::std::ops::Index<PhysicalEdge> for Layout {
+//     type Output = R32;
+//     fn index(&self, edge: PhysicalEdge) -> &Self::Output {
+//         self.position.index(edge)
+//     }
+// }
 
-default!(
-    Layout,
-    Layout {
-        position: PositionResolved::default(),
-        dimensions: None,
-        margin: MarginResolved::default(),
-        border: BorderResolved::default(),
-        padding: PaddingResolved::default(),
-        direction: Direction::default(),
-        computed_flex_basis_generation: 0,
-        computed_flex_basis: None,
-        had_overflow: false,
-        generation_count: 0,
-        // RIIR(anp): this is not technically correct, it was uninit  before
-        last_parent_direction: None,
-        // next_cached_measurements_index: 0,
-        // cached_measurements: [None; 16],
-        measured_dimensions: MeasuredDimensions::default(),
-        // cached_layout: None,
-    }
-);
-
-impl Layout {
-    pub(crate) fn set_position(
-        &mut self,
-        style: Style,
-        direction: Direction,
-        main_size: R32,
-        cross_size: R32,
-        parent_width: R32,
-        has_parent: bool,
-    ) {
-        // Root nodes should be always layouted as LTR, so we don't return negative values.
-        let direction_respecting_root: Direction = if has_parent {
-            direction
-        } else {
-            Direction::LTR
-        };
-
-        let main_axis: FlexDirection = style
-            .flex_direction
-            .resolve_direction(direction_respecting_root);
-
-        let cross_axis: FlexDirection = main_axis.cross(direction_respecting_root);
-
-        self.position = style.position.resolve(
-            &style.margin,
-            main_axis,
-            main_size,
-            cross_axis,
-            cross_size,
-            parent_width,
-        );
-    }
-
-    pub(crate) fn is_dim_defined(&self, axis: FlexDirection) -> bool {
-        self.measured_dimensions[axis.dimension()] >= 0.0
-    }
-}
+// default!(
+//     Layout,
+//     Layout {
+//         position: PositionResolved::default(),
+//         dimensions: Dimensions {
+//             width: Value::Auto,
+//             height: Value::Auto,
+//         },
+//         margin: MarginResolved::default(),
+//         border: BorderResolved::default(),
+//         padding: PaddingResolved::default(),
+//         direction: Direction::default(),
+//         computed_flex_basis_generation: 0,
+//         computed_flex_basis: None,
+//         had_overflow: false,
+//         generation_count: 0,
+//         // RIIR(anp): this is not technically correct, it was uninit  before
+//         last_parent_direction: None,
+//         // next_cached_measurements_index: 0,
+//         // cached_measurements: [None; 16],
+//         measured_dimensions: MeasuredDimensions::default(),
+//         // cached_layout: None,
+//     }
+// );
 
 // CACHING(anp): this needs to be rethought in the rust context
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]

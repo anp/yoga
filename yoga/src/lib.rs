@@ -68,6 +68,8 @@ pub(crate) mod style;
 
 internal_prelude!();
 
+use std::time::Instant;
+
 // TODO(anp): include a generation count here to avoid issues
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub struct Handle(usize);
@@ -86,7 +88,20 @@ pub struct Ygg {
     styles: Vec<Style>,
     // FIXME(anp): probably needs to be eliminated completely?
     new_layout: Vec<bool>,
-    layouts: Vec<Layout>,
+
+    positions: Vec<Option<PositionResolved>>,
+    dimensions: Vec<Option<Dimensions>>,
+    directions: Vec<Option<Direction>>,
+    margins: Vec<Option<MarginResolved>>,
+    borders: Vec<Option<BorderResolved>>,
+    paddings: Vec<Option<PaddingResolved>>,
+    computed_flex_basis_generations: Vec<Option<u32>>,
+    computed_flex_bases: Vec<Option<R32>>,
+    had_overflows: Vec<bool>,
+    generation_counts: Vec<Option<u32>>,
+    last_parent_directions: Vec<Option<Direction>>,
+    measured_dimensions: Vec<Option<MeasuredDimensions>>,
+
     lines: Vec<u32>,
     parents: Vec<Option<Handle>>,
     children: Vec<Vec<Handle>>,
@@ -112,7 +127,18 @@ impl Ygg {
             types: Vec::new(),
             styles: Vec::new(),
             new_layout: Vec::new(),
-            layouts: Vec::new(),
+            positions: Vec::new(),
+            dimensions: Vec::new(),
+            directions: Vec::new(),
+            margins: Vec::new(),
+            borders: Vec::new(),
+            paddings: Vec::new(),
+            computed_flex_basis_generations: Vec::new(),
+            computed_flex_bases: Vec::new(),
+            had_overflows: Vec::new(),
+            generation_counts: Vec::new(),
+            last_parent_directions: Vec::new(),
+            measured_dimensions: Vec::new(),
             lines: Vec::new(),
             parents: Vec::new(),
             children: Vec::new(),
@@ -130,7 +156,18 @@ impl Ygg {
         self.types.push(NodeType::Default);
         self.styles.push(Style::default());
         self.new_layout.push(false);
-        self.layouts.push(Layout::default());
+        self.positions.push(None);
+        self.dimensions.push(None);
+        self.directions.push(None);
+        self.margins.push(None);
+        self.borders.push(None);
+        self.paddings.push(None);
+        self.computed_flex_basis_generations.push(None);
+        self.computed_flex_bases.push(None);
+        self.had_overflows.push(false);
+        self.generation_counts.push(None);
+        self.last_parent_directions.push(None);
+        self.measured_dimensions.push(None);
         self.lines.push(Default::default());
         self.parents.push(None);
         self.children.push(Vec::new());
@@ -141,7 +178,18 @@ impl Ygg {
             self.types.len(),
             self.styles.len(),
             self.new_layout.len(),
-            self.layouts.len(),
+            self.positions.len(),
+            self.dimensions.len(),
+            self.directions.len(),
+            self.margins.len(),
+            self.borders.len(),
+            self.paddings.len(),
+            self.computed_flex_basis_generations.len(),
+            self.computed_flex_bases.len(),
+            self.had_overflows.len(),
+            self.generation_counts.len(),
+            self.last_parent_directions.len(),
+            self.measured_dimensions.len(),
             self.lines.len(),
             self.parents.len(),
             self.children.len(),
@@ -157,11 +205,24 @@ impl Ygg {
         new_handle
     }
 
-    pub fn get_layout(&mut self) -> () {
+    // FIXME(anp): make it not option!!!!
+    pub fn get_layout(&mut self) -> BTreeMap<Handle, Option<PositionResolved>> {
         let available = self.total_available;
         let direction = self.container_direction;
         // CACHING(anp): could probably check for a cached layout, no?
+        let start = Instant::now();
+
         self.calculate_layout(Handle(0), available, direction);
+
+        let layout_duration = Instant::now().duration_since(start);
+        debug!("layout took {:?}", layout_duration);
+
+        unimplemented!();
+        // self.layouts
+        //     .iter()
+        //     .enumerate()
+        //     .map(|(i, l)| (Handle(i), l.map(|l| l.position)))
+        //     .collect()
     }
 
     pub fn push_child(&mut self, parent: Handle, child: Handle) {
@@ -170,10 +231,6 @@ impl Ygg {
 
     fn add_absolute_child(&mut self, child: Handle) {
         self.abs_children.push(child);
-    }
-
-    fn absolute_children(&self) -> &[Handle] {
-        &self.abs_children
     }
 
     fn current_generation(&self) -> u32 {
@@ -200,18 +257,6 @@ impl Ygg {
         self.styles[node.0]
     }
 
-    fn style_mut(&mut self, node: Handle) -> &mut Style {
-        self.styles.get_mut(node.0).unwrap()
-    }
-
-    fn layout(&self, node: Handle) -> Layout {
-        self.layouts[node.0]
-    }
-
-    fn layout_mut(&mut self, node: Handle) -> &mut Layout {
-        self.layouts.get_mut(node.0).unwrap()
-    }
-
     fn measure_fn(&self, node: Handle) -> Option<&MeasureFn> {
         self.measure_fns.get(&node)
     }
@@ -220,9 +265,6 @@ impl Ygg {
         self.baseline_fns.get(&node)
     }
 
-    // fn dirty(&mut self) -> &mut bool;
-    // fn new_layout(&mut self) -> &mut bool;
-    // fn node_type(&self) -> NodeType;
     fn resolved(&self, node: Handle) -> ResolvedDimensions {
         self.resolved[node.0]
     }
@@ -338,19 +380,18 @@ impl Ygg {
             height_measure_mode,
             parent_width,
             parent_height,
-            r32(POINT_SCALE_FACTOR),
             true,
             "initial",
         );
 
         if did_something_wat {
-            let dir = self.layout(node).direction;
+            let dir = self.directions[node.0];
             let has_parent = self.parent(node).is_some();
             let style = self.style(node);
-            // unused: we know it's been updated, we're calculating it
-            let _ = self.layout_mut(node).set_position(
+            self.set_position(
+                node,
                 style,
-                dir,
+                dir.unwrap(),
                 parent_width,
                 parent_height,
                 parent_width,
@@ -359,6 +400,39 @@ impl Ygg {
 
             self.round_to_pixel_grid(node, r32(POINT_SCALE_FACTOR), r32(0.0), r32(0.0));
         };
+    }
+
+    fn set_position(
+        &mut self,
+        node: Handle,
+        style: Style,
+        direction: Direction,
+        main_size: R32,
+        cross_size: R32,
+        parent_width: R32,
+        has_parent: bool,
+    ) {
+        // Root nodes should be always layouted as LTR, so we don't return negative values.
+        let direction_respecting_root: Direction = if has_parent {
+            direction
+        } else {
+            Direction::LTR
+        };
+
+        let main_axis: FlexDirection = style
+            .flex_direction
+            .resolve_direction(direction_respecting_root);
+
+        let cross_axis: FlexDirection = main_axis.cross(direction_respecting_root);
+
+        self.positions[node.0] = Some(style.position.resolve(
+            &style.margin,
+            main_axis,
+            main_size,
+            cross_axis,
+            cross_size,
+            parent_width,
+        ));
     }
 
     /// This is a wrapper around the layoutImpl function. It determines whether the layout
@@ -374,170 +448,53 @@ impl Ygg {
         height_measure_mode: Option<MeasureMode>,
         parent_width: R32,
         parent_height: R32,
-        point_scale_factor: R32,
         perform_layout: bool,
         reason: &str,
         // TODO(anp): make the return type an enum!!!!
     ) -> bool {
-        // FIXME(anp): figure out how to print these disaggregated nodes
-        // trace!("layout for reason {} on node {:?}", reason, self);
+        trace!("layout ({}) on node {:?}", reason, node);
 
-        // FIXME(anp): reenable
-        // let current_generation = Y::current_generation();
+        let current_generation = self.current_generation();
         let need_to_visit_node = self.dirties[node.0]
-            // FIXME(anp): reenable
-            // && self.layout(node).generation_count != current_generation
-            || self.layout(node).last_parent_direction != Some(parent_direction);
+            && self.generation_counts[node.0] != Some(current_generation)
+            || self.last_parent_directions[node.0] != Some(parent_direction);
 
-        // CACHING(anp): if a node is marked as dirty, invalidate its cache results. i think
-        // that it would be reasonable to move this to an entirely separate subsystem
-        // if need_to_visit_node {
-        //     // Invalidate the cached results.
-        //     self.layout_mut(node).cached_layout = None;
-        //     self.layout_mut(node).next_cached_measurements_index = 0;
-        // };
+        // CACHING(anp) if a node is marked as dirty, invalidate its cache here
 
-        // Determine whether the results are already cached. We maintain a separate
-        // cache for layouts and measurements. A layout operation modifies the
-        // positions
-        // and dimensions for nodes in the subtree. The algorithm assumes that each
-        // node
-        // gets layed out a maximum of one time per tree layout, but multiple
-        // measurements
-        // may be required to resolve all of the flex dimensions.
-        // We handle nodes with measure functions specially here because they are the
-        // most
-        // expensive to measure, so it's worth avoiding redundant measurements if at
-        // all possible.
         // CACHING(anp): this is where some cached values were fetched previously
-        let cached_results: Option<layout::CachedMeasurement> = None;
-        // let cached_results = if let Some(cached) = self.layout(node).cached_layout {
-        //     if let Some(_) = self.measure_fn(node) {
-        //         let margin_axis_row = self
-        //             .style(node)
-        //             .margin
-        //             .for_axis(FlexDirection::Row, parent_width);
-        //         let margin_axis_column = self
-        //             .style(node)
-        //             .margin
-        //             .for_axis(FlexDirection::Column, parent_height);
-        //         // First, try to use the layout cache.
-        //         if CachedMeasurement::usable(
-        //             Some(cached),
-        //             width_measure_mode,
-        //             available_width,
-        //             height_measure_mode,
-        //             available_height,
-        //             margin_axis_row,
-        //             margin_axis_column,
-        //             point_scale_factor,
-        //         ) {
-        //             Some(cached)
-        //         } else {
-        //             // Try to use the measurement cache.
-        //             let idx = self.layout(node).next_cached_measurements_index;
-        //             match self.layout(node).cached_measurements[0..idx]
-        //                 .into_iter()
-        //                 .find(|c| {
-        //                     CachedMeasurement::usable(
-        //                         **c,
-        //                         width_measure_mode,
-        //                         available_width,
-        //                         height_measure_mode,
-        //                         available_height,
-        //                         margin_axis_row,
-        //                         margin_axis_column,
-        //                         point_scale_factor,
-        //                     )
-        //                 }) {
-        //                 Some(Some(v)) => Some(*v),
-        //                 _ => None,
-        //             }
-        //         }
-        //     } else if perform_layout
-        //         && cached.available_width.approx_eq(available_width)
-        //         && cached.available_height.approx_eq(available_height)
-        //         && cached.width_measure_mode == width_measure_mode
-        //         && cached.height_measure_mode == height_measure_mode
-        //     {
-        //         Some(cached)
-        //     } else {
-        //         let idx = self.layout(node).next_cached_measurements_index;
-        //         self.layout(node).cached_measurements[0..idx]
-        //             .into_iter()
-        //             .filter_map(|&s| s)
-        //             .filter(|c| {
-        //                 c.available_width.approx_eq(available_width)
-        //                     && c.available_height.approx_eq(available_height)
-        //                     && c.width_measure_mode == width_measure_mode
-        //                     && c.height_measure_mode == height_measure_mode
-        //             })
-        //             .next()
-        //     }
-        // } else {
-        //     None
-        // };
 
-        if let (false, Some(cached)) = (need_to_visit_node, cached_results) {
-            self.layout_mut(node).measured_dimensions = cached.computed;
-        } else {
-            self.layout_impl(
-                node,
-                available_width,
-                available_height,
-                parent_direction,
-                width_measure_mode,
-                height_measure_mode,
-                parent_width,
-                parent_height,
-                perform_layout,
-            );
+        self.layout_impl(
+            node,
+            available_width,
+            available_height,
+            parent_direction,
+            width_measure_mode,
+            height_measure_mode,
+            parent_width,
+            parent_height,
+            perform_layout,
+        );
 
-            self.layout_mut(node).last_parent_direction = Some(parent_direction);
-            if cached_results.is_none() {
-                // CACHING(anp): cache is populated here too
-                // if self.layout_mut(node).next_cached_measurements_index == 16 {
-                //     self.layout_mut(node).next_cached_measurements_index = 0;
-                // };
+        self.last_parent_directions[node.0] = Some(parent_direction);
+        // CACHING(anp): cache is populated here too
 
-                // let computed = self.layout_mut(node).measured_dimensions;
-
-                // let mut new_cache_entry = if perform_layout {
-                //     // Use the single layout cache entry.
-                //     &mut self.layout_mut(node).cached_layout
-                // } else {
-                //     self.layout_mut(node).next_cached_measurements_index += 1;
-                //     let idx = self.layout_mut(node).next_cached_measurements_index;
-                //     &mut self.layout_mut(node).cached_measurements[idx]
-                // };
-
-                // *new_cache_entry = Some(CachedMeasurement {
-                //     available_width: available_width,
-                //     available_height: available_height,
-                //     width_measure_mode: width_measure_mode,
-                //     height_measure_mode: height_measure_mode,
-                //     computed,
-                // });
-            }
-        }
-
-        // FIXME(anp): reenable
-        // self.layout_mut(node).generation_count = Y::current_generation();
+        self.generation_counts[node.0] = Some(self.current_generation());
 
         if perform_layout {
-            self.layout_mut(node).dimensions =
-                Some(self.layout_mut(node).measured_dimensions.into());
-            self.new_layout[node.0];
+            let new_dimensions = self.measured_dimensions[node.0].map(Into::into);
+            debug!("setting laid out dimensions: {:?}", (node, new_dimensions));
+            self.dimensions[node.0] = new_dimensions;
+            self.new_layout[node.0] = true;
             self.dirties[node.0] = false;
         };
 
-        return need_to_visit_node || cached_results.is_none();
+        return need_to_visit_node;
     }
 
     fn mark_dirty(&mut self, node: Handle) {
         if !self.dirties[node.0] {
             self.dirties[node.0] = true;
-            self.layout_mut(node).computed_flex_basis = None;
+            self.computed_flex_bases[node.0] = None;
 
             if let Some(p) = self.parent(node) {
                 self.mark_dirty(p);
@@ -552,7 +509,7 @@ impl Ygg {
     }
 
     fn with_measure_func_set_measured_dimensions(
-        &mut self,
+        &self,
         node: Handle,
         measure: MeasureFn,
         available_width: R32,
@@ -845,8 +802,18 @@ impl Ygg {
     }
 
     fn zero_layout_recursively(&mut self, node: Handle) {
-        // FIXME(anp): this should be assigning None to a nullable field!!!
-        *self.layout_mut(node) = Layout::default();
+        self.positions[node.0] = None;
+        self.dimensions[node.0] = None;
+        self.directions[node.0] = None;
+        self.margins[node.0] = None;
+        self.borders[node.0] = None;
+        self.paddings[node.0] = None;
+        self.computed_flex_basis_generations[node.0] = None;
+        self.computed_flex_bases[node.0] = None;
+        self.had_overflows[node.0] = false;
+        self.generation_counts[node.0] = None;
+        self.last_parent_directions[node.0] = None;
+        self.measured_dimensions[node.0] = None;
         self.new_layout[node.0] = true;
         for idx in 0..self.children(node).len() {
             let child = self.child(node, idx);
@@ -855,7 +822,7 @@ impl Ygg {
     }
 
     fn dim_with_margin(&self, node: Handle, axis: FlexDirection, width_size: R32) -> R32 {
-        self.layout(node).measured_dimensions[axis.dimension()]
+        self.measured_dimensions[node.0].unwrap()[axis.dimension()]
             + self.style(node).margin.leading(axis, width_size)
             + self.style(node).margin.trailing(axis, width_size)
     }
@@ -972,31 +939,33 @@ impl Ygg {
         }
 
         // Set the resolved resolution in the node's layout.
-        let direction = self.layout(node).direction.resolve(parent_direction);
+        let direction = self.directions[node.0]
+            .map(|d| d.resolve(parent_direction))
+            .unwrap();
         let flex_row_direction = FlexDirection::Row.resolve_direction(direction);
         let flex_column_direction = FlexDirection::Column.resolve_direction(direction);
-        self.layout_mut(node).direction = direction;
 
-        self.layout_mut(node).margin = self.style(node).margin.resolve(
+        let new_margin = self.style(node).margin.resolve(
             flex_row_direction,
             flex_column_direction,
             parent_width,
         );
 
-        self.layout_mut(node).border = self
+        // self.layout_mut(node).border = self
+        let new_border = self
             .style(node)
             .border
             .resolve(flex_row_direction, flex_column_direction);
 
-        self.layout_mut(node).padding = self.style(node).padding.resolve(
+        // self.layout_mut(node).padding = self.style(node).padding.resolve(
+        let new_padding = self.style(node).padding.resolve(
             flex_row_direction,
             flex_column_direction,
             parent_width,
         );
 
-        // TODO(anp): make this idempotent/typesafe/etc
-        if let Some(&measure_fn) = self.measure_fn(node) {
-            let measured = self.with_measure_func_set_measured_dimensions(
+        let new_measured = if let Some(&measure_fn) = self.measure_fn(node) {
+            Some(self.with_measure_func_set_measured_dimensions(
                 node,
                 measure_fn,
                 available_width,
@@ -1005,29 +974,18 @@ impl Ygg {
                 height_measure_mode,
                 parent_width,
                 parent_height,
-            );
-
-            self.layout_mut(node).measured_dimensions = measured;
-            return;
-        }
-
-        if self.children(node).is_empty() {
-            self.layout_mut(node).measured_dimensions = self
-                .empty_container_set_measured_dimensions(
-                    node,
-                    available_width,
-                    available_height,
-                    width_measure_mode,
-                    height_measure_mode,
-                    parent_width,
-                    parent_height,
-                );
-            return;
-        };
-
-        // If we're not being asked to perform a full layout we can skip the algorithm if we already know
-        // the size
-        if let (false, Some(d)) = (
+            ))
+        } else if self.children(node).is_empty() {
+            Some(self.empty_container_set_measured_dimensions(
+                node,
+                available_width,
+                available_height,
+                width_measure_mode,
+                height_measure_mode,
+                parent_width,
+                parent_height,
+            ))
+        } else if let (false, Some(d)) = (
             perform_layout,
             self.fixed_size_set_measured_dimensions(
                 node,
@@ -1039,12 +997,34 @@ impl Ygg {
                 parent_height,
             ),
         ) {
-            self.layout_mut(node).measured_dimensions = d;
+            // If we're not being asked to perform a full layout we can skip the algorithm if we
+            // already know the size
+            Some(d)
+        } else {
+            None
+        };
+
+        if let Some(measured) = new_measured {
+            self.directions[node.0] = Some(direction);
+            self.measured_dimensions[node.0] = Some(measured);
+            self.borders[node.0] = Some(new_border);
+            self.margins[node.0] = Some(new_margin);
+            self.paddings[node.0] = Some(new_padding);
+            self.new_layout[node.0] = true;
+
+            self.positions[node.0] = panic!();
+            self.dimensions[node.0] = panic!();
+            self.computed_flex_basis_generations[node.0] = panic!();
+            self.computed_flex_bases[node.0] = panic!();
+            self.had_overflows[node.0] = panic!();
+            self.generation_counts[node.0] = panic!();
+            self.last_parent_directions[node.0] = panic!();
+
             return;
         }
 
         // Reset layout flags, as they could have changed.
-        self.layout_mut(node).had_overflow = false;
+        self.had_overflows[node.0] = false;
 
         // STEP 1: CALCULATE VALUES FOR REMAINDER OF ALGORITHM
         let main_axis = self.style(node).flex_direction.resolve_direction(direction);
@@ -1226,8 +1206,8 @@ impl Ygg {
                 // Set the initial position (relative to the parent).
                 let child_direction = self.style(child).direction.resolve(direction);
                 let child_style = self.style(child);
-                // unused: we know its getting mutated, we're doing layout now
-                let _ = self.layout_mut(child).set_position(
+                self.set_position(
+                    child,
                     child_style,
                     child_direction,
                     available_inner_main_dim,
@@ -1244,8 +1224,8 @@ impl Ygg {
                 // so that we can efficiently traverse them later.
                 self.add_absolute_child(child);
             } else if has_single_flex_child {
-                self.layout_mut(child).computed_flex_basis_generation = current_gen;
-                self.layout_mut(child).computed_flex_basis = Some(r32(0.0));
+                self.computed_flex_basis_generations[child.0] = Some(current_gen);
+                self.computed_flex_bases[child.0] = Some(r32(0.0));
             } else {
                 self.compute_flex_basis_from_parent(
                     child,
@@ -1262,7 +1242,7 @@ impl Ygg {
                 );
             }
 
-            if let Some(basis) = self.layout(child).computed_flex_basis {
+            if let Some(basis) = self.computed_flex_bases[child.0] {
                 total_outer_flex_basis += basis;
             }
 
@@ -1324,7 +1304,7 @@ impl Ygg {
                     let flex_basis_with_max_constraints = self.style(child).max_dimensions
                         [main_axis.dimension()]
                         .resolve(main_axis_parent_size)
-                        .min(self.layout(child).computed_flex_basis)
+                        .min(self.computed_flex_bases[child.0])
                         // FIXME(anp): just papering over this here
                         .unwrap_or(r32(0.0));
 
@@ -1356,7 +1336,7 @@ impl Ygg {
 
                         // Unlike the grow factor, the shrink factor is scaled relative to the child dimension.
                         total_flex_shrink_scaled_factors += -self.resolve_flex_shrink(child)
-                            * self.layout(child).computed_flex_basis.unwrap();
+                            * self.computed_flex_bases[child.0].unwrap();
                     }
                 }
                 end_of_line_index += 1;
@@ -1460,7 +1440,7 @@ impl Ygg {
                         .min(
                             self.style(curr_rel_child).min_dimensions[main_axis.dimension()]
                                 .resolve(main_axis_parent_size)
-                                .max(self.layout(curr_rel_child).computed_flex_basis),
+                                .max(self.computed_flex_bases[curr_rel_child.0]),
                         )
                         // FIXME(anp): just papering over this here
                         .unwrap_or(r32(0.0));
@@ -1544,7 +1524,7 @@ impl Ygg {
                         .min(
                             self.style(curr_rel_child).min_dimensions[main_axis.dimension()]
                                 .resolve(main_axis_parent_size)
-                                .max(self.layout(curr_rel_child).computed_flex_basis),
+                                .max(self.computed_flex_bases[curr_rel_child.0]),
                         )
                         .unwrap_or(r32(0.0));
                     let mut updated_main_size = child_flex_basis;
@@ -1724,13 +1704,12 @@ impl Ygg {
                         child_height_measure_mode,
                         available_inner_width,
                         available_inner_height,
-                        r32(POINT_SCALE_FACTOR),
                         perform_layout && !requires_stretch_layout,
                         "flex",
                     );
 
-                    let current_had_overflow = self.layout(curr_rel_child).had_overflow;
-                    self.layout_mut(node).had_overflow |= current_had_overflow;
+                    let current_had_overflow = self.had_overflows[curr_rel_child.0];
+                    self.had_overflows[node.0] |= current_had_overflow;
                     // TODO(anp): this is almost certainly a broken replacement for the linked list
                     let new_idx = idx + 1;
                     curr_rel_child_idx = if new_idx < self.children(node).len() {
@@ -1741,7 +1720,7 @@ impl Ygg {
                 }
 
                 remaining_free_space = original_remaining_free_space + delta_free_space;
-                self.layout_mut(node).had_overflow |= remaining_free_space < 0.0;
+                self.had_overflows[node.0] |= remaining_free_space < 0.0;
             }
 
             // STEP 6: MAIN-AXIS JUSTIFICATION & CROSS-AXIS SIZE DETERMINATION
@@ -1824,10 +1803,12 @@ impl Ygg {
                         .style(child)
                         .margin
                         .leading(main_axis, available_inner_width);
-                    self.layout_mut(child).position.set(
-                        main_axis.leading_edge(),
-                        leading_pos + own_leading_border + child_leading_margin,
-                    );
+                    self.positions[child.0].as_mut().map(|p| {
+                        p.set(
+                            main_axis.leading_edge(),
+                            leading_pos + own_leading_border + child_leading_margin,
+                        )
+                    });
                 } else {
                     // Now that we placed the element, we need to update the variables.
                     // We need to do that only for relative elements. Absolute elements
@@ -1839,9 +1820,9 @@ impl Ygg {
                         }
 
                         if perform_layout {
-                            self.layout_mut(child)
-                                .position
-                                .add(main_axis.leading_edge(), main_dim);
+                            self.positions[child.0]
+                                .as_mut()
+                                .map(|p| p.add(main_axis.leading_edge(), main_dim));
                         }
 
                         if self.style(child).margin.trailing_value(main_axis) == Some(Value::Auto) {
@@ -1858,7 +1839,7 @@ impl Ygg {
                                     .style(child)
                                     .margin
                                     .for_axis(main_axis, available_inner_width)
-                                + self.layout(child).computed_flex_basis.unwrap_or(r32(0.0));
+                                + self.computed_flex_bases[child.0].unwrap_or(r32(0.0));
                             cross_dim = available_inner_cross_dim;
                         } else {
                             // The main dimension is the sum of all the elements dimension plus the spacing.
@@ -1875,10 +1856,12 @@ impl Ygg {
                         }
                     } else if perform_layout {
                         let own_leading_border = self.style(node).border.leading(main_axis);
-                        self.layout_mut(child).position.set(
-                            main_axis.leading_edge(),
-                            own_leading_border + leading_main_dim,
-                        );
+                        self.positions[child.0].as_mut().map(|p| {
+                            p.set(
+                                main_axis.leading_edge(),
+                                own_leading_border + leading_main_dim,
+                            )
+                        });
                     }
                 }
             }
@@ -1934,10 +1917,12 @@ impl Ygg {
                                 .style(child)
                                 .margin
                                 .leading(cross_axis, available_inner_width);
-                            let _ = self.layout_mut(child).position.set(
-                                cross_axis.leading_edge(),
-                                child_leading_pos + own_leading_border + child_leading_margin,
-                            );
+                            self.positions[child.0].as_mut().map(|p| {
+                                p.set(
+                                    cross_axis.leading_edge(),
+                                    child_leading_pos + own_leading_border + child_leading_margin,
+                                )
+                            });
                         } else if self.style(child).position[cross_axis.leading_edge()].is_none() {
                             // If leading position is not defined or calculations result in Nan,
                             // default to border + margin
@@ -1946,10 +1931,12 @@ impl Ygg {
                                 .style(child)
                                 .margin
                                 .leading(cross_axis, available_inner_width);
-                            let _ = self.layout_mut(child).position.set(
-                                cross_axis.leading_edge(),
-                                own_leading_border + child_leading_margin,
-                            );
+                            self.positions[child.0].map(|p| {
+                                p.set(
+                                    cross_axis.leading_edge(),
+                                    own_leading_border + child_leading_margin,
+                                )
+                            });
                         }
                     } else {
                         let mut leading_cross_dim = leading_padding_and_border_cross;
@@ -1981,8 +1968,8 @@ impl Ygg {
                                 cross_axis,
                                 available_inner_cross_dim,
                             ) {
-                                let mut child_main_size =
-                                    self.layout(child).measured_dimensions[main_axis.dimension()];
+                                let mut child_main_size = self.measured_dimensions[child.0]
+                                    .unwrap()[main_axis.dimension()];
 
                                 let mut child_cross_size =
                                     if let Some(ar) = self.style(child).aspect_ratio {
@@ -2060,7 +2047,6 @@ impl Ygg {
                                     child_height_measure_mode,
                                     available_inner_width,
                                     available_inner_height,
-                                    r32(POINT_SCALE_FACTOR),
                                     true,
                                     "stretch",
                                 );
@@ -2087,10 +2073,12 @@ impl Ygg {
                                 };
                         }
                         // And we apply the position
-                        let _ = self.layout_mut(child).position.set(
-                            cross_axis.leading_edge(),
-                            total_line_cross_dim + leading_cross_dim,
-                        );
+                        let _ = self.positions[child.0].as_mut().map(|p| {
+                            p.set(
+                                cross_axis.leading_edge(),
+                                total_line_cross_dim + leading_cross_dim,
+                            )
+                        });
                     }
                 }
             }
@@ -2149,13 +2137,13 @@ impl Ygg {
                     }
 
                     if self.style(child).position_type == PositionType::Relative {
-                        if self.lines[child.0] != i {
+                        if self.lines[child.0] != Some(i) {
                             break;
                         }
 
-                        if self.layout(child).is_dim_defined(cross_axis) {
+                        if self.is_dim_defined(child, cross_axis) {
                             line_height = line_height.max(
-                                self.layout(child).measured_dimensions[cross_axis.dimension()]
+                                self.measured_dimensions[child.0].unwrap()[cross_axis.dimension()]
                                     + self
                                         .style(child)
                                         .margin
@@ -2169,7 +2157,7 @@ impl Ygg {
                                     .style(child)
                                     .margin
                                     .leading(FlexDirection::Column, available_inner_width);
-                            let descent = self.layout(child).measured_dimensions.height
+                            let descent = self.measured_dimensions[child.0].unwrap().height
                                 + self
                                     .style(child)
                                     .margin
@@ -2198,44 +2186,51 @@ impl Ygg {
                                         .style(child)
                                         .margin
                                         .leading(cross_axis, available_inner_width);
-                                    self.layout_mut(child).position.set(
-                                        cross_axis.leading_edge(),
-                                        current_lead + child_leading_margin,
-                                    );
+                                    self.positions[child.0].as_mut().map(|p| {
+                                        p.set(
+                                            cross_axis.leading_edge(),
+                                            current_lead + child_leading_margin,
+                                        )
+                                    });
                                 }
                                 Align::FlexEnd => {
                                     let child_trailing_margin = self
                                         .style(child)
                                         .margin
                                         .trailing(cross_axis, available_inner_width);
-                                    let child_cross_measured = self
-                                        .layout(child)
-                                        .measured_dimensions[cross_axis.dimension()];
+                                    let child_cross_measured = self.measured_dimensions[child.0]
+                                        .unwrap()[cross_axis.dimension()];
 
-                                    self.layout_mut(child).position.set(
-                                        cross_axis.leading_edge(),
-                                        current_lead + line_height
-                                            - child_trailing_margin
-                                            - child_cross_measured,
-                                    );
+                                    self.positions[child.0].as_mut().map(|p| {
+                                        p.set(
+                                            cross_axis.leading_edge(),
+                                            current_lead + line_height
+                                                - child_trailing_margin
+                                                - child_cross_measured,
+                                        )
+                                    });
                                 }
                                 Align::Center => {
-                                    let mut child_height = self.layout(child).measured_dimensions
-                                        [cross_axis.dimension()];
-                                    self.layout_mut(child).position.set(
-                                        cross_axis.leading_edge(),
-                                        current_lead + (line_height - child_height) / 2.0,
-                                    );
+                                    let mut child_height = self.measured_dimensions[child.0]
+                                        .unwrap()[cross_axis.dimension()];
+                                    self.positions[child.0].as_mut().map(|p| {
+                                        p.set(
+                                            cross_axis.leading_edge(),
+                                            current_lead + (line_height - child_height) / 2.0,
+                                        )
+                                    });
                                 }
                                 Align::Stretch => {
                                     let child_leading_margin = self
                                         .style(child)
                                         .margin
                                         .leading(cross_axis, available_inner_width);
-                                    self.layout_mut(child).position.set(
-                                        cross_axis.leading_edge(),
-                                        current_lead + child_leading_margin,
-                                    );
+                                    self.positions[child.0].as_mut().map(|p| {
+                                        p.set(
+                                            cross_axis.leading_edge(),
+                                            current_lead + child_leading_margin,
+                                        )
+                                    });
 
                                     // Remeasure child with the line height as it as been only measured with the
                                     // parents height yet.
@@ -2278,7 +2273,6 @@ impl Ygg {
                                                 Some(MeasureMode::Exactly),
                                                 available_inner_width,
                                                 available_inner_height,
-                                                r32(POINT_SCALE_FACTOR),
                                                 true,
                                                 "multiline-stretch",
                                             );
@@ -2584,7 +2578,6 @@ impl Ygg {
                 child_height_measure_mode,
                 child_width.unwrap(),
                 child_height.unwrap(),
-                r32(POINT_SCALE_FACTOR),
                 false,
                 "abs-measure",
             );
@@ -2602,16 +2595,23 @@ impl Ygg {
             );
         };
 
+        let child_width = child_width.unwrap();
+        let child_height = child_height.unwrap();
+
+        self.layout(child).dimensions = Dimensions {
+            width: Value::Point(child_width),
+            height: Value::Point(child_height),
+        };
+
         self.layout_node_internal(
             child,
-            child_width.unwrap(),
-            child_height.unwrap(),
+            child_width,
+            child_height,
             direction,
             Some(MeasureMode::Exactly),
             Some(MeasureMode::Exactly),
-            child_width.unwrap(),
-            child_height.unwrap(),
-            r32(POINT_SCALE_FACTOR),
+            child_width,
+            child_height,
             true,
             "abs-layout",
         );
@@ -2990,7 +2990,6 @@ impl Ygg {
                 self_height_measure_mode,
                 parent_width,
                 parent_height,
-                r32(POINT_SCALE_FACTOR),
                 false,
                 "measure",
             );
@@ -3021,21 +3020,19 @@ impl Ygg {
         let node_left = self.layout(node).position.start;
         let node_top = self.layout(node).position.top;
 
-        let node_width = match self.layout(node).dimensions.unwrap()[Dimension::Width] {
+        let node_width = match self.layout(node).dimensions.width {
             Value::Point(nw) => nw,
             _ => panic!(
-                // FIXME(anp): once we know how to do Debug for Ygg
-                // "node_width had not been resolved before being rounded to pixel grid: {:?}",
-                // self
+                "node_width had not been resolved before being rounded to pixel grid: {:?}",
+                (node, self.layout(node).dimensions)
             ),
         };
 
-        let node_height = match self.layout(node).dimensions.unwrap()[Dimension::Height] {
+        let node_height = match self.layout(node).dimensions.width {
             Value::Point(nh) => nh,
             _ => panic!(
-                // FIXME(anp): once we know how to do Debug for Ygg
-                // "node_height has not been resolved before being rounded to pixel grid: {:?}",
-                // self
+                "node_height has not been resolved before being rounded to pixel grid: {:?}",
+                (node, self.layout(node).dimensions)
             ),
         };
 
@@ -3066,7 +3063,7 @@ impl Ygg {
         let has_fractional_height = !(node_height * point_scale_factor % 1.0).approx_eq(r32(0.0))
             && !(node_height * point_scale_factor % 1.0).approx_eq(r32(1.0));
 
-        self.layout_mut(node).dimensions = Some(Dimensions {
+        self.layout_mut(node).dimensions = Dimensions {
             // TODO(anp): this type wrapping is silly
             width: Value::Point(
                 round_value_to_pixel_grid(
@@ -3096,7 +3093,7 @@ impl Ygg {
                         text_rounding,
                     ),
             ),
-        });
+        };
 
         for idx in 0..self.children(node).len() {
             let child = self.child(node, idx);

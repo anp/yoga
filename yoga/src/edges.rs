@@ -164,9 +164,9 @@ macro_rules! edges {
         }
 
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-        pub(crate) struct $mindlessresolution {
+        pub struct $mindlessresolution {
             $(
-                pub(crate) $resolvedfield: $resolvedty,
+                pub $resolvedfield: $resolvedty,
             )*
         }
 

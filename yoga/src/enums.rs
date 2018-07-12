@@ -36,32 +36,14 @@ pub enum Align {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub(crate) struct ResolvedDimensions {
-    pub(crate) width: Option<Value>,
-    pub(crate) height: Option<Value>,
+pub struct Rectangle<V> {
+    pub height: V,
+    pub width: V,
 }
 
-default!(
-    ResolvedDimensions,
-    ResolvedDimensions {
-        width: None,
-        height: None
-    }
-);
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub struct MeasuredDimensions {
-    pub height: R32,
-    pub width: R32,
-}
-
-default!(
-    MeasuredDimensions,
-    MeasuredDimensions {
-        height: r32(0.0),
-        width: r32(0.0)
-    }
-);
+pub type Dimensions = Rectangle<Value>;
+pub type MeasuredDimensions = Rectangle<R32>;
+pub type ResolvedDimensions = Rectangle<Option<Value>>;
 
 impl Into<Dimensions> for MeasuredDimensions {
     fn into(self) -> Dimensions {
@@ -71,40 +53,38 @@ impl Into<Dimensions> for MeasuredDimensions {
         }
     }
 }
+// pub(crate) fn is_dim_defined(&self, axis: FlexDirection) -> bool {
+//     self.measured_dimensions[axis.dimension()] >= 0.0
+// }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
-pub(crate) struct Dimensions {
-    pub(crate) height: Value,
-    pub(crate) width: Value,
+impl<V: Default> Default for Rectangle<V> {
+    fn default() -> Self {
+        Rectangle {
+            height: V::default(),
+            width: V::default(),
+        }
+    }
 }
 
-macro_rules! index_with_dimension {
-    ($struct:ty, $output:ty) => {
-        impl Index<Dimension> for $struct {
-            type Output = $output;
+impl<V> Index<Dimension> for Rectangle<V> {
+    type Output = V;
 
-            fn index(&self, d: Dimension) -> &Self::Output {
-                match d {
-                    Dimension::Height => &self.height,
-                    Dimension::Width => &self.width,
-                }
-            }
+    fn index(&self, d: Dimension) -> &Self::Output {
+        match d {
+            Dimension::Height => &self.height,
+            Dimension::Width => &self.width,
         }
-
-        impl IndexMut<Dimension> for $struct {
-            fn index_mut(&mut self, d: Dimension) -> &mut Self::Output {
-                match d {
-                    Dimension::Height => &mut self.height,
-                    Dimension::Width => &mut self.width,
-                }
-            }
-        }
-    };
+    }
 }
 
-index_with_dimension!(Dimensions, Value);
-index_with_dimension!(MeasuredDimensions, R32);
-index_with_dimension!(ResolvedDimensions, Option<Value>);
+impl<V> IndexMut<Dimension> for Rectangle<V> {
+    fn index_mut(&mut self, d: Dimension) -> &mut Self::Output {
+        match d {
+            Dimension::Height => &mut self.height,
+            Dimension::Width => &mut self.width,
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Serialize, Deserialize)]
 pub(crate) enum Dimension {
@@ -195,8 +175,8 @@ impl FlexDirection {
 
     pub(crate) fn is_row(&self) -> bool {
         match self {
-            FlexDirection::Column | FlexDirection::ColumnReverse => true,
-            FlexDirection::Row | FlexDirection::RowReverse => false,
+            FlexDirection::Column | FlexDirection::ColumnReverse => false,
+            FlexDirection::Row | FlexDirection::RowReverse => true,
         }
     }
 }

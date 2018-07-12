@@ -19,7 +19,7 @@ fn main() {
                 message
             ))
         })
-        .level(log::LevelFilter::Debug)
+        .level(log::LevelFilter::Trace)
         .chain(std::io::stdout())
         .apply()
         .unwrap();
@@ -54,15 +54,23 @@ fn main() {
     // FIXME(anp): i guess maybe i need to resurrect the undefined arm of value?
     // tree.apply_style(node, Bottom(None));
 
-    // let child_styles = make_styles!(
-    // 	Width(32 pt),
-    // 	Height(32 pt),
-    // 	Margin(Auto),
-    // 	FlexGrow(1.0)
-    // );
+    {
+        let mut child_styles = |c| {
+            tree.apply_style(c, Width(32.points()));
+            tree.apply_style(c, Height(32.points()));
+            tree.apply_style(
+                c,
+                Margin {
+                    all: Some(Auto),
+                    ..Default::default()
+                },
+            );
+            tree.apply_style(c, FlexGrow(r32(1.0)));
+        };
 
-    // child.apply_styles(&child_styles);
-    // other_child.apply_styles(&child_styles);
+        child_styles(child);
+        child_styles(other_child);
+    }
 
     println!("Layout is {:#?}", tree.get_layout());
 }
